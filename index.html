@@ -277,6 +277,31 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .menu-sep{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin:1rem 1.25rem .5rem;}
 .menu-info{margin:1rem 1.25rem;padding:.8rem 1rem;background:var(--fire-glow);border:1px solid rgba(255,107,43,.2);border-radius:var(--radius-sm);font-size:12px;color:var(--fire3);line-height:1.5;text-align:center;}
 .menu-info strong{color:var(--fire);}
+
+/* ══ CART ══ */
+.cart-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:linear-gradient(130deg,var(--fire),var(--fire2));padding:.85rem 1.25rem;display:flex;align-items:center;gap:10px;z-index:20;cursor:pointer;box-shadow:0 -4px 24px rgba(0,0,0,.4);}
+.cart-bar-left{font-size:14px;font-weight:600;color:#fff;flex:1;}
+.cart-bar-total{font-family:var(--font-d);font-size:24px;color:#fff;}
+.cart-bar-btn{font-size:12px;font-weight:700;color:rgba(255,255,255,.8);background:rgba(0,0,0,.15);padding:5px 12px;border-radius:99px;}
+.mi{cursor:pointer;position:relative;}
+.mi:active{border-color:var(--fire);transform:scale(.98);}
+.mi-qty{position:absolute;top:-6px;right:-6px;width:24px;height:24px;background:var(--fire);color:#fff;border-radius:50%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(255,107,43,.4);}
+.cart-item{display:flex;align-items:center;gap:12px;padding:.8rem 0;border-bottom:1px solid var(--border);}
+.cart-item-info{flex:1;}
+.cart-item-name{font-size:14px;font-weight:600;color:var(--text);}
+.cart-item-price{font-size:12px;color:var(--text3);}
+.cart-item-total{font-family:var(--font-d);font-size:20px;color:var(--fire);}
+.cart-qty-ctrl{display:flex;align-items:center;gap:8px;}
+.cart-qty-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--border2);background:var(--coal3);color:var(--text);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.cart-qty-btn:active{background:var(--coal5);}
+.cart-qty-val{font-family:var(--font-d);font-size:22px;color:var(--text);min-width:24px;text-align:center;}
+.cart-total-box{background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem;margin:1rem 0;display:flex;justify-content:space-between;align-items:center;}
+.cart-total-lbl{font-size:14px;font-weight:600;color:var(--text2);}
+.cart-total-val{font-family:var(--font-d);font-size:36px;color:var(--fire);}
+.cart-pts-info{font-size:12px;color:var(--fire3);margin-top:4px;}
+.cart-recap{background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-line;}
+.cart-recap strong{color:var(--text);}
+
 .menu-tabs{display:flex;gap:6px;padding:.75rem 1.25rem;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:0;}
 .menu-tabs::-webkit-scrollbar{display:none;}
 .mtab{padding:.4rem .8rem;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid var(--border);color:var(--text3);background:var(--coal3);transition:all .15s;flex-shrink:0;}
@@ -436,18 +461,18 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 
 <!-- MENU -->
 <div class="page" id="page-menu">
-  <div class="topbar"><button class="tbback" onclick="go('page-home')">←</button><div class="tbtitle">Notre Carte</div><div class="tbbadge">🔥 Braisé</div></div>
+  <div class="topbar"><button class="tbback" onclick="go('page-home')">←</button><div class="tbtitle">Notre Carte</div><div class="tbbadge" id="cart-badge" style="display:none">0</div></div>
   <div class="menu-tabs" id="menu-tabs">
-    <div class="mtab active" onclick="scrollMenuCat('cat-kebabs')">Kebabs</div>
-    <div class="mtab" onclick="scrollMenuCat('cat-tacos')">Tacos</div>
-    <div class="mtab" onclick="scrollMenuCat('cat-salades')">Salades</div>
-    <div class="mtab" onclick="scrollMenuCat('cat-menus')">Menus</div>
-    <div class="mtab" onclick="scrollMenuCat('cat-desserts')">Desserts</div>
+    <div class="mtab active" onclick="scrollMenuCat('cat-kebabs',this)">Kebabs</div>
+    <div class="mtab" onclick="scrollMenuCat('cat-tacos',this)">Tacos</div>
+    <div class="mtab" onclick="scrollMenuCat('cat-salades',this)">Salades</div>
+    <div class="mtab" onclick="scrollMenuCat('cat-menus',this)">Menus</div>
+    <div class="mtab" onclick="scrollMenuCat('cat-desserts',this)">Desserts</div>
   </div>
   <div class="menu-wrap" id="menu-wrap">
 
     <div class="menu-info">
-      <strong>🔥 Cuisson au feu de bois</strong> — Tous nos kebabs sont braisés artisanalement. Servis en sandwich, galette ou pain.
+      <strong>🔥 Cuisson au feu de bois</strong> — Tous nos kebabs sont braisés artisanalement. Servis en sandwich, galette ou pain.<br><strong>Appuyez sur un plat pour l'ajouter au panier.</strong>
     </div>
 
     <!-- KEBABS -->
@@ -455,43 +480,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <div class="menu-cat-title">🥙 Kebabs Signatures</div>
       <div class="menu-cat-sub">En menu +3,50€ (frites + boisson)</div>
     </div>
-    <div class="menu-items">
-      <div class="mi">
-        <div class="mi-ico">🥙</div>
-        <div class="mi-info"><div class="mi-name">Le Classique</div><div class="mi-desc">Kebab braisé, sauce au choix, salade, tomates, oignons rouges.</div></div>
-        <div class="mi-price">8,50€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🥙</div>
-        <div class="mi-info"><div class="mi-name">L'Original</div><div class="mi-desc">Kebab braisé, sauce au choix, oignons caramélisés, maïs, sauce cheddar.</div></div>
-        <div class="mi-price">8,50€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🥙</div>
-        <div class="mi-info"><div class="mi-name">Le Grec</div><div class="mi-desc">Kebab braisé, sauce au choix, feta, oignons rouges, chou rouge.</div></div>
-        <div class="mi-price">9,50€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🥙</div>
-        <div class="mi-info"><div class="mi-name">Le Phénicien</div><div class="mi-desc">Kebab braisé, sauce au choix, poivrons, oignons caramélisés, concombres.</div></div>
-        <div class="mi-price">10,50€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🥙</div>
-        <div class="mi-info"><div class="mi-name">Le Chèvre Miel</div><div class="mi-desc">Kebab braisé, moutarde miel, salade, poivrons, miel, fromage de chèvre.</div></div>
-        <div class="mi-price">10,50€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🥙</div>
-        <div class="mi-info"><div class="mi-name">Le Mexico</div><div class="mi-desc">Kebab braisé, sauce au choix, salade, oignons rouges, jalapenos, sauce cheddar.</div></div>
-        <div class="mi-price">10,50€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🧀</div>
-        <div class="mi-info"><div class="mi-name">Le Burrata</div><div class="mi-desc">Kebab braisé, sauce au choix, salade, burrata, tomates cerises.</div><div class="mi-badge">⭐ Signature</div></div>
-        <div class="mi-price">12,90€</div>
-      </div>
-    </div>
+    <div class="menu-items" id="mi-kebabs"></div>
 
     <div class="menu-sep"></div>
 
@@ -500,28 +489,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <div class="menu-cat-title">🌮 Tacos Signatures</div>
       <div class="menu-cat-sub">En menu +3,50€ · Taille L 11,50€ · Taille XL 14,50€</div>
     </div>
-    <div class="menu-items">
-      <div class="mi">
-        <div class="mi-ico">🌶️</div>
-        <div class="mi-info"><div class="mi-name">Spicy KBB</div><div class="mi-desc">Viande kebab braisée, cheddar, frites, jalapenos, sauce fromagère maison, sauce spicy.</div><div class="mi-badge">🔥 Épicé</div></div>
-        <div class="mi-price">8,50€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🌮</div>
-        <div class="mi-info"><div class="mi-name">Sweet KBB</div><div class="mi-desc">Viande kebab braisée, cheddar, frites, crudités, sauce fromagère maison, sauce mayo.</div></div>
-        <div class="mi-price">8,50€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🐔</div>
-        <div class="mi-info"><div class="mi-name">Spicy Chicken</div><div class="mi-desc">Escalope de poulet, cheddar, frites, crudités, sauce fromagère maison, jalapenos, sauce spicy.</div><div class="mi-badge">🔥 Épicé</div></div>
-        <div class="mi-price">8,50€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🐔</div>
-        <div class="mi-info"><div class="mi-name">Sweet Chicken</div><div class="mi-desc">Escalope de poulet, cheddar, frites, sauce fromagère maison, sauce mayo.</div></div>
-        <div class="mi-price">8,50€</div>
-      </div>
-    </div>
+    <div class="menu-items" id="mi-tacos"></div>
 
     <div class="menu-sep"></div>
 
@@ -529,23 +497,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
     <div class="menu-cat" id="cat-salades">
       <div class="menu-cat-title">🥗 Salades Kebab</div>
     </div>
-    <div class="menu-items">
-      <div class="mi">
-        <div class="mi-ico">🥢</div>
-        <div class="mi-info"><div class="mi-name">L'Asia</div><div class="mi-desc">Kebab braisé, chou chinois, concombre, chou rouge, oignons crispy, vinaigrette, graines de sésame.</div></div>
-        <div class="mi-price">14,90€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🧀</div>
-        <div class="mi-info"><div class="mi-name">La Burrata</div><div class="mi-desc">Kebab braisé, salade, burrata, tomates cerises, oignons, crème balsamique, oignons crispy, sauce vinaigrette.</div><div class="mi-badge">⭐ Signature</div></div>
-        <div class="mi-price">16,90€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🫒</div>
-        <div class="mi-info"><div class="mi-name">La Libanaise</div><div class="mi-desc">Kebab braisé, salade, tomates cerises, houmous, oignons, pain grillé, sauce tahini.</div></div>
-        <div class="mi-price">16,90€</div>
-      </div>
-    </div>
+    <div class="menu-items" id="mi-salades"></div>
 
     <div class="menu-sep"></div>
 
@@ -553,18 +505,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
     <div class="menu-cat" id="cat-menus">
       <div class="menu-cat-title">🥡 Menus & Formules</div>
     </div>
-    <div class="menu-items">
-      <div class="mi">
-        <div class="mi-ico">👶</div>
-        <div class="mi-info"><div class="mi-name">Menu Junior</div><div class="mi-desc">Mini kebab braisé (salade, tomates, sauce ketchup) + frites junior + boisson 33cl.</div></div>
-        <div class="mi-price">7,90€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🍟</div>
-        <div class="mi-info"><div class="mi-name">Supplément Menu</div><div class="mi-desc">Transformez n'importe quel kebab ou tacos en menu : frites + boisson.</div></div>
-        <div class="mi-price">+3,50€</div>
-      </div>
-    </div>
+    <div class="menu-items" id="mi-menus"></div>
 
     <div class="menu-sep"></div>
 
@@ -572,28 +513,30 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
     <div class="menu-cat" id="cat-desserts">
       <div class="menu-cat-title">🍰 Desserts Maison</div>
     </div>
-    <div class="menu-items">
-      <div class="mi">
-        <div class="mi-ico">🍮</div>
-        <div class="mi-info"><div class="mi-name">Panna Cotta</div><div class="mi-desc">Fait maison, onctueuse et gourmande.</div></div>
-        <div class="mi-price">3,90€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🍫</div>
-        <div class="mi-info"><div class="mi-name">Mousse au Chocolat</div><div class="mi-desc">Fait maison, chocolat noir intense.</div></div>
-        <div class="mi-price">3,90€</div>
-      </div>
-      <div class="mi">
-        <div class="mi-ico">🍨</div>
-        <div class="mi-info"><div class="mi-name">Mövenpick</div><div class="mi-desc">2 parfums au choix + 1 coulis au choix + 1 topping au choix.</div><div class="mi-badge">⭐ Premium</div></div>
-        <div class="mi-price">4,90€</div>
-      </div>
+    <div class="menu-items" id="mi-desserts"></div>
+
+    <div class="menu-info" style="margin-bottom:6rem;">
+      📞 <strong>09.81.50.27.57</strong><br>5 rue François Xavier Bichat — 39100 Dole
     </div>
 
-    <div class="menu-info" style="margin-bottom:1rem;">
-      📞 <strong>09.81.50.27.57</strong><br>5 rue François Xavier Bichat — 39100 Dole<br>Également sur <strong>Uber Eats</strong>
-    </div>
+  </div>
 
+  <!-- CART BAR -->
+  <div class="cart-bar" id="cart-bar" style="display:none;" onclick="showCart()">
+    <div class="cart-bar-left">🛒 <span id="cart-bar-count">0</span> article(s)</div>
+    <div class="cart-bar-total" id="cart-bar-total">0,00€</div>
+    <div class="cart-bar-btn">Voir le panier →</div>
+  </div>
+</div>
+
+<!-- CART PAGE -->
+<div class="page" id="page-cart">
+  <div class="topbar"><button class="tbback" onclick="go('page-menu')">←</button><div class="tbtitle">Mon panier</div></div>
+  <div class="wrap">
+    <div id="cart-items"></div>
+    <div id="cart-total-section"></div>
+    <button class="abtn" onclick="callToOrder()" id="cart-call-btn" style="display:none;">📞 Appeler pour commander</button>
+    <button class="abtn sec" onclick="clearCart()">🗑️ Vider le panier</button>
   </div>
 </div>
 
@@ -643,31 +586,31 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
     <div class="settings-block">
       <h3>🎁 Récompenses (points nécessaires)</h3>
       <div class="set-row">
-        <label>🥤 Récompense 1<small>Ex: Boisson offerte</small></label>
-        <input class="set-inp" type="text" id="set-r1-name" value="Boisson offerte" style="width:130px;font-family:var(--font);font-size:13px;">
+        <label>🥤 Récompense 1<small>Boisson 33cl offerte</small></label>
+        <input class="set-inp" type="text" id="set-r1-name" value="Boisson 33cl offerte" style="width:130px;font-family:var(--font);font-size:13px;">
       </div>
       <div class="set-row">
         <label>Points nécessaires</label>
         <input class="set-inp" type="number" id="set-r1-pts" value="30">
       </div>
       <div class="set-row">
-        <label>🍰 Récompense 2<small>Ex: Dessert offert</small></label>
-        <input class="set-inp" type="text" id="set-r2-name" value="Dessert offert" style="width:130px;font-family:var(--font);font-size:13px;">
+        <label>🍰 Récompense 2<small>Dessert au choix</small></label>
+        <input class="set-inp" type="text" id="set-r2-name" value="Dessert au choix offert" style="width:130px;font-family:var(--font);font-size:13px;">
       </div>
       <div class="set-row">
         <label>Points nécessaires</label>
         <input class="set-inp" type="number" id="set-r2-pts" value="50">
       </div>
       <div class="set-row">
-        <label>🍖 Récompense 3<small>Ex: Plat offert</small></label>
-        <input class="set-inp" type="text" id="set-r3-name" value="Plat offert" style="width:130px;font-family:var(--font);font-size:13px;">
+        <label>🥙 Récompense 3<small>Kebab Classique offert</small></label>
+        <input class="set-inp" type="text" id="set-r3-name" value="Kebab Classique offert" style="width:130px;font-family:var(--font);font-size:13px;">
       </div>
       <div class="set-row">
         <label>Points nécessaires</label>
         <input class="set-inp" type="number" id="set-r3-pts" value="100">
       </div>
       <div class="set-row">
-        <label>👑 Récompense 4<small>Ex: Menu complet offert</small></label>
+        <label>👑 Récompense 4<small>Menu complet offert</small></label>
         <input class="set-inp" type="text" id="set-r4-name" value="Menu complet offert" style="width:130px;font-family:var(--font);font-size:13px;">
       </div>
       <div class="set-row">
@@ -751,9 +694,9 @@ function getSettings(){
 function getRewards(){
   const s=getSettings();
   return [
-    {icon:'🥤',name:s.r1_name||'Boisson offerte',pts:s.r1_pts||30},
-    {icon:'🍰',name:s.r2_name||'Dessert offert',pts:s.r2_pts||50},
-    {icon:'🍖',name:s.r3_name||'Plat offert',pts:s.r3_pts||100},
+    {icon:'🥤',name:s.r1_name||'Boisson 33cl offerte',pts:s.r1_pts||30},
+    {icon:'🍰',name:s.r2_name||'Dessert au choix offert',pts:s.r2_pts||50},
+    {icon:'🥙',name:s.r3_name||'Kebab Classique offert',pts:s.r3_pts||100},
     {icon:'👑',name:s.r4_name||'Menu complet offert',pts:s.r4_pts||200}
   ].filter(r=>r.pts>0);
 }
@@ -775,11 +718,11 @@ function saveSettings(){
   const s={
     seuil: parseFloat(el('set-seuil')?.value)||50,
     tranche: parseFloat(el('set-tranche')?.value)||50,
-    r1_name: el('set-r1-name')?.value||'Boisson offerte',
+    r1_name: el('set-r1-name')?.value||'Boisson 33cl offerte',
     r1_pts: parseInt(el('set-r1-pts')?.value)||30,
-    r2_name: el('set-r2-name')?.value||'Dessert offert',
+    r2_name: el('set-r2-name')?.value||'Dessert au choix offert',
     r2_pts: parseInt(el('set-r2-pts')?.value)||50,
-    r3_name: el('set-r3-name')?.value||'Plat offert',
+    r3_name: el('set-r3-name')?.value||'Kebab Classique offert',
     r3_pts: parseInt(el('set-r3-pts')?.value)||100,
     r4_name: el('set-r4-name')?.value||'Menu complet offert',
     r4_pts: parseInt(el('set-r4-pts')?.value)||200,
@@ -792,11 +735,11 @@ function loadSettingsUI(){
   const el=id=>document.getElementById(id);
   if(el('set-seuil')) el('set-seuil').value=s.seuil||50;
   if(el('set-tranche')) el('set-tranche').value=s.tranche||50;
-  if(el('set-r1-name')) el('set-r1-name').value=s.r1_name||'Boisson offerte';
+  if(el('set-r1-name')) el('set-r1-name').value=s.r1_name||'Boisson 33cl offerte';
   if(el('set-r1-pts')) el('set-r1-pts').value=s.r1_pts||30;
-  if(el('set-r2-name')) el('set-r2-name').value=s.r2_name||'Dessert offert';
+  if(el('set-r2-name')) el('set-r2-name').value=s.r2_name||'Dessert au choix offert';
   if(el('set-r2-pts')) el('set-r2-pts').value=s.r2_pts||50;
-  if(el('set-r3-name')) el('set-r3-name').value=s.r3_name||'Plat offert';
+  if(el('set-r3-name')) el('set-r3-name').value=s.r3_name||'Kebab Classique offert';
   if(el('set-r3-pts')) el('set-r3-pts').value=s.r3_pts||100;
   if(el('set-r4-name')) el('set-r4-name').value=s.r4_name||'Menu complet offert';
   if(el('set-r4-pts')) el('set-r4-pts').value=s.r4_pts||200;
@@ -893,7 +836,7 @@ function lSave(d){localStorage.setItem(LK,JSON.stringify(d));}
 if(!localStorage.getItem(LK)) lSave([
   {id:'demo1',prenom:'Karim',nom:'Benzara',telephone:'0612345678',tel:'0612345678',cagnotte:85,passages:10,history:[
     {type:'g',label:'Commande 25€',amount:'+25 pts',date:'Hier'},
-    {type:'r',label:'🥤 Boisson offerte',amount:'-30 pts',date:'17 mars'},
+    {type:'r',label:'🥤 Boisson 33cl offerte',amount:'-30 pts',date:'17 mars'},
     {type:'g',label:'Commande 40€',amount:'+40 pts',date:'10 mars'},
   ]},
   {id:'demo2',prenom:'Yasmine',nom:'Ouali',telephone:'0698765432',tel:'0698765432',cagnotte:15,passages:3,history:[
@@ -932,16 +875,152 @@ function go(p){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.getElementById(p).classList.add('active');
   if(p==='page-qr') genQR();
+  if(p==='page-menu') initMenu();
   if(p==='page-employee'){refreshEmp();loadSettingsUI();}
   if(p==='page-supa-config'){document.getElementById('supa-url').value=SURL;document.getElementById('supa-key').value=SKEY;}
 }
 
-/* ══ MENU ══ */
-function scrollMenuCat(id){
-  const el=document.getElementById(id);
-  if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+/* ══ MENU & CART ══ */
+const MENU_DATA=[
+  {cat:'kebabs',icon:'🥙',name:'Le Classique',desc:'Kebab braisé, sauce au choix, salade, tomates, oignons rouges.',price:8.50},
+  {cat:'kebabs',icon:'🥙',name:"L'Original",desc:'Kebab braisé, sauce au choix, oignons caramélisés, maïs, sauce cheddar.',price:8.50},
+  {cat:'kebabs',icon:'🥙',name:'Le Grec',desc:'Kebab braisé, sauce au choix, feta, oignons rouges, chou rouge.',price:9.50},
+  {cat:'kebabs',icon:'🥙',name:'Le Phénicien',desc:'Kebab braisé, sauce au choix, poivrons, oignons caramélisés, concombres.',price:10.50},
+  {cat:'kebabs',icon:'🥙',name:'Le Chèvre Miel',desc:'Kebab braisé, moutarde miel, salade, poivrons, miel, fromage de chèvre.',price:10.50},
+  {cat:'kebabs',icon:'🥙',name:'Le Mexico',desc:'Kebab braisé, sauce au choix, salade, oignons rouges, jalapenos, sauce cheddar.',price:10.50},
+  {cat:'kebabs',icon:'🧀',name:'Le Burrata',desc:'Kebab braisé, sauce au choix, salade, burrata, tomates cerises.',price:12.90,badge:'⭐ Signature'},
+  {cat:'tacos',icon:'🌶️',name:'Spicy KBB',desc:'Viande kebab braisée, cheddar, frites, jalapenos, sauce fromagère maison, sauce spicy.',price:8.50,badge:'🔥 Épicé'},
+  {cat:'tacos',icon:'🌮',name:'Sweet KBB',desc:'Viande kebab braisée, cheddar, frites, crudités, sauce fromagère maison, sauce mayo.',price:8.50},
+  {cat:'tacos',icon:'🐔',name:'Spicy Chicken',desc:'Escalope de poulet, cheddar, frites, crudités, sauce fromagère, jalapenos, sauce spicy.',price:8.50,badge:'🔥 Épicé'},
+  {cat:'tacos',icon:'🐔',name:'Sweet Chicken',desc:'Escalope de poulet, cheddar, frites, sauce fromagère maison, sauce mayo.',price:8.50},
+  {cat:'salades',icon:'🥢',name:"L'Asia",desc:'Kebab braisé, chou chinois, concombre, chou rouge, oignons crispy, vinaigrette, graines de sésame.',price:14.90},
+  {cat:'salades',icon:'🧀',name:'La Burrata',desc:'Kebab braisé, salade, burrata, tomates cerises, oignons, crème balsamique, oignons crispy.',price:16.90,badge:'⭐ Signature'},
+  {cat:'salades',icon:'🫒',name:'La Libanaise',desc:'Kebab braisé, salade, tomates cerises, houmous, oignons, pain grillé, sauce tahini.',price:16.90},
+  {cat:'menus',icon:'👶',name:'Menu Junior',desc:'Mini kebab braisé (salade, tomates, ketchup) + frites junior + boisson 33cl.',price:7.90},
+  {cat:'menus',icon:'🍟',name:'Supplément Menu',desc:'Frites + boisson avec n\'importe quel kebab ou tacos.',price:3.50},
+  {cat:'desserts',icon:'🍮',name:'Panna Cotta',desc:'Fait maison, onctueuse et gourmande.',price:3.90},
+  {cat:'desserts',icon:'🍫',name:'Mousse au Chocolat',desc:'Fait maison, chocolat noir intense.',price:3.90},
+  {cat:'desserts',icon:'🍨',name:'Mövenpick',desc:'2 parfums au choix + 1 coulis au choix + 1 topping au choix.',price:4.90,badge:'⭐ Premium'},
+];
+let cart=[];
+
+function initMenu(){
+  const cats=['kebabs','tacos','salades','menus','desserts'];
+  cats.forEach(cat=>{
+    const el=document.getElementById('mi-'+cat);
+    if(!el)return;
+    const items=MENU_DATA.filter(m=>m.cat===cat);
+    el.innerHTML=items.map((m,i)=>{
+      const idx=MENU_DATA.indexOf(m);
+      const qty=cart.filter(c=>c===idx).length;
+      return `<div class="mi" onclick="addToCart(${idx})" style="transition:transform .1s;">
+        ${qty?`<div class="mi-qty">${qty}</div>`:''}
+        <div class="mi-ico">${m.icon}</div>
+        <div class="mi-info"><div class="mi-name">${m.name}</div><div class="mi-desc">${m.desc}</div>${m.badge?`<div class="mi-badge">${m.badge}</div>`:''}</div>
+        <div class="mi-price">${m.price.toFixed(2).replace('.',',')}€</div>
+      </div>`;
+    }).join('');
+  });
+}
+
+function addToCart(idx){
+  cart.push(idx);
+  updateCartBar();
+  initMenu();
+  showToast(`✓ ${MENU_DATA[idx].name} ajouté`);
+}
+
+function updateCartBar(){
+  const bar=document.getElementById('cart-bar');
+  const badge=document.getElementById('cart-badge');
+  const count=cart.length;
+  const total=cart.reduce((s,idx)=>s+MENU_DATA[idx].price,0);
+  if(count>0){
+    bar.style.display='flex';
+    badge.style.display='';
+    badge.textContent=count;
+    document.getElementById('cart-bar-count').textContent=count;
+    document.getElementById('cart-bar-total').textContent=total.toFixed(2).replace('.',',')+' €';
+  } else {
+    bar.style.display='none';
+    badge.style.display='none';
+  }
+}
+
+function showCart(){
+  go('page-cart');
+  renderCart();
+}
+
+function renderCart(){
+  const items=document.getElementById('cart-items');
+  const totalSection=document.getElementById('cart-total-section');
+  const callBtn=document.getElementById('cart-call-btn');
+  if(!cart.length){
+    items.innerHTML='<div class="empty"><div class="big">🛒</div><p>Votre panier est vide</p></div>';
+    totalSection.innerHTML='';
+    callBtn.style.display='none';
+    return;
+  }
+  // Group by item
+  const grouped={};
+  cart.forEach(idx=>{grouped[idx]=(grouped[idx]||0)+1;});
+  const total=cart.reduce((s,idx)=>s+MENU_DATA[idx].price,0);
+  const pts=Math.floor(total);
+
+  items.innerHTML=Object.entries(grouped).map(([idx,qty])=>{
+    const m=MENU_DATA[idx];
+    return `<div class="cart-item">
+      <div class="cart-qty-ctrl">
+        <button class="cart-qty-btn" onclick="cartMinus(${idx})">−</button>
+        <div class="cart-qty-val">${qty}</div>
+        <button class="cart-qty-btn" onclick="addToCart(${idx});renderCart();">+</button>
+      </div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${m.icon} ${m.name}</div>
+        <div class="cart-item-price">${m.price.toFixed(2).replace('.',',')}€ / unité</div>
+      </div>
+      <div class="cart-item-total">${(m.price*qty).toFixed(2).replace('.',',')}€</div>
+    </div>`;
+  }).join('');
+
+  totalSection.innerHTML=`
+    <div class="cart-total-box">
+      <div>
+        <div class="cart-total-lbl">Total</div>
+        <div class="cart-pts-info">🔥 +${pts} points fidélité</div>
+      </div>
+      <div class="cart-total-val">${total.toFixed(2).replace('.',',')}€</div>
+    </div>
+    <div class="cart-recap" id="cart-recap"><strong>Récapitulatif à dicter au téléphone :</strong>\n${Object.entries(grouped).map(([idx,qty])=>`${qty}x ${MENU_DATA[idx].name} (${(MENU_DATA[idx].price*qty).toFixed(2).replace('.',',')}€)`).join('\n')}\n\n<strong>Total : ${total.toFixed(2).replace('.',',')}€</strong></div>`;
+  callBtn.style.display='';
+}
+
+function cartMinus(idx){
+  const i=cart.lastIndexOf(parseInt(idx));
+  if(i>-1) cart.splice(i,1);
+  updateCartBar();
+  initMenu();
+  renderCart();
+}
+
+function clearCart(){
+  cart=[];
+  updateCartBar();
+  initMenu();
+  go('page-menu');
+  showToast('Panier vidé');
+}
+
+function callToOrder(){
+  window.location.href='tel:0981502757';
+}
+
+function scrollMenuCat(id,el){
+  const target=document.getElementById(id);
+  if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
   document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
-  event.target.classList.add('active');
+  if(el) el.classList.add('active');
 }
 
 /* ══ QR ══ */
