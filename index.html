@@ -221,6 +221,43 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .ha.g{color:var(--fire3);}
 .ha.u{color:var(--green);}
 
+/* ══ DASHBOARD PARRAINAGE ══ */
+function renderParrainageDashboard(){
+  const stats=getParrainStats();
+  const ldb=lLoad();
+  const total=stats.reduce((s,x)=>s+x.filleuls,0);
+  const valides=stats.reduce((s,x)=>s+x.valides,0);
+  const attente=stats.reduce((s,x)=>s+x.attente,0);
+  const suspects=stats.filter(x=>x.filleuls>0&&x.valides/x.filleuls<0.3);
+  const mois=getParrainageMonth();
+  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
+    <div class="dash-card"><div class="dash-val">${total}</div><div class="dash-lbl">Parrainages ce mois</div></div>
+    <div class="dash-card"><div class="dash-val" style="color:var(--green)">${valides}</div><div class="dash-lbl">Validés</div></div>
+    <div class="dash-card"><div class="dash-val" style="color:var(--gold)">${attente}</div><div class="dash-lbl">En attente</div></div>
+    <div class="dash-card"><div class="dash-val" style="color:${suspects.length>0?'var(--fire)':'var(--green)'}">${suspects.length}</div><div class="dash-lbl">Suspects</div></div>
+  </div>`;
+  if(stats.length===0){html+='<div class="empty"><p>Aucun parrainage pour le moment</p></div>';}
+  else{
+    html+='<div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:.5rem;">Détail par parrain</div>';
+    stats.sort((a,b)=>b.filleuls-a.filleuls).forEach(s=>{
+      const taux=s.filleuls>0?Math.round(s.valides/s.filleuls*100):0;
+      const suspect=taux<30&&s.filleuls>=2;
+      const parrainClient=ldb.find(x=>(x.tel===s.tel||x.telephone===s.tel));
+      const nom=parrainClient?(parrainClient.prenom+' '+parrainClient.nom):s.tel;
+      const compteur=parrainClient&&parrainClient.parrain_mois_count?parrainClient.parrain_mois_count[mois]||0:0;
+      html+=`<div style="background:${suspect?'rgba(255,107,43,.07)':'var(--coal3)'};border:1px solid ${suspect?'rgba(255,107,43,.2)':'var(--border)'};border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:7px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-weight:700;font-size:13px;">${nom}</span>
+          <span style="font-size:11px;background:${suspect?'rgba(255,107,43,.15)':'rgba(76,175,116,.12)'};color:${suspect?'var(--fire3)':'var(--green)'};border-radius:99px;padding:3px 8px;">${suspect?'⚠ Suspect':'✓ OK'}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3);">${s.filleuls} filleul${s.filleuls>1?'s':''} · ${s.valides} validé${s.valides>1?'s':''} · ${compteur}/5 ce mois · taux ${taux}%</div>
+        ${suspect?`<div style="font-size:11px;color:var(--fire3);margin-top:4px;">Taux de conversion faible — surveiller</div>`:''}
+      </div>`;
+    });
+  }
+  return html;
+}
+
 /* ══ DASHBOARD ══ */
 
 /* ══ OVERLAY ══ */
@@ -410,7 +447,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <span style="font-size:18px;flex-shrink:0">🔥</span>
       <p><strong>1€ dépensé = 1 point !</strong> Cumulez des points et débloquez des récompenses : boisson offerte, dessert, plat… Plus vous commandez, plus vous gagnez !</p>
     </div>
-    <div class="field"><label>Prénom</label><input type="text" id="reg-prenom" placeholder="Ex : Karim"></div>
+    <div class="field"><label>Prénom</label><input type="text" id="reg-prenom" placeholder="Ex : Théo"></div>
     <div class="field"><label>Nom</label><input type="text" id="reg-nom" placeholder="Ex : Benzara"></div>
     <div class="field"><label>Téléphone</label><input type="tel" id="reg-tel" placeholder="06 12 34 56 78"></div>
     <div class="field"><label>Code secret</label><input type="password" id="reg-code" placeholder="Ex : 4 chiffres de votre choix" maxlength="10"></div>
@@ -430,7 +467,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <div style="font-size:13px;color:var(--text3);margin-bottom:.75rem;text-align:center;">Connexion rapide pour</div>
       <div id="quick-login-name" style="font-size:16px;font-weight:700;color:var(--text);text-align:center;margin-bottom:1rem;"></div>
       <div id="quick-pin-zone" style="display:none;">
-        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:1rem;" id="quick-dots">
+        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:1rem;">
           <div class="pin-dot" id="qd0"></div><div class="pin-dot" id="qd1"></div><div class="pin-dot" id="qd2"></div><div class="pin-dot" id="qd3"></div>
         </div>
         <div class="pin-grid" style="max-width:260px;margin:0 auto;">
@@ -442,26 +479,26 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
         <div id="quick-pin-err" style="color:#e74c3c;text-align:center;font-size:13px;margin-top:.5rem;min-height:18px;"></div>
       </div>
       <div id="quick-auto-zone" style="display:none;">
-        <button class="abtn" onclick="quickAutoLogin()" style="margin-bottom:.75rem;">⚡ Accéder à mes points →</button>
+        <button class="abtn" onclick="quickAutoLogin()">⚡ Accéder à mes points →</button>
       </div>
-      <button onclick="resetQuickLogin()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;width:100%;text-align:center;padding:.5rem;">Ce n'est pas moi →</button>
+      <button onclick="resetQuickLogin()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;width:100%;text-align:center;padding:.75rem 0 0;">Ce n'est pas moi →</button>
     </div>
     <div id="normal-login-zone">
       <div class="field"><label>Numéro de téléphone</label><input type="tel" id="login-tel" placeholder="06 12 34 56 78"></div>
+      <div class="field"><label>Code parrain (optionnel)</label><input type="tel" id="login-parrain" placeholder="N° téléphone du parrain"></div>
       <div class="field"><label>Code secret</label><input type="password" id="login-code" placeholder="Votre code secret"></div>
       <button class="abtn" onclick="clientLogin()">Accéder à mes points →</button>
     </div>
   </div>
 </div>
 
-<!-- CHOIX CONNEXION RAPIDE OVERLAY -->
 <div id="overlay-quick-choice" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:flex-end;justify-content:center;">
   <div style="background:var(--coal2);border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:430px;">
     <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:.5rem;text-align:center;">Connexion rapide</div>
-    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1.5rem;">Comment voulez-vous vous connecter la prochaine fois ?</div>
+    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1.5rem;">Comment vous connecter la prochaine fois ?</div>
     <button onclick="setupQuickLogin('pin')" style="width:100%;background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem 1.25rem;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;text-align:left;margin-bottom:.75rem;display:flex;align-items:center;gap:12px;">
       <span style="font-size:24px;">🔢</span>
-      <div><div style="font-weight:700;margin-bottom:2px;">PIN rapide</div><div style="font-size:12px;color:var(--text3);">4 chiffres à mémoriser — idéal si vous partagez votre téléphone</div></div>
+      <div><div style="font-weight:700;margin-bottom:2px;">PIN rapide</div><div style="font-size:12px;color:var(--text3);">4 chiffres — idéal si vous partagez votre téléphone</div></div>
     </button>
     <button onclick="setupQuickLogin('auto')" style="width:100%;background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem 1.25rem;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;text-align:left;margin-bottom:.75rem;display:flex;align-items:center;gap:12px;">
       <span style="font-size:24px;">⚡</span>
@@ -879,12 +916,12 @@ const LK='kbb_local_v4';
 function lLoad(){try{return JSON.parse(localStorage.getItem(LK)||'[]');}catch(e){return[];}}
 function lSave(d){localStorage.setItem(LK,JSON.stringify(d));}
 if(!localStorage.getItem(LK)) lSave([
-  {id:'demo1',prenom:'Karim',nom:'Benzara',telephone:'0612345678',tel:'0612345678',cagnotte:85,passages:10,history:[
+  {id:'demo1',prenom:'Lucas',nom:'Bernard',telephone:'0612345678',tel:'0612345678',cagnotte:85,passages:10,parrain_de:['demo2'],parrain_status:'valide',parrain_mois:1,history:[
     {type:'g',label:'Commande 25€',amount:'+25 pts',date:'Hier'},
     {type:'r',label:'🥤 Boisson 33cl offerte',amount:'-30 pts',date:'17 mars'},
     {type:'g',label:'Commande 40€',amount:'+40 pts',date:'10 mars'},
   ]},
-  {id:'demo2',prenom:'Yasmine',nom:'Ouali',telephone:'0698765432',tel:'0698765432',cagnotte:15,passages:3,history:[
+  {id:'demo2',prenom:'Camille',nom:'Fontaine',telephone:'0698765432',tel:'0698765432',cagnotte:15,passages:3,parrain_code:'0698765432',history:[
     {type:'g',label:'Commande 15€',amount:'+15 pts',date:'16 mars'},
   ]},
 ]);
@@ -1131,9 +1168,8 @@ async function registerClient(){
 
 /* ══ CLIENT LOGIN ══ */
 /* ══ QUICK LOGIN ══ */
-let quickLoginTel='';
-let quickPinVal='';
 let quickLoginClient=null;
+let quickPinVal='';
 
 function initLoginPage(){
   const saved=localStorage.getItem('kbb_quick_login');
@@ -1143,7 +1179,6 @@ function initLoginPage(){
     return;
   }
   const d=JSON.parse(saved);
-  quickLoginTel=d.tel;
   document.getElementById('quick-login-name').textContent=d.prenom+' '+d.nom;
   document.getElementById('quick-login-zone').style.display='block';
   document.getElementById('normal-login-zone').style.display='none';
@@ -1157,41 +1192,34 @@ function initLoginPage(){
 }
 
 function resetQuickLogin(){
-  quickLoginTel='';quickPinVal='';quickLoginClient=null;
+  quickPinVal='';quickLoginClient=null;
   document.getElementById('quick-login-zone').style.display='none';
   document.getElementById('normal-login-zone').style.display='block';
 }
 
 function qpk(k){
   if(quickPinVal.length>=4)return;
-  quickPinVal+=k;
-  updateQDots();
-  if(quickPinVal.length===4) checkQuickPin();
+  quickPinVal+=k;updateQDots();
+  if(quickPinVal.length===4)checkQuickPin();
 }
 function qpdel(){quickPinVal=quickPinVal.slice(0,-1);updateQDots();}
 function updateQDots(){
-  for(let i=0;i<4;i++){
-    const d=document.getElementById('qd'+i);
-    if(d) d.classList.toggle('filled',i<quickPinVal.length);
-  }
+  for(let i=0;i<4;i++){const d=document.getElementById('qd'+i);if(d)d.classList.toggle('filled',i<quickPinVal.length);}
 }
-
 async function checkQuickPin(){
   const saved=localStorage.getItem('kbb_quick_login');
   if(!saved){resetQuickLogin();return;}
   const d=JSON.parse(saved);
   if(quickPinVal!==d.pin){
     document.getElementById('quick-pin-err').textContent='PIN incorrect';
-    quickPinVal='';updateQDots();
-    return;
+    quickPinVal='';updateQDots();return;
   }
   document.getElementById('quick-pin-err').textContent='';
   const c=await dbByTel(d.tel);
   if(!c){showToast('Compte introuvable');return;}
   renderPortal(c);go('page-client-portal');
-  showToast('✓ Connecté avec ton PIN');
+  showToast('✓ Connecté avec ton PIN 🔢');
 }
-
 async function quickAutoLogin(){
   const saved=localStorage.getItem('kbb_quick_login');
   if(!saved){resetQuickLogin();return;}
@@ -1200,54 +1228,124 @@ async function quickAutoLogin(){
   if(!c){showToast('Compte introuvable');return;}
   renderPortal(c);go('page-client-portal');
 }
-
 function showQuickChoice(client){
   quickLoginClient=client;
-  const overlay=document.getElementById('overlay-quick-choice');
-  overlay.style.display='flex';
+  document.getElementById('overlay-quick-choice').style.display='flex';
 }
 function dismissQuickChoice(){
   document.getElementById('overlay-quick-choice').style.display='none';
 }
-
 function setupQuickLogin(mode){
   dismissQuickChoice();
   if(!quickLoginClient)return;
   if(mode==='pin'){
     const pin=prompt('Choisissez un code PIN à 4 chiffres :');
-    if(!pin||pin.length!==4||!/^\d{4}$/.test(pin)){
-      showToast('PIN invalide — doit faire 4 chiffres');return;
-    }
+    if(!pin||pin.length!==4||!/^\d{4}$/.test(pin)){showToast('PIN invalide — 4 chiffres requis');return;}
     localStorage.setItem('kbb_quick_login',JSON.stringify({
       tel:quickLoginClient.tel||quickLoginClient.telephone,
-      prenom:quickLoginClient.prenom,
-      nom:quickLoginClient.nom,
-      mode:'pin',pin
+      prenom:quickLoginClient.prenom,nom:quickLoginClient.nom,mode:'pin',pin
     }));
-    showToast('✓ PIN activé ! Plus rapide la prochaine fois 🔢');
+    showToast('✓ PIN activé ! Connexion rapide disponible 🔢');
   } else {
     localStorage.setItem('kbb_quick_login',JSON.stringify({
       tel:quickLoginClient.tel||quickLoginClient.telephone,
-      prenom:quickLoginClient.prenom,
-      nom:quickLoginClient.nom,
-      mode:'auto'
+      prenom:quickLoginClient.prenom,nom:quickLoginClient.nom,mode:'auto'
     }));
     showToast('✓ Connexion automatique activée ⚡');
   }
 }
 
+/* ══ PARRAINAGE ══ */
+function getParrainageMonth(){return new Date().getFullYear()+'-'+(new Date().getMonth()+1);}
+
+async function activerParrainage(filleul, parrainTel){
+  const parrain=await dbByTel(parrainTel);
+  if(!parrain){return;}
+  const mois=getParrainageMonth();
+  const compteur=parrain.parrain_mois_count||{};
+  const nbCeMois=compteur[mois]||0;
+  const statut=nbCeMois>=5?'attente_mois':'en_attente_commande';
+  const filleulUpdate={parrain_tel:parrainTel,parrain_status:statut,parrain_mois:mois};
+  await dbUpdate(filleul.id,filleulUpdate);
+  if(statut==='en_attente_commande'){
+    compteur[mois]=nbCeMois+1;
+    await dbUpdate(parrain.id,{parrain_mois_count:compteur});
+  }
+  const ldb=lLoad();
+  const li=ldb.findIndex(x=>x.id===filleul.id);
+  if(li>=0){Object.assign(ldb[li],filleulUpdate);lSave(ldb);}
+  if(statut==='attente_mois'){
+    showToast('Code parrain enregistré — bonus activé le 1er du mois prochain 📅');
+  }
+}
+
+async function verifierParrainageFilleul(client, montant){
+  if(!client.parrain_tel||client.parrain_status==='valide') return;
+  const mois=getParrainageMonth();
+  if(client.parrain_status==='attente_mois'){
+    if(client.parrain_mois===mois) return;
+    await dbUpdate(client.id,{parrain_status:'en_attente_commande'});
+    const ldb=lLoad();const li=ldb.findIndex(x=>x.id===client.id);
+    if(li>=0){ldb[li].parrain_status='en_attente_commande';lSave(ldb);}
+  }
+  if(client.parrain_status==='en_attente_commande' && montant>=8){
+    await dbUpdate(client.id,{parrain_status:'valide'});
+    const ldb=lLoad();const li=ldb.findIndex(x=>x.id===client.id);
+    if(li>=0){ldb[li].parrain_status='valide';lSave(ldb);}
+    const parrain=await dbByTel(client.parrain_tel);
+    if(parrain){
+      const newPts=(parseFloat(parrain.cagnotte)||0)+15;
+      await dbUpdate(parrain.id,{cagnotte:newPts});
+      const ldbP=lLoad();const lip=ldbP.findIndex(x=>x.id===parrain.id);
+      if(lip>=0){
+        ldbP[lip].cagnotte=newPts;
+        ldbP[lip].history=ldbP[lip].history||[];
+        ldbP[lip].history.push({type:'g',label:'🎉 Parrainage validé — '+client.prenom,amount:'+15 pts',date:new Date().toLocaleDateString('fr')});
+        lSave(ldbP);
+      }
+      showToast('🎉 Parrainage validé ! +20 pts pour '+client.prenom+' · +15 pts pour '+parrain.prenom);
+      const newPtsFilleul=(parseFloat(client.cagnotte)||0)+20;
+      await dbUpdate(client.id,{cagnotte:newPtsFilleul});
+      const ldbF=lLoad();const lif=ldbF.findIndex(x=>x.id===client.id);
+      if(lif>=0){ldbF[lif].cagnotte=newPtsFilleul;lSave(ldbF);}
+    }
+  } else if(client.parrain_status==='en_attente_commande' && montant<8){
+    showToast('⏳ Parrainage en attente — commande min. 8€ requise');
+  }
+}
+
+function getParrainStats(){
+  const ldb=lLoad();
+  const stats={};
+  ldb.forEach(c=>{
+    if(!c.parrain_tel) return;
+    const p=c.parrain_tel;
+    if(!stats[p]) stats[p]={tel:p,filleuls:0,valides:0,attente:0,pts:0};
+    stats[p].filleuls++;
+    if(c.parrain_status==='valide') stats[p].valides++;
+    else stats[p].attente++;
+  });
+  ldb.forEach(c=>{
+    if(stats[c.tel]) stats[c.tel].nom=(c.prenom||'')+' '+(c.nom||'');
+  });
+  return Object.values(stats);
+}
+
+/* ══ CLIENT LOGIN ══ */
 async function clientLogin(){
   const tel=document.getElementById('login-tel').value.replace(/\s/g,'');
   const code=document.getElementById('login-code').value.trim();
+  const parrainTel=(document.getElementById('login-parrain')||{}).value||'';
   if(!tel||!code){showToast('Remplissez tous les champs');return;}
   const c=await dbByTel(tel);
   if(!c){showToast('Numéro introuvable');return;}
   const storedCode=c.code_secret||'';
   if(storedCode && storedCode!==code){showToast('Code secret incorrect');return;}
-  const alreadySaved=localStorage.getItem('kbb_quick_login');
-  if(!alreadySaved){
-    setTimeout(()=>showQuickChoice(c), 600);
+  if(parrainTel && parrainTel!==tel && !c.parrain_tel){
+    await activerParrainage(c, parrainTel.replace(/\s/g,''));
   }
+  const alreadySaved=localStorage.getItem('kbb_quick_login');
+  if(!alreadySaved) setTimeout(()=>showQuickChoice(c),600);
   renderPortal(c);go('page-client-portal');
 }
 
@@ -1394,8 +1492,11 @@ function renderEmpZone(c){
     <div class="cc">
       <div class="cc-top">
         <div class="cc-av">${c.prenom[0]}${c.nom[0]}</div>
-        <div><div class="cc-name">${c.prenom} ${c.nom}</div><div class="cc-tel">${c.tel}</div></div>
+        <div style="flex:1"><div class="cc-name">${c.prenom} ${c.nom}</div><div class="cc-tel">${c.tel}</div></div>
+        ${c.parrain_tel&&c.parrain_status!=='valide'?`<div style="background:${c.parrain_status==='attente_mois'?'rgba(255,184,48,.15)':'rgba(76,175,116,.12)'};color:${c.parrain_status==='attente_mois'?'var(--gold)':'var(--green)'};font-size:11px;font-weight:700;border-radius:99px;padding:4px 10px;">${c.parrain_status==='attente_mois'?'⏳ Filleul — prochain mois':'🎉 Filleul'}</div>`:''}
       </div>
+      ${c.parrain_tel&&c.parrain_status==='en_attente_commande'?`<div style="background:rgba(76,175,116,.1);border:1px solid rgba(76,175,116,.2);border-radius:var(--radius-sm);padding:.6rem .875rem;font-size:12px;color:var(--green);margin-bottom:.875rem;">🎉 Nouveau filleul — parrainé par <strong>${c.parrain_tel}</strong><br>Bonus +20 pts filleul · +15 pts parrain dès 8€</div>`:''}
+      ${c.parrain_tel&&c.parrain_status==='en_attente_commande'?`<div id="parrain-alert" style="display:none;background:rgba(255,107,43,.08);border:1px solid rgba(255,107,43,.2);border-radius:var(--radius-sm);padding:.6rem .875rem;font-size:12px;color:var(--fire3);margin-bottom:.875rem;">⏳ Parrainage en attente — commande min. 8€ requise</div>`:''}
       <div class="cc-stats">
         <div class="cc-stat"><div class="cc-sv">${pts}</div><div class="cc-sl">Points</div></div>
         <div class="cc-stat"><div class="cc-sv">${c.passages}</div><div class="cc-sl">Passages</div></div>
@@ -1523,6 +1624,43 @@ async function validateOrder(){
   }
   showOv('🔥','Commande validée !',msg);
   refreshEmp();
+}
+
+/* ══ DASHBOARD PARRAINAGE ══ */
+function renderParrainageDashboard(){
+  const stats=getParrainStats();
+  const ldb=lLoad();
+  const total=stats.reduce((s,x)=>s+x.filleuls,0);
+  const valides=stats.reduce((s,x)=>s+x.valides,0);
+  const attente=stats.reduce((s,x)=>s+x.attente,0);
+  const suspects=stats.filter(x=>x.filleuls>0&&x.valides/x.filleuls<0.3);
+  const mois=getParrainageMonth();
+  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
+    <div class="dash-card"><div class="dash-val">${total}</div><div class="dash-lbl">Parrainages ce mois</div></div>
+    <div class="dash-card"><div class="dash-val" style="color:var(--green)">${valides}</div><div class="dash-lbl">Validés</div></div>
+    <div class="dash-card"><div class="dash-val" style="color:var(--gold)">${attente}</div><div class="dash-lbl">En attente</div></div>
+    <div class="dash-card"><div class="dash-val" style="color:${suspects.length>0?'var(--fire)':'var(--green)'}">${suspects.length}</div><div class="dash-lbl">Suspects</div></div>
+  </div>`;
+  if(stats.length===0){html+='<div class="empty"><p>Aucun parrainage pour le moment</p></div>';}
+  else{
+    html+='<div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:.5rem;">Détail par parrain</div>';
+    stats.sort((a,b)=>b.filleuls-a.filleuls).forEach(s=>{
+      const taux=s.filleuls>0?Math.round(s.valides/s.filleuls*100):0;
+      const suspect=taux<30&&s.filleuls>=2;
+      const parrainClient=ldb.find(x=>(x.tel===s.tel||x.telephone===s.tel));
+      const nom=parrainClient?(parrainClient.prenom+' '+parrainClient.nom):s.tel;
+      const compteur=parrainClient&&parrainClient.parrain_mois_count?parrainClient.parrain_mois_count[mois]||0:0;
+      html+=`<div style="background:${suspect?'rgba(255,107,43,.07)':'var(--coal3)'};border:1px solid ${suspect?'rgba(255,107,43,.2)':'var(--border)'};border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:7px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-weight:700;font-size:13px;">${nom}</span>
+          <span style="font-size:11px;background:${suspect?'rgba(255,107,43,.15)':'rgba(76,175,116,.12)'};color:${suspect?'var(--fire3)':'var(--green)'};border-radius:99px;padding:3px 8px;">${suspect?'⚠ Suspect':'✓ OK'}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3);">${s.filleuls} filleul${s.filleuls>1?'s':''} · ${s.valides} validé${s.valides>1?'s':''} · ${compteur}/5 ce mois · taux ${taux}%</div>
+        ${suspect?`<div style="font-size:11px;color:var(--fire3);margin-top:4px;">Taux de conversion faible — surveiller</div>`:''}
+      </div>`;
+    });
+  }
+  return html;
 }
 
 /* ══ DASHBOARD ══ */
