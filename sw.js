@@ -1,4 +1,4 @@
-const VERSION = 'kbb-v21'
+const VERSION = 'kbb-v21';
   './',
   './index.html'
 ];
