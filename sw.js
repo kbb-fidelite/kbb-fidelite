@@ -1,7 +1,4 @@
-const VERSION = 'kbb-v20';
-const CACHE = VERSION;
-
-const ASSETS = [
+const VERSION = 'kbb-v21
   './',
   './index.html'
 ];
