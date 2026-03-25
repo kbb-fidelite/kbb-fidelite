@@ -1,4 +1,7 @@
 const VERSION = 'kbb-v21';
+const CACHE = VERSION;
+
+const ASSETS = [
   './',
   './index.html'
 ];
