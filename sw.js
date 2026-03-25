@@ -1,4 +1,4 @@
-const VERSION = 'kbb-v16';
+const VERSION = 'kbb-v17';
 const CACHE = VERSION;
 
 const ASSETS = [
