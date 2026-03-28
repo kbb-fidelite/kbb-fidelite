@@ -515,6 +515,27 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .cmd-btn.done{background:var(--coal5);color:var(--text3);}
 .emp-cmd-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
 .emp-cmd-refresh{font-size:12px;font-weight:600;color:var(--fire);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;}
+/* ══ SUIVI COMMANDE ══ */
+.suivi-hero{padding:1.25rem 1.25rem .75rem;text-align:center;}
+.suivi-order-num{font-size:13px;color:var(--text2);margin-bottom:.25rem;}
+.suivi-items{font-size:12px;color:var(--text3);line-height:1.5;}
+.suivi-timeline{display:flex;flex-direction:column;gap:0;padding:1.25rem 1.25rem 0;}
+.suivi-step{display:flex;gap:14px;align-items:flex-start;position:relative;}
+.suivi-step:not(:last-child)::after{content:'';position:absolute;left:18px;top:38px;width:2px;height:calc(100% + 2px);background:var(--border);}
+.suivi-step.done::after{background:var(--fire);}
+.suivi-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;background:var(--coal3);border:2px solid var(--border);position:relative;z-index:1;}
+.suivi-step.done .suivi-icon{background:var(--fire);border-color:var(--fire);}
+.suivi-step.active .suivi-icon{background:var(--coal3);border-color:var(--fire);box-shadow:0 0 14px rgba(255,107,43,.35);}
+.suivi-step.active .suivi-icon::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--fire);opacity:.5;animation:suivi-pulse 1.5s ease-in-out infinite;}
+@keyframes suivi-pulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.18);opacity:.15}}
+.suivi-step-body{padding:.4rem 0 1.5rem;}
+.suivi-step-label{font-weight:700;font-size:15px;color:var(--text);}
+.suivi-step.inactive .suivi-step-label{color:var(--text3);}
+.suivi-step-sub{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.45;}
+.suivi-pret-banner{margin:1.25rem;padding:1.25rem;background:rgba(76,175,116,.08);border:1px solid rgba(76,175,116,.2);border-radius:var(--radius);text-align:center;}
+.suivi-footer{padding:1rem 1.25rem 2rem;display:flex;flex-direction:column;gap:.75rem;}
+.suivi-poll-hint{font-size:11px;color:var(--text3);text-align:center;}
+.tile-suivi-badge{position:absolute;top:10px;right:10px;background:var(--fire);color:#fff;border-radius:99px;font-size:10px;font-weight:800;padding:2px 8px;z-index:5;letter-spacing:.3px;}
 </style>
 </head>
 <body>
@@ -585,13 +606,14 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       </div>
       <div class="tile-arrow">›</div>
     </div>
-    <div class="tile" onclick="go('page-menu')"
+    <div class="tile" id="tile-commandes" onclick="ouvrirCommandes()"
       style="background-image:url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80&fit=crop')">
       <div class="tile-overlay"></div>
+      <div id="tile-commandes-badge" style="display:none;" class="tile-suivi-badge">⏳ En cours</div>
       <div class="tile-content">
         <span class="tile-icon">🍖</span>
         <div class="tile-title">Mes Commandes</div>
-        <div class="tile-sub">Commander & suivre mon panier</div>
+        <div class="tile-sub" id="tile-commandes-sub">Commander & suivre mon panier</div>
       </div>
       <div class="tile-arrow">›</div>
     </div>
@@ -948,6 +970,21 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
     <div id="cart-order-options"></div>
     <button class="abtn sec" onclick="clearCart()" id="cart-clear-btn" style="display:none;">🗑️ Vider le panier</button>
   </div>
+</div>
+
+<!-- SUIVI COMMANDE -->
+<div class="page" id="page-suivi">
+  <div class="topbar">
+    <button class="tbback" onclick="goBack()">←</button>
+    <div class="tbtitle">Ma commande</div>
+  </div>
+  <div class="suivi-hero">
+    <div class="suivi-order-num" id="suivi-order-num"></div>
+    <div class="suivi-items" id="suivi-items"></div>
+  </div>
+  <div class="suivi-timeline" id="suivi-timeline"></div>
+  <div id="suivi-pret-banner"></div>
+  <div class="suivi-footer" id="suivi-footer"></div>
 </div>
 
 <!-- PIN -->
@@ -1360,6 +1397,8 @@ function go(p){
   if(p==='page-employee'){refreshEmp();loadSettingsUI();}
   if(p==='page-supa-config'){document.getElementById('supa-url').value=SURL;document.getElementById('supa-key').value=SKEY;}
   if(p==='page-client-login'){initLoginPage();}
+  if(p==='page-dashboard') updateCommandesTile();
+  if(p!=='page-suivi') stopSuiviPolling();
 }
 
 /* ══ MENU & CART ══ */
@@ -1771,11 +1810,30 @@ async function submitClientOrder(){
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
   localOrders.push({...payload,id:'local_'+Date.now()});
   localStorage.setItem('kbb_client_orders',JSON.stringify(localOrders.slice(-100)));
-  // Supabase
-  try{ if(supaOk()) await supaReq('commandes','POST',payload); }catch(e){ console.warn('Order save:',e); }
+  // Supabase — capture returned id for tracking
+  let supaId=null;
+  try{
+    if(supaOk()){
+      const res=await supaReq('commandes','POST',payload);
+      if(res&&res[0]&&res[0].id) supaId=res[0].id;
+    }
+  }catch(e){ console.warn('Order save:',e); }
+  // Stocker la commande active pour le suivi
+  const activeOrder={
+    supaId,
+    statut:'en_attente',
+    type:orderMode,
+    tableNum:orderTableNum,
+    heure:selectedPickupTime,
+    items:itemsText,
+    montant:total.toFixed(2)
+  };
+  setActiveOrder(activeOrder);
+  updateCommandesTile();
   // Confirmation
   const label=orderMode==='table'?'Table n°'+orderTableNum:orderMode==='reservation'?"Réservation — arrivée à "+selectedPickupTime:'Retrait à '+selectedPickupTime;
-  showOv('✅','Commande envoyée !',label+'\n\n'+itemsText+'\n\nTotal : '+total.toFixed(2).replace('.',',')+'€\n\nVotre commande a bien été transmise à la cuisine.');
+  pendingNavAfterOv='page-suivi';
+  showOv('✅','Commande envoyée !',label+'\n\nVotre commande a bien été transmise à la cuisine.\n\nSuivez l\'avancement en temps réel →');
   // Reset
   cart=[];orderMode=null;orderTableNum='';selectedPickupTime='';
   updateCartBar();
@@ -3168,10 +3226,118 @@ function showOv(ic,ti,su){
   document.getElementById('ov-su').textContent=su;
   document.getElementById('overlay').classList.add('show');
 }
+let pendingNavAfterOv=null;
 function closeOv(){
   document.getElementById('overlay').classList.remove('show');
-  if(empClient) renderEmpZone(empClient);
-  else go('page-home');
+  if(empClient){ renderEmpZone(empClient); return; }
+  if(pendingNavAfterOv){
+    const dest=pendingNavAfterOv;
+    pendingNavAfterOv=null;
+    go(dest);
+    if(dest==='page-suivi'){ renderSuivi(); startSuiviPolling(); }
+    return;
+  }
+  go('page-home');
+}
+
+/* ══ SUIVI COMMANDE ══ */
+function getActiveOrder(){try{return JSON.parse(localStorage.getItem('kbb_active_order')||'null');}catch(e){return null;}}
+function setActiveOrder(o){if(o)localStorage.setItem('kbb_active_order',JSON.stringify(o));else localStorage.removeItem('kbb_active_order');}
+
+function updateCommandesTile(){
+  const o=getActiveOrder();
+  const badge=document.getElementById('tile-commandes-badge');
+  const sub=document.getElementById('tile-commandes-sub');
+  if(!badge||!sub) return;
+  if(o&&o.supaId){
+    const labels={en_attente:'⏳ En attente',en_cours:'🔥 En préparation',pret:'✅ Prête !'};
+    badge.textContent=labels[o.statut]||'⏳ En cours';
+    badge.style.display='';
+    sub.textContent='Votre commande : '+labels[o.statut];
+  } else {
+    badge.style.display='none';
+    sub.textContent='Commander & suivre mon panier';
+  }
+}
+
+function ouvrirCommandes(){
+  const o=getActiveOrder();
+  if(o&&o.supaId){ go('page-suivi'); renderSuivi(); startSuiviPolling(); }
+  else go('page-menu');
+}
+
+let suiviInterval=null;
+function stopSuiviPolling(){if(suiviInterval){clearInterval(suiviInterval);suiviInterval=null;}}
+function startSuiviPolling(){
+  stopSuiviPolling();
+  suiviInterval=setInterval(async()=>{
+    const o=getActiveOrder();
+    if(!o||!o.supaId){stopSuiviPolling();return;}
+    try{
+      const rows=await supaReq('commandes?select=statut&id=eq.'+encodeURIComponent(String(o.supaId)));
+      if(rows&&rows[0]){
+        const newStatut=rows[0].statut;
+        if(newStatut!==o.statut){
+          o.statut=newStatut;
+          setActiveOrder(o);
+          renderSuivi();
+          updateCommandesTile();
+          if(newStatut==='pret') showToast('✅ Votre commande est prête !');
+          if(newStatut==='archive'||newStatut==='pret'){stopSuiviPolling();}
+          if(newStatut==='archive'){setActiveOrder(null);updateCommandesTile();}
+        }
+      }
+    }catch(e){console.warn('Suivi poll:',e);}
+  },5000);
+}
+
+function renderSuivi(){
+  const o=getActiveOrder();
+  const numEl=document.getElementById('suivi-order-num');
+  const itemsEl=document.getElementById('suivi-items');
+  const timeline=document.getElementById('suivi-timeline');
+  const pretBanner=document.getElementById('suivi-pret-banner');
+  const footer=document.getElementById('suivi-footer');
+  if(!timeline) return;
+  if(!o){
+    if(numEl) numEl.textContent='';
+    if(itemsEl) itemsEl.textContent='';
+    timeline.innerHTML='<div style="text-align:center;padding:2rem 1rem;color:var(--text2);font-size:14px;">Aucune commande en cours</div>';
+    if(pretBanner) pretBanner.innerHTML='';
+    if(footer) footer.innerHTML=`<button class="abtn" onclick="go('page-menu')">🍖 Passer une commande</button>`;
+    return;
+  }
+  if(numEl){
+    const lbl=o.type==='table'?'Table n°'+o.tableNum:o.type==='reservation'?'Réservation — arrivée à '+o.heure:'Retrait à '+o.heure;
+    numEl.textContent=lbl;
+  }
+  if(itemsEl) itemsEl.textContent=o.items;
+  const STEPS=[
+    {id:'en_attente',icon:'⏳',label:'Commande reçue',sub:'Transmise à la cuisine'},
+    {id:'en_cours',icon:'🔥',label:'En préparation',sub:'Votre commande est en cours de préparation'},
+    {id:'pret',icon:'✅',label:'Prête !',sub:'Venez récupérer votre commande'}
+  ];
+  const idx=STEPS.findIndex(s=>s.id===o.statut);
+  timeline.innerHTML=STEPS.map((s,i)=>{
+    const done=i<idx, active=i===idx, cls=done?'done':active?'active':'inactive';
+    return`<div class="suivi-step ${cls}">
+      <div class="suivi-icon">${s.icon}</div>
+      <div class="suivi-step-body">
+        <div class="suivi-step-label">${s.label}</div>
+        ${(done||active)?`<div class="suivi-step-sub">${s.sub}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  if(pretBanner){
+    pretBanner.innerHTML=o.statut==='pret'?
+      `<div class="suivi-pret-banner"><div style="font-size:36px;margin-bottom:.5rem">🎉</div><div style="font-weight:700;font-size:17px;color:#4CAF74;margin-bottom:.25rem">C'est prêt !</div><div style="font-size:13px;color:var(--text2)">Votre commande vous attend</div></div>`:'';
+  }
+  if(footer){
+    footer.innerHTML=o.statut==='pret'
+      ?`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">Retour à l'accueil</button>`
+      :`<div class="suivi-poll-hint">Mise à jour automatique toutes les 5 secondes…</div>
+        <button class="abtn sec" onclick="stopSuiviPolling();go('page-dashboard')">Retour à l'accueil</button>`;
+  }
 }
 
 /* ══ TOAST ══ */
