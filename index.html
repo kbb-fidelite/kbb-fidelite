@@ -536,6 +536,62 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .suivi-footer{padding:1rem 1.25rem 2rem;display:flex;flex-direction:column;gap:.75rem;}
 .suivi-poll-hint{font-size:11px;color:var(--text3);text-align:center;}
 .tile-suivi-badge{position:absolute;top:10px;right:10px;background:var(--fire);color:#fff;border-radius:99px;font-size:10px;font-weight:800;padding:2px 8px;z-index:5;letter-spacing:.3px;}
+
+/* ══ STICKY MENU TABS ══ */
+.menu-tabs{position:sticky;top:0;z-index:10;background:var(--coal2);border-bottom:1px solid var(--border);padding:.55rem 1.25rem;}
+
+/* ══ IMPROVED MENU CARDS ══ */
+.mi-photo{width:100%;height:190px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0;display:block;margin:0;}
+.mi.has-photo{flex-direction:column;align-items:stretch;padding:0;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.35);}
+.mi.has-photo .mi-body{display:flex;gap:10px;padding:.875rem;}
+.mi:not(.has-photo){box-shadow:0 2px 8px rgba(0,0,0,.2);}
+
+/* ══ PRODUCT POPUP ══ */
+.prod-wrap{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.prod-wrap.show{display:flex;}
+.prod-sheet{background:var(--coal2);border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:92vh;overflow-y:auto;position:relative;transform:translateY(50px);opacity:0;transition:transform .32s cubic-bezier(.34,1.1,.64,1),opacity .22s ease;}
+.prod-wrap.show .prod-sheet{transform:translateY(0);opacity:1;}
+.prod-sheet-photo{width:100%;height:220px;object-fit:cover;border-radius:20px 20px 0 0;display:block;}
+.prod-sheet-nophoto{width:100%;height:160px;background:linear-gradient(135deg,var(--coal3),var(--coal4));border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:center;font-size:72px;}
+.prod-sheet-close{position:absolute;top:.75rem;right:.75rem;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1;}
+.prod-sheet-body{padding:1.25rem 1.25rem 2.5rem;}
+.prod-sheet-name{font-family:var(--font-d);font-size:34px;letter-spacing:1px;color:var(--text);line-height:1.05;}
+.prod-sheet-badges{display:flex;gap:6px;margin:.4rem 0 .75rem;}
+.prod-sheet-desc{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:1.25rem;}
+.prod-opts-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:.65rem;}
+.prod-taille-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem;}
+.prod-taille-btn{padding:.7rem .4rem;background:var(--coal3);border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;text-align:center;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+.prod-taille-btn:active{transform:scale(.95);}
+.prod-taille-btn.sel{border-color:var(--fire);background:rgba(255,107,43,.1);}
+.prod-taille-lbl{font-size:14px;font-weight:700;color:var(--text);}
+.prod-taille-price{font-family:var(--font-d);font-size:17px;color:var(--fire);margin-top:2px;}
+.prod-menu-toggle{display:flex;align-items:center;gap:12px;padding:.9rem;background:var(--coal3);border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:1.25rem;transition:border-color .15s;}
+.prod-menu-toggle:active{transform:scale(.99);}
+.prod-menu-toggle.sel{border-color:var(--fire);background:rgba(255,107,43,.08);}
+.prod-menu-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);background:var(--coal4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:700;transition:all .15s;}
+.prod-menu-toggle.sel .prod-menu-check{background:var(--fire);border-color:var(--fire);color:#fff;}
+.prod-add-btn{width:100%;padding:1.05rem 1.25rem;background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;margin-top:.75rem;box-shadow:0 6px 24px rgba(255,107,43,.4);transition:opacity .15s,transform .12s;display:flex;align-items:center;justify-content:space-between;}
+.prod-add-btn:active{opacity:.88;transform:scale(.99);}
+.prod-add-price{font-family:var(--font-d);font-size:22px;}
+
+/* ══ PAGE TRANSITIONS ══ */
+.page{animation:pgIn .2s ease;}
+@keyframes pgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ══ BUTTON ANIMATIONS ══ */
+.abtn{transition:opacity .15s,transform .12s;}
+.abtn:active{opacity:.88;transform:scale(.99);}
+.home-landing-btn{transition:opacity .15s,transform .12s;}
+.home-landing-btn:active{transform:scale(.98);}
+
+/* ══ DASHBOARD ACCROCHE ══ */
+.dash-accroche{padding:.55rem 1.25rem;background:linear-gradient(90deg,rgba(255,107,43,.1),rgba(255,184,48,.06));border-bottom:1px solid rgba(255,107,43,.18);display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--fire3);}
+.flash-banner{display:flex;align-items:center;gap:8px;padding:.55rem 1.25rem;background:linear-gradient(90deg,rgba(255,107,43,.18),rgba(255,184,48,.1));border-bottom:1px solid rgba(255,107,43,.3);font-size:12px;font-weight:600;color:var(--text);cursor:pointer;}
+.flash-badge{background:var(--fire);color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:.3px;text-transform:uppercase;flex-shrink:0;}
+
+/* ══ DRINK UPSELL ══ */
+.cart-drink-card{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;background:var(--coal3);border:1px solid rgba(79,195,247,.25);border-radius:var(--radius-sm);margin:.5rem 0 .875rem;cursor:pointer;transition:border-color .15s;}
+.cart-drink-card:active{border-color:rgba(79,195,247,.55);}
 </style>
 </head>
 <body>
@@ -584,6 +640,11 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <div class="home-sub-small">Programme de fidélité</div>
     </div>
     <button class="home-emp-btn" onclick="go('page-pin')" title="Espace employé">🔐</button>
+  </div>
+  <div class="dash-accroche">🔥 Braisé artisanalement au feu de bois — Livraison & sur place</div>
+  <div class="flash-banner" id="flash-banner" style="display:none;">
+    <span class="flash-badge">Offre flash</span>
+    <span id="flash-banner-text"></span>
   </div>
   <div class="home-tiles">
     <div class="tile" onclick="go('page-fidelite')"
@@ -843,6 +904,14 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <div><div style="font-weight:700;margin-bottom:2px;">Connexion automatique</div><div style="font-size:12px;color:var(--text3);">Accès direct à l'ouverture — zéro saisie</div></div>
     </button>
     <button onclick="dismissQuickChoice()" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.5rem;">Plus tard</button>
+  </div>
+</div>
+
+<!-- PRODUCT DETAIL POPUP -->
+<div class="prod-wrap" id="prod-wrap" onclick="closeProdSheetOutside(event)">
+  <div class="prod-sheet" id="prod-sheet">
+    <div id="prod-sheet-top" style="position:relative;"></div>
+    <div class="prod-sheet-body" id="prod-sheet-body"></div>
   </div>
 </div>
 
@@ -1490,24 +1559,124 @@ let pendingTaille=null;
 let selectedSupplements=[];
 
 function addToCart(idx){
-  const m=MENU_DATA[idx];
-  pendingIdx=idx;
-  selectedSupplements=[];
+  openProductSheet(idx);
+}
 
-  // Tacos → choix de taille d'abord
+/* ══ PRODUCT SHEET ══ */
+let sheetIdx=null, sheetTaille='M', sheetMenuUpgrade=false;
+
+function openProductSheet(idx){
+  const m=MENU_DATA[idx];
+  sheetIdx=idx;
+  sheetTaille=m.cat==='tacos'?'M':null;
+  sheetMenuUpgrade=false;
+  selectedSupplements=[];
+  pendingIdx=idx;
+
+  const top=document.getElementById('prod-sheet-top');
+  const imgSrc=m.img?IMAGE_MAP[m.img]:null;
+  if(imgSrc){
+    top.innerHTML=`<img class="prod-sheet-photo" src="${imgSrc}" alt="${m.name}">
+      <button class="prod-sheet-close" onclick="closeProdSheet()">✕</button>`;
+  } else {
+    top.innerHTML=`<div class="prod-sheet-nophoto">${m.icon}</div>
+      <button class="prod-sheet-close" onclick="closeProdSheet()">✕</button>`;
+  }
+  renderProdSheetBody();
+  document.getElementById('prod-wrap').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+function renderProdSheetBody(){
+  const m=MENU_DATA[sheetIdx];
+  let price=m.price;
+  if(sheetTaille==='L') price=11.50;
+  if(sheetTaille==='XL') price=14.50;
+  if(sheetMenuUpgrade) price+=3.50;
+
+  let html=`<div class="prod-sheet-name">${m.name}</div>`;
+  if(m.badge) html+=`<div class="prod-sheet-badges"><span class="mi-badge">${m.badge}</span></div>`;
+  html+=`<div class="prod-sheet-desc">${m.desc}</div>`;
+
   if(m.cat==='tacos'){
-    document.getElementById('upsell-taille-name').textContent=m.name;
-    document.getElementById('taille-m-price').textContent=m.price.toFixed(2).replace('.',',')+'€';
-    document.getElementById('overlay-taille').classList.add('show');
-    return;
+    html+=`<div class="prod-opts-title">Choisissez votre taille</div>
+    <div class="prod-taille-grid">
+      <div class="prod-taille-btn ${sheetTaille==='M'?'sel':''}" onclick="setSheetTaille('M')">
+        <div class="prod-taille-lbl">M</div>
+        <div class="prod-taille-price">${m.price.toFixed(2).replace('.',',')}€</div>
+      </div>
+      <div class="prod-taille-btn ${sheetTaille==='L'?'sel':''}" onclick="setSheetTaille('L')">
+        <div class="prod-taille-lbl">L</div><div class="prod-taille-price">11,50€</div>
+      </div>
+      <div class="prod-taille-btn ${sheetTaille==='XL'?'sel':''}" onclick="setSheetTaille('XL')">
+        <div class="prod-taille-lbl">XL</div><div class="prod-taille-price">14,50€</div>
+      </div>
+    </div>`;
   }
-  // Kebabs/salades → popup menu si pas déjà en menu
-  if(m.cat==='kebabs'||m.cat==='salades'){
-    document.getElementById('overlay-menu').classList.add('show');
-    return;
+
+  if(m.cat==='kebabs'||m.cat==='salades'||m.cat==='tacos'){
+    html+=`<div class="prod-opts-title">Passer en menu ?</div>
+    <div class="prod-menu-toggle ${sheetMenuUpgrade?'sel':''}" onclick="toggleSheetMenu()">
+      <div class="prod-menu-check">${sheetMenuUpgrade?'✓':''}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">🍟 Oui, je prends le menu</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Frites + boisson 33cl</div>
+      </div>
+      <div style="font-family:var(--font-d);font-size:18px;color:var(--fire);flex-shrink:0;">+3,50€</div>
+    </div>`;
   }
-  // Autres → direct + suppléments si dispo
-  finalAddToCart(idx, null, false);
+
+  const supplsDispo=SUPPLEMENTS.filter(s=>!s.cats||s.cats.includes(m.cat));
+  if(supplsDispo.length){
+    html+=`<div class="prod-opts-title">Suppléments</div>`;
+    html+=supplsDispo.map(s=>`
+      <div class="prod-menu-toggle ${selectedSupplements.includes(s.id)?'sel':''}" onclick="toggleSheetSuppl('${s.id}')" style="margin-bottom:8px;">
+        <div class="prod-menu-check">${selectedSupplements.includes(s.id)?'✓':''}</div>
+        <div style="flex:1;">${s.name}</div>
+        <div style="font-family:var(--font-d);font-size:18px;color:var(--fire);flex-shrink:0;">+${s.price.toFixed(2).replace('.',',')}€</div>
+      </div>`).join('');
+  }
+
+  html+=`<button class="prod-add-btn" onclick="confirmProdSheet()">
+    <span>Ajouter au panier</span>
+    <span class="prod-add-price">${price.toFixed(2).replace('.',',')}€</span>
+  </button>`;
+
+  document.getElementById('prod-sheet-body').innerHTML=html;
+}
+
+function setSheetTaille(t){ sheetTaille=t; renderProdSheetBody(); }
+function toggleSheetMenu(){ sheetMenuUpgrade=!sheetMenuUpgrade; renderProdSheetBody(); }
+function toggleSheetSuppl(id){
+  const i=selectedSupplements.indexOf(id);
+  if(i>=0) selectedSupplements.splice(i,1); else selectedSupplements.push(id);
+  renderProdSheetBody();
+}
+
+function confirmProdSheet(){
+  closeProdSheet();
+  const m=MENU_DATA[sheetIdx];
+  if(sheetMenuUpgrade){
+    const mIdx=MENU_DATA.findIndex(x=>x.name==='Supplément Menu');
+    if(mIdx>=0) cart.push(mIdx);
+  }
+  if(selectedSupplements.length){
+    selectedSupplements.forEach(sid=>{
+      const s=SUPPLEMENTS.find(x=>x.id===sid);
+      if(s) cart.push({idx:-1,price:s.price,name:s.name,isSuppl:true});
+    });
+  }
+  pendingTaille=sheetTaille;
+  finalAddToCart(sheetIdx, sheetTaille, false);
+}
+
+function closeProdSheet(){
+  document.getElementById('prod-wrap').classList.remove('show');
+  document.body.style.overflow='';
+}
+
+function closeProdSheetOutside(e){
+  if(e.target===document.getElementById('prod-wrap')) closeProdSheet();
 }
 
 function chooseTaille(taille){
@@ -1674,6 +1843,25 @@ function renderCart(){
       <div class="cart-total-val">${total.toFixed(2).replace('.',',')}€</div>
     </div>
     <div class="cart-recap" id="cart-recap"><strong>Récapitulatif à dicter au téléphone :</strong>\n${Object.entries(grouped).map(([k,{item,qty}])=>{const p=typeof item==='object'?item.price:MENU_DATA[item].price;const n=typeof item==='object'?item.name:MENU_DATA[item].name;return `${qty}x ${n} (${(p*qty).toFixed(2).replace('.',',')}€)`;}).join('\n')}\n\n<strong>Total : ${total.toFixed(2).replace('.',',')}€</strong></div>`;
+  // Menu upgrade upsell
+  const menuSupplIdx=MENU_DATA.findIndex(m=>m.name==='Supplément Menu');
+  const hasKebabTacos=cart.some(c=>{const i=typeof c==='number'?c:(c.idx>=0?c.idx:-1);return i>=0&&['kebabs','tacos','salades'].includes(MENU_DATA[i].cat);});
+  const hasMenu=cart.some(c=>{const i=typeof c==='number'?c:(c.idx>=0?c.idx:-1);return i>=0&&MENU_DATA[i].name==='Supplément Menu';});
+  let menuUpsellEl=document.getElementById('cart-menu-upsell');
+  if(hasKebabTacos&&!hasMenu&&menuSupplIdx>=0){
+    if(!menuUpsellEl){menuUpsellEl=document.createElement('div');menuUpsellEl.id='cart-menu-upsell';}
+    menuUpsellEl.innerHTML=`<div class="cart-drink-card" onclick="cart.push(${menuSupplIdx});updateCartBar();renderCart();">
+      <span style="font-size:26px;">🍟</span>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Passez en menu ?</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Frites + boisson 33cl · +3,50€</div>
+      </div>
+      <div style="font-family:var(--font-d);font-size:20px;color:#4FC3F7;">+3,50€</div>
+    </div>`;
+    const totalBox=document.querySelector('.cart-total-box');
+    if(totalBox&&!document.getElementById('cart-menu-upsell')) totalBox.parentNode.insertBefore(menuUpsellEl, totalBox);
+  } else if(menuUpsellEl){ menuUpsellEl.remove(); }
+
   // Suggestions
   const suggestions=MENU_DATA.filter(m=>
     (m.cat==='desserts'||m.cat==='menus')&&
