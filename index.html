@@ -491,7 +491,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 <!-- HOME (non connecté) -->
 <div class="page active" id="page-home">
   <button class="home-emp-link" onclick="go('page-pin')" title="Espace employé">🔐</button>
-  <div class="home-landing" style="background-image:url('https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?w=900&q=80&fit=crop')">
+  <div class="home-landing" style="background-image:url('https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=900&q=80&fit=crop')">
     <div class="home-landing-overlay"></div>
     <div class="home-landing-top">
       <svg class="home-landing-fire" width="48" height="60" viewBox="0 0 58 72" fill="none">
@@ -540,13 +540,13 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       </div>
       <div class="tile-arrow">›</div>
     </div>
-    <div class="tile" onclick="go('page-client-portal')"
+    <div class="tile" onclick="go('page-menu')"
       style="background-image:url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80&fit=crop')">
       <div class="tile-overlay"></div>
       <div class="tile-content">
-        <span class="tile-icon">📦</span>
+        <span class="tile-icon">🍖</span>
         <div class="tile-title">Mes Commandes</div>
-        <div class="tile-sub">Historique & suivi</div>
+        <div class="tile-sub">Commander & suivre mon panier</div>
       </div>
       <div class="tile-arrow">›</div>
     </div>
@@ -560,7 +560,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <span class="bnav-icon">🏆</span>
       <span class="bnav-label">Fidélité</span>
     </button>
-    <button class="bnav-item" onclick="go('page-client-portal')">
+    <button class="bnav-item" onclick="go('page-menu')">
       <span class="bnav-icon">📦</span>
       <span class="bnav-label">Commandes</span>
     </button>
@@ -599,19 +599,19 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
           <div class="flvl-emoji">🥉</div>
           <div class="flvl-name">Bronze</div>
           <div class="flvl-desc">Niveau débutant</div>
-          <div class="flvl-range">0 – 50 pts</div>
+          <div class="flvl-range">0 – 199 pts</div>
         </div>
         <div class="flvl-card argent" id="flvl-argent">
           <div class="flvl-emoji">⭐</div>
           <div class="flvl-name">Argent</div>
           <div class="flvl-desc">Niveau intermédiaire</div>
-          <div class="flvl-range">51 – 150 pts</div>
+          <div class="flvl-range">200 – 499 pts</div>
         </div>
         <div class="flvl-card or" id="flvl-or">
           <div class="flvl-emoji">👑</div>
           <div class="flvl-name">Or</div>
           <div class="flvl-desc">Top clients</div>
-          <div class="flvl-range">151+ pts</div>
+          <div class="flvl-range">500+ pts</div>
         </div>
       </div>
       <div id="fidel-lvl-next-msg" style="margin-top:.75rem;font-size:12px;color:var(--text3);text-align:center;line-height:1.5;"></div>
@@ -2193,9 +2193,9 @@ async function clientLogin(){
 }
 
 function getLevel(pts){
-  if(pts>=151) return {label:'Or',emoji:'👑',cls:'lvl-or',next:null,min:151};
-  if(pts>=51)  return {label:'Argent',emoji:'⭐',cls:'lvl-argent',next:151,min:51};
-  return {label:'Bronze',emoji:'🥉',cls:'lvl-bronze',next:51,min:0};
+  if(pts>=500) return {label:'Or',emoji:'👑',cls:'lvl-or',next:null,min:500};
+  if(pts>=200) return {label:'Argent',emoji:'⭐',cls:'lvl-argent',next:500,min:200};
+  return {label:'Bronze',emoji:'🥉',cls:'lvl-bronze',next:200,min:0};
 }
 
 function getGreet(prenom, passages){
@@ -2368,8 +2368,8 @@ function renderPortal(c){
   });
   const lvlNext=document.getElementById('fidel-lvl-next-msg');
   if(lvlNext){
-    if(lvl.label==='Bronze') lvlNext.innerHTML=`Encore <strong style="color:#CD7F32">${51-pts} pts</strong> pour passer au niveau ⭐ Argent`;
-    else if(lvl.label==='Argent') lvlNext.innerHTML=`Encore <strong style="color:var(--gold)">${151-pts} pts</strong> pour atteindre le niveau 👑 Or`;
+    if(lvl.label==='Bronze') lvlNext.innerHTML=`Encore <strong style="color:#CD7F32">${200-pts} pts</strong> pour passer au niveau ⭐ Argent`;
+    else if(lvl.label==='Argent') lvlNext.innerHTML=`Encore <strong style="color:var(--gold)">${500-pts} pts</strong> pour atteindre le niveau 👑 Or`;
     else lvlNext.innerHTML='<strong style="color:var(--gold)">👑 Vous êtes au sommet — niveau Or !</strong>';
   }
 
