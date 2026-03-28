@@ -2566,19 +2566,56 @@ function hideSplash(){
 
 window.addEventListener('load', async function(){
   // Auto-login au démarrage
-  let autoLoginAborted = false;
-
   async function tryAutoLogin(){
-    // 1. Vérifier le token de session Supabase
+    // 1. kbb_quick_login en PRIORITÉ — lecture locale immédiate, sans attendre Supabase
+    const saved = getQuickLogin();
+    if(saved){
+      try{
+        const d = JSON.parse(saved);
+        if(d && d.tel){
+          // Mode PIN : afficher le clavier immédiatement
+          if(d.mode === 'pin'){
+            pinRapideClient = {...d, telephone: d.tel};
+            pinRapideVal = '';
+            document.getElementById('pin-prenom').textContent = d.prenom||'';
+            document.getElementById('pin-rapide-zone').style.display = 'block';
+            document.getElementById('normal-login-zone').style.display = 'none';
+            go('page-client-login');
+            // Sync Supabase en arrière-plan
+            dbByTel(d.tel).then(fresh=>{ if(fresh){ const ldb=lLoad();const li=ldb.findIndex(x=>x.tel===d.tel||x.telephone===d.tel);if(li>=0){ldb[li]={...ldb[li],...fresh};lSave(ldb);} }}).catch(()=>{});
+            return true;
+          }
+          // Mode auto/remember : connecter depuis localStorage immédiatement
+          if(d.mode === 'auto' || d.mode === 'remember'){
+            const localDb = lLoad();
+            const c = localDb.find(x=>x.telephone===d.tel||x.tel===d.tel);
+            if(c){
+              renderPortal(c);
+              go('page-client-portal');
+              // Sync Supabase en arrière-plan pour rafraîchir les points
+              dbByTel(d.tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
+              return true;
+            }
+            // Pas encore en local → attendre Supabase
+            const fresh = await Promise.race([dbByTel(d.tel), new Promise(r=>setTimeout(()=>r(null),5000))]);
+            if(fresh){ renderPortal(fresh); go('page-client-portal'); return true; }
+          }
+          // Fallback : pré-remplir le numéro
+          go('page-client-login');
+          setTimeout(()=>{ const el=document.getElementById('login-tel'); if(el) el.value=d.tel; }, 150);
+          return true;
+        }
+      }catch(e){ console.warn('Quick login error:', e); }
+    }
+
+    // 2. Fallback : vérifier le token de session Supabase
     const session = getSessionCookie();
     if(session && session.token && session.tel){
       try{
-        // Vérifier le token côté Supabase
         const clients = await Promise.race([
           supaReq('clients?telephone=eq.'+encodeURIComponent(session.tel)+'&select=*'),
-          new Promise(r=>setTimeout(()=>r(null),2000))
+          new Promise(r=>setTimeout(()=>r(null),3000))
         ]);
-        if(autoLoginAborted) return false;
         if(clients && clients[0] && clients[0].session_token === session.token){
           const c = clients[0];
           const localDb = lLoad();
@@ -2590,54 +2627,13 @@ window.addEventListener('load', async function(){
         }
       }catch(e){ console.warn('Session check error:', e); }
     }
-    if(autoLoginAborted) return false;
-    // 2. Fallback : connexion automatique ou pré-remplissage
-    const saved = getQuickLogin();
-    if(saved){
-      try{
-        const d = JSON.parse(saved);
-        if(d && d.tel){
-          // Si mode auto : connecter directement
-          if(d.mode === 'auto' || d.mode === 'remember'){
-            const c = await Promise.race([
-              dbByTel(d.tel),
-              new Promise(r=>setTimeout(()=>r(null), 5000))
-            ]);
-            if(autoLoginAborted) return false;
-            if(c){ renderPortal(c); go('page-client-portal'); return true; }
-          }
-          // Si mode PIN : afficher le clavier PIN
-          if(d.mode === 'pin'){
-            pinRapideClient = {...d, telephone: d.tel};
-            pinRapideVal = '';
-            document.getElementById('pin-prenom').textContent = d.prenom||'';
-            document.getElementById('pin-rapide-zone').style.display = 'block';
-            document.getElementById('normal-login-zone').style.display = 'none';
-            go('page-client-login');
-            return true;
-          }
-          // Fallback : pré-remplir le numéro
-          go('page-client-login');
-          setTimeout(()=>{
-            const telEl=document.getElementById('login-tel');
-            if(telEl) telEl.value=d.tel;
-          }, 150);
-          return true;
-        }
-      }catch(e){}
-    }
     return false;
   }
 
-  // Timeout de sécurité : budget total = 2s (session check) + 5s (dbByTel) + 500ms marge
-  const TOTAL_TIMEOUT = 7500;
-  const safetyTimer = setTimeout(()=>{ autoLoginAborted=true; hideSplash(); }, TOTAL_TIMEOUT);
+  const safetyTimer = setTimeout(()=>{ hideSplash(); }, 6000);
 
   setTimeout(async function(){
-    try{
-      await tryAutoLogin();
-    }catch(e){}
-    autoLoginAborted = true;
+    try{ await tryAutoLogin(); }catch(e){}
     clearTimeout(safetyTimer);
     hideSplash();
   }, 300);
