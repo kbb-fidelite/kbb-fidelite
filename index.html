@@ -33,13 +33,29 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .page.active{display:flex;}
 
 /* ══ HOME ══ */
-.home-hero{position:relative;overflow:hidden;padding:3rem 1.5rem 2rem;text-align:center;background:var(--coal);}
-.home-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:120px;background:radial-gradient(ellipse 70% 100% at 50% 100%,rgba(255,107,43,.25),transparent);}
-.flame{position:relative;z-index:2;margin:0 auto 1rem;display:block;}
-.home-brand{position:relative;z-index:2;font-family:var(--font-d);font-size:50px;letter-spacing:3px;color:var(--text);line-height:1;}
-.home-sub{position:relative;z-index:2;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-top:5px;}
-.home-sep{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);}
-.home-btns{padding:1.75rem 1.25rem;display:flex;flex-direction:column;gap:10px;flex:1;justify-content:center;}
+.home-header{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.25rem;background:var(--coal);border-bottom:1px solid var(--border);flex-shrink:0;}
+.home-brand{font-family:var(--font-d);font-size:26px;letter-spacing:2px;color:var(--text);line-height:1;}
+.home-sub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-top:2px;}
+.home-emp-btn{width:34px;height:34px;border-radius:50%;background:var(--coal3);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2);}
+.home-tiles{display:flex;flex-direction:column;flex:1;gap:3px;padding-bottom:65px;}
+.tile{flex:1;position:relative;background-size:cover;background-position:center;cursor:pointer;overflow:hidden;min-height:130px;display:flex;align-items:flex-end;}
+.tile:active .tile-overlay{background:rgba(0,0,0,.6);}
+.tile-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.3) 60%,rgba(0,0,0,.15) 100%);transition:background .15s;}
+.tile-content{position:relative;z-index:1;padding:1rem 1.25rem 1.1rem;width:100%;}
+.tile-icon{font-size:26px;margin-bottom:4px;display:block;}
+.tile-title{font-family:var(--font-d);font-size:30px;letter-spacing:1.5px;color:#fff;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.5);}
+.tile-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;font-weight:500;}
+.tile-arrow{position:absolute;right:1.25rem;bottom:1.1rem;z-index:1;width:32px;height:32px;border-radius:50%;background:rgba(255,107,43,.85);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;}
+.supa-status{display:none;}
+/* ══ BOTTOM NAV ══ */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--coal);border-top:1px solid var(--border2);display:flex;align-items:stretch;z-index:50;height:65px;}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;color:var(--text3);font-family:var(--font);transition:color .15s;padding:.5rem .25rem;}
+.bnav-item:active{background:var(--coal3);}
+.bnav-item.active{color:var(--fire);}
+.bnav-icon{font-size:20px;line-height:1;}
+.bnav-label{font-size:10px;font-weight:600;letter-spacing:.3px;}
+.bnav-item.commander{background:var(--fire);color:#fff;}
+.bnav-item.commander:active{background:var(--fire2);}
 .hbtn{display:flex;align-items:center;gap:14px;padding:1.05rem 1.25rem;border-radius:var(--radius);border:none;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;transition:transform .1s;text-align:left;width:100%;}
 .hbtn:active{transform:scale(.975);}
 .hbtn.fire{background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 6px 28px rgba(255,107,43,.28);}
@@ -50,8 +66,6 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .hbtn.ghost .hico{background:var(--coal3);}
 .htxt small{display:block;font-size:11px;font-weight:400;opacity:.55;margin-top:2px;}
 .htxt{flex:1;}
-.supa-status{padding:.5rem 1.25rem 1.25rem;text-align:center;font-size:12px;color:var(--text3);}
-.supa-status a{color:var(--gold);text-decoration:none;}
 
 /* ══ TOPBAR ══ */
 .topbar{display:flex;align-items:center;gap:10px;padding:.9rem 1.25rem;border-bottom:1px solid var(--border);background:var(--coal2);position:sticky;top:0;z-index:10;flex-shrink:0;}
@@ -422,35 +436,68 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 
 <!-- HOME -->
 <div class="page active" id="page-home">
-  <div class="home-hero">
-    <svg class="flame" width="58" height="72" viewBox="0 0 58 72" fill="none">
-      <path d="M29 2C29 2 42 17 42 30C42 38 37 43 33 45C35 38 33 31 29 27C29 27 25 35 19 37C15 39 13 35 13 29C13 18 21 9 29 2Z" fill="#FF6B2B" opacity=".95"/>
-      <path d="M29 18C29 18 38 28 38 39C38 51 34 59 26 63C22 59 18 53 18 43C18 35 23 27 29 18Z" fill="#FF9A6C" opacity=".75"/>
-      <path d="M29 34C29 34 33 40 33 49C33 57 31 63 29 67C27 63 25 57 25 49C25 40 29 34 29 34Z" fill="#FFB830" opacity=".9"/>
-    </svg>
-    <div class="home-brand">KBB à la braise</div>
-    <div class="home-sub">Programme de fidélité</div>
+  <div class="home-header">
+    <div>
+      <div class="home-brand">KBB à la braise</div>
+      <div class="home-sub">Programme de fidélité</div>
+    </div>
+    <button class="home-emp-btn" onclick="go('page-pin')" title="Espace employé">🔐</button>
   </div>
-  <div class="home-sep"></div>
-  <div class="home-btns">
-    <button class="hbtn fire" onclick="go('page-qr')">
-      <div class="hico">📲</div>
-      <div class="htxt">S'inscrire au programme<small>Scanner le QR code ou s'inscrire ici</small></div>
-    </button>
-    <button class="hbtn dark" onclick="go('page-client-login')">
-      <div class="hico">👤</div>
-      <div class="htxt">Mon compte fidélité<small>Consulter mes points et récompenses</small></div>
-    </button>
-    <button class="hbtn dark" onclick="go('page-menu')">
-      <div class="hico">🍖</div>
-      <div class="htxt">Notre carte<small>Kebabs, tacos, salades, desserts…</small></div>
-    </button>
-    <button class="hbtn ghost" onclick="go('page-pin')">
-      <div class="hico">🔐</div>
-      <div class="htxt">Espace employé<small>Saisie commande et gestion</small></div>
-    </button>
+  <div class="home-tiles">
+    <!-- Fidélité -->
+    <div class="tile" onclick="go('page-client-login')"
+      style="background-image:url('https://images.unsplash.com/photo-1561651823-34feb02250e4?w=800&q=80&fit=crop')">
+      <div class="tile-overlay"></div>
+      <div class="tile-content">
+        <span class="tile-icon">🏆</span>
+        <div class="tile-title">Fidélité</div>
+        <div class="tile-sub">Mes points & récompenses</div>
+      </div>
+      <div class="tile-arrow">›</div>
+    </div>
+    <!-- Parrainage -->
+    <div class="tile" onclick="go('page-client-login')"
+      style="background-image:url('https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=800&q=80&fit=crop')">
+      <div class="tile-overlay"></div>
+      <div class="tile-content">
+        <span class="tile-icon">🤝</span>
+        <div class="tile-title">Parrainage</div>
+        <div class="tile-sub">Inviter un ami, gagner des points</div>
+      </div>
+      <div class="tile-arrow">›</div>
+    </div>
+    <!-- Mes Commandes -->
+    <div class="tile" onclick="go('page-client-login')"
+      style="background-image:url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80&fit=crop')">
+      <div class="tile-overlay"></div>
+      <div class="tile-content">
+        <span class="tile-icon">📦</span>
+        <div class="tile-title">Mes Commandes</div>
+        <div class="tile-sub">Historique & suivi</div>
+      </div>
+      <div class="tile-arrow">›</div>
+    </div>
   </div>
   <div class="supa-status" id="supa-status"></div>
+  <!-- BARRE DE NAVIGATION FIXE -->
+  <nav class="bottom-nav">
+    <button class="bnav-item active" onclick="go('page-home')">
+      <span class="bnav-icon">🏆</span>
+      <span class="bnav-label">Fidélité</span>
+    </button>
+    <button class="bnav-item" onclick="go('page-client-login')">
+      <span class="bnav-icon">🤝</span>
+      <span class="bnav-label">Parrainage</span>
+    </button>
+    <button class="bnav-item" onclick="go('page-client-login')">
+      <span class="bnav-icon">📦</span>
+      <span class="bnav-label">Commandes</span>
+    </button>
+    <button class="bnav-item commander" onclick="go('page-menu')">
+      <span class="bnav-icon">🍖</span>
+      <span class="bnav-label">Commander</span>
+    </button>
+  </nav>
 </div>
 
 <!-- QR -->
