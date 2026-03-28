@@ -384,6 +384,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .cmd-card{background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;}
 .cmd-card.table{border-left:3px solid var(--gold);}
 .cmd-card.cnc{border-left:3px solid #4FC3F7;}
+.cmd-card.reservation{border-left:3px solid #CE93D8;}
 .cmd-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;}
 .cmd-type{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
 .cmd-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;}
@@ -1435,16 +1436,21 @@ function renderOrderOptions(){
   section.innerHTML=`
     <div class="order-mode-section">
       <div class="order-mode-title">Comment souhaitez-vous commander ?</div>
-      <div class="order-mode-cards">
+      <div class="order-mode-cards" style="grid-template-columns:1fr 1fr 1fr;">
         <div class="order-mode-card ${orderMode==='table'?'selected':''}" onclick="selectOrderMode('table')">
           <div class="order-mode-ico">🪑</div>
           <div class="order-mode-name">À table</div>
-          <div class="order-mode-desc">Service en salle</div>
+          <div class="order-mode-desc">Je suis en salle</div>
+        </div>
+        <div class="order-mode-card ${orderMode==='reservation'?'selected':''}" onclick="selectOrderMode('reservation')">
+          <div class="order-mode-ico">📅</div>
+          <div class="order-mode-name">Réservation</div>
+          <div class="order-mode-desc">J'arrive plus tard</div>
         </div>
         <div class="order-mode-card ${orderMode==='click_collect'?'selected':''}" onclick="selectOrderMode('click_collect')">
           <div class="order-mode-ico">🏃</div>
-          <div class="order-mode-name">Click & Collect</div>
-          <div class="order-mode-desc">Retrait en caisse</div>
+          <div class="order-mode-name">À emporter</div>
+          <div class="order-mode-desc">Je repars avec</div>
         </div>
       </div>
       ${orderMode==='table'?`
@@ -1452,6 +1458,14 @@ function renderOrderOptions(){
           <div class="order-detail-label">Numéro de table</div>
           <input class="table-num-input" type="number" min="1" max="99" placeholder="N° de table"
             value="${orderTableNum}" oninput="orderTableNum=this.value;renderOrderOptions();" id="table-num-input">
+        </div>
+      `:''}
+      ${orderMode==='reservation'?`
+        <div class="order-detail-box">
+          <div class="order-detail-label">Heure d'arrivée prévue</div>
+          <div class="time-slots">
+            ${slots.map(t=>`<div class="time-slot ${selectedPickupTime===t?'selected':''}" onclick="selectPickupTime('${t}')">${t}</div>`).join('')}
+          </div>
         </div>
       `:''}
       ${orderMode==='click_collect'?`
@@ -1464,7 +1478,7 @@ function renderOrderOptions(){
       `:''}
       ${orderMode?`
         <button class="order-submit-btn" onclick="submitClientOrder()"
-          ${(orderMode==='table'&&!orderTableNum)||(orderMode==='click_collect'&&!selectedPickupTime)?'disabled':''}>
+          ${(orderMode==='table'&&!orderTableNum)||((orderMode==='click_collect'||orderMode==='reservation')&&!selectedPickupTime)?'disabled':''}>
           Envoyer ma commande →
         </button>
       `:''}
@@ -1499,6 +1513,7 @@ async function submitClientOrder(){
   if(!orderMode) return;
   if(orderMode==='table'&&!orderTableNum){showToast('Entrez votre numéro de table');return;}
   if(orderMode==='click_collect'&&!selectedPickupTime){showToast('Choisissez une heure de retrait');return;}
+  if(orderMode==='reservation'&&!selectedPickupTime){showToast("Choisissez votre heure d'arrivée");return;}
   const total=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
   const grouped={};
   cart.forEach((item,i)=>{
@@ -1514,7 +1529,7 @@ async function submitClientOrder(){
   const payload={
     type:orderMode,
     table_num:orderMode==='table'?parseInt(orderTableNum):null,
-    heure_retrait:orderMode==='click_collect'?selectedPickupTime:null,
+    heure_retrait:(orderMode==='click_collect'||orderMode==='reservation')?selectedPickupTime:null,
     items:itemsText,
     montant:parseFloat(total.toFixed(2)),
     statut:'en_attente',
@@ -1527,7 +1542,7 @@ async function submitClientOrder(){
   // Supabase
   try{ if(supaOk()) await supaReq('commandes','POST',payload); }catch(e){ console.warn('Order save:',e); }
   // Confirmation
-  const label=orderMode==='table'?'Table n°'+orderTableNum:'Retrait à '+selectedPickupTime;
+  const label=orderMode==='table'?'Table n°'+orderTableNum:orderMode==='reservation'?"Réservation — arrivée à "+selectedPickupTime:'Retrait à '+selectedPickupTime;
   showOv('✅','Commande envoyée !',label+'\n\n'+itemsText+'\n\nTotal : '+total.toFixed(2).replace('.',',')+'€\n\nVotre commande a bien été transmise à la cuisine.');
   // Reset
   cart=[];orderMode=null;orderTableNum='';selectedPickupTime='';
@@ -2295,16 +2310,20 @@ async function loadEmpCommandes(){
   }
   el.innerHTML=orders.map(o=>{
     const isTable=o.type==='table';
+    const isResa=o.type==='reservation';
+    const cardClass=isTable?'table':isResa?'reservation':'cnc';
     const sb=o.statut==='en_attente'?'attente':o.statut==='en_cours'?'encours':'pret';
     const sl=o.statut==='en_attente'?'En attente':o.statut==='en_cours'?'En cours ':'Prêt ✓';
     const t=new Date(o.created_at);
     const ts=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
-    return `<div class="cmd-card ${isTable?'table':'cnc'}">
+    const typeLabel=isTable?'🪑 À table':isResa?'📅 Réservation':'🏃 À emporter';
+    const highlight=isTable?'Table n°'+(o.table_num||'?'):isResa?'Arrivée : '+(o.heure_retrait||'?'):'Retrait : '+(o.heure_retrait||'?');
+    return `<div class="cmd-card ${cardClass}">
       <div class="cmd-header">
-        <div class="cmd-type">${isTable?'🪑 À table':'🏃 Click &amp; Collect'}</div>
+        <div class="cmd-type">${typeLabel}</div>
         <div class="cmd-badge ${sb}">${sl}</div>
       </div>
-      <div class="cmd-highlight">${isTable?'Table n°'+(o.table_num||'?'):'Retrait : '+(o.heure_retrait||'?')}</div>
+      <div class="cmd-highlight">${highlight}</div>
       <div class="cmd-items">${o.items||''}</div>
       <div class="cmd-total">${parseFloat(o.montant||0).toFixed(2).replace('.',',')}€</div>
       <div class="cmd-time">Reçue à ${ts}</div>
