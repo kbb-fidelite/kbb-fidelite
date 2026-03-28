@@ -109,7 +109,52 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .flvl-card.or .flvl-range{background:rgba(255,184,48,.15);color:var(--gold);}
 .flvl-card.or.flvl-active{border-color:var(--gold);box-shadow:0 0 12px rgba(255,184,48,.2);}
 /* ══ PAGE PARRAINAGE ══ */
-.parrain-page-body{flex:1;overflow-y:auto;padding:1.25rem;background:var(--coal);}
+.parr-hero{background:linear-gradient(135deg,#1a0a00 0%,#2d1200 40%,rgba(255,107,43,.18) 100%);padding:1.5rem 1.25rem 1.25rem;flex-shrink:0;border-bottom:1px solid var(--border2);}
+.parr-hero-title{font-family:var(--font-d);font-size:32px;letter-spacing:2px;color:var(--text);line-height:1;}
+.parr-hero-sub{font-size:12px;color:var(--text3);margin-top:4px;}
+.parr-body{flex:1;overflow-y:auto;padding:1.1rem;background:var(--coal);display:flex;flex-direction:column;gap:.875rem;}
+/* Code parrain card */
+.parr-code-card{background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem 1.1rem;}
+.parr-code-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;}
+.parr-code-val{font-size:22px;font-weight:800;color:var(--fire);letter-spacing:1px;font-family:var(--font-d);}
+.parr-share-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:.875rem;}
+.parr-share-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:.6rem .25rem;border-radius:var(--radius-sm);border:none;cursor:pointer;font-family:var(--font);font-size:10px;font-weight:700;transition:opacity .15s;}
+.parr-share-btn:active{opacity:.8;}
+.parr-share-btn.copy{background:var(--coal4);color:var(--text2);border:1px solid var(--border);}
+.parr-share-btn.whatsapp{background:#25D366;color:#fff;}
+.parr-share-btn.share{background:linear-gradient(135deg,var(--fire),var(--fire2));color:#fff;}
+.parr-share-btn .psb-ico{font-size:20px;}
+/* Compteur mensuel */
+.parr-counter{background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);padding:.875rem 1.1rem;}
+.parr-counter-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;}
+.parr-counter-title{font-size:13px;font-weight:700;color:var(--text);}
+.parr-counter-val{font-size:13px;font-weight:700;color:var(--fire);}
+.parr-counter-bar-wrap{height:8px;background:var(--coal4);border-radius:99px;overflow:hidden;}
+.parr-counter-fill{height:100%;background:linear-gradient(90deg,var(--fire),var(--gold));border-radius:99px;transition:width .5s ease;}
+.parr-counter-sub{font-size:11px;color:var(--text3);margin-top:.4rem;}
+/* Sections filleuls */
+.parr-section{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);}
+.parr-section-head{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;background:var(--coal3);}
+.parr-section-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+.parr-section-count{font-size:12px;font-weight:700;border-radius:99px;padding:2px 9px;}
+.parr-section-count.attente{background:rgba(255,184,48,.15);color:var(--gold);}
+.parr-section-count.valide{background:rgba(76,175,116,.15);color:var(--green);}
+.parr-section-count.reporte{background:rgba(255,107,43,.12);color:var(--fire3);}
+.parr-row{display:flex;align-items:center;gap:10px;padding:.7rem 1rem;border-top:1px solid var(--border);background:var(--coal2);}
+.parr-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--coal4),var(--coal3));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text2);flex-shrink:0;border:1px solid var(--border);}
+.parr-row-info{flex:1;min-width:0;}
+.parr-row-name{font-size:13px;font-weight:600;color:var(--text);}
+.parr-row-date{font-size:11px;color:var(--text3);margin-top:1px;}
+.parr-row-badge{font-size:11px;font-weight:700;border-radius:99px;padding:3px 9px;flex-shrink:0;}
+.parr-row-badge.attente{background:rgba(255,184,48,.1);color:var(--gold);}
+.parr-row-badge.valide{background:rgba(76,175,116,.12);color:var(--green);}
+.parr-row-badge.reporte{background:rgba(255,107,43,.1);color:var(--fire3);}
+.parr-empty{padding:.875rem 1rem;font-size:12px;color:var(--text3);text-align:center;font-style:italic;background:var(--coal2);}
+/* Règle info box */
+.parr-rules{background:rgba(255,107,43,.06);border:1px solid rgba(255,107,43,.15);border-radius:var(--radius);padding:.875rem 1rem;font-size:12px;color:var(--text3);line-height:1.6;}
+.parr-rules strong{color:var(--text2);}
+.parr-rules .prule{display:flex;gap:8px;padding:.25rem 0;}
+.parr-rules .prule-ico{flex-shrink:0;}
 .hbtn{display:flex;align-items:center;gap:14px;padding:1.05rem 1.25rem;border-radius:var(--radius);border:none;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;transition:transform .1s;text-align:left;width:100%;}
 .hbtn:active{transform:scale(.975);}
 .hbtn.fire{background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 6px 28px rgba(255,107,43,.28);}
@@ -530,7 +575,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       </div>
       <div class="tile-arrow">›</div>
     </div>
-    <div class="tile" onclick="go('page-parrainage')"
+    <div class="tile" onclick="ouvrirParrainage()"
       style="background-image:url('https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=800&q=80&fit=crop')">
       <div class="tile-overlay"></div>
       <div class="tile-content">
@@ -556,9 +601,9 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <span class="bnav-icon">🏠</span>
       <span class="bnav-label">Accueil</span>
     </button>
-    <button class="bnav-item" onclick="go('page-client-portal')">
-      <span class="bnav-icon">🏆</span>
-      <span class="bnav-label">Fidélité</span>
+    <button class="bnav-item" onclick="ouvrirParrainage()">
+      <span class="bnav-icon">🤝</span>
+      <span class="bnav-label">Parrainage</span>
     </button>
     <button class="bnav-item" onclick="go('page-menu')">
       <span class="bnav-icon">📦</span>
@@ -631,12 +676,13 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 <!-- PAGE PARRAINAGE -->
 <div class="page" id="page-parrainage">
   <div class="topbar"><button class="tbback" onclick="go('page-dashboard')">←</button><div class="tbtitle">Parrainage</div></div>
-  <div class="parrain-page-body">
-    <div class="motive" style="margin-bottom:1rem;">
-      <span style="font-size:17px;flex-shrink:0">🤝</span>
-      <p><strong>Parrainez un ami</strong> et gagnez chacun des points : <strong>+15 pts</strong> pour vous, <strong>+20 pts</strong> pour votre filleul !</p>
-    </div>
-    <div id="portal-parrainage-page"></div>
+  <div class="parr-hero">
+    <div class="parr-hero-title">Parrainez 🤝</div>
+    <div class="parr-hero-sub">+15 pts pour vous · +20 pts pour votre filleul · dès sa 1ère commande de 8€</div>
+  </div>
+  <div class="parr-body" id="parr-body">
+    <!-- Rendu dynamique par renderParrainagePage() -->
+    <div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px;">Chargement…</div>
   </div>
 </div>
 
@@ -2071,61 +2117,134 @@ async function appliquerBonusAuto(c, montant){
 
 /* ══ PARRAINAGE ══ */
 function getParrainageMonth(){return new Date().getFullYear()+'-'+(new Date().getMonth()+1);}
+function fmtDateParr(iso){if(!iso)return'';const d=new Date(iso);return d.getDate()+' '+['jan','fév','mar','avr','mai','jun','jul','août','sep','oct','nov','déc'][d.getMonth()];}
 
-async function activerParrainage(filleul, parrainTel){
-  const parrain=await dbByTel(parrainTel);
-  if(!parrain){return;}
-  const mois=getParrainageMonth();
-  const compteur=parrain.parrain_mois_count||{};
-  const nbCeMois=compteur[mois]||0;
-  const statut=nbCeMois>=5?'attente_mois':'en_attente_commande';
-  const filleulUpdate={parrain_tel:parrainTel,parrain_status:statut,parrain_mois:mois};
-  await dbUpdate(filleul.id,filleulUpdate);
-  if(statut==='en_attente_commande'){
-    compteur[mois]=nbCeMois+1;
-    await dbUpdate(parrain.id,{parrain_mois_count:compteur});
-  }
-  const ldb=lLoad();
-  const li=ldb.findIndex(x=>x.id===filleul.id);
-  if(li>=0){Object.assign(ldb[li],filleulUpdate);lSave(ldb);}
-  if(statut==='attente_mois'){
-    showToast('Code parrain enregistré — bonus activé le 1er du mois prochain 📅');
-  }
+/* ── Helpers table parrainages ── */
+async function dbGetParrainages(parrainId){
+  try{const r=await supaReq(`parrainages?parrain_id=eq.${encodeURIComponent(String(parrainId))}&order=date_inscription.desc`);return r||[];}
+  catch(e){console.error('dbGetParrainages:',e);return[];}
+}
+async function dbGetParrainageFilleul(filleulId){
+  try{const r=await supaReq(`parrainages?filleul_id=eq.${encodeURIComponent(String(filleulId))}&limit=1`);return r&&r[0]||null;}
+  catch(e){console.error('dbGetParrainageFilleul:',e);return null;}
+}
+async function dbCreateParrainage(data){
+  try{return await supaReq('parrainages','POST',data);}
+  catch(e){console.error('dbCreateParrainage:',e);}
+}
+async function dbUpdateParrainage(id,data){
+  try{return await supaReq(`parrainages?id=eq.${id}`,'PATCH',data);}
+  catch(e){console.error('dbUpdateParrainage:',e);}
 }
 
+/* ── Activation parrainage à l'inscription ── */
+async function activerParrainage(filleul, parrainTel){
+  const parrain=await dbByTel(parrainTel);
+  if(!parrain){showToast('Code parrain introuvable');return;}
+  const mois=getParrainageMonth();
+  const compteur=parrain.parrain_mois_count||{};
+  const nbCeMois=parseInt(compteur[mois])||0;
+  const limite=nbCeMois>=5;
+  const statusClient=limite?'attente_mois':'en_attente_commande';
+  const statusParrainage=limite?'reporte':'en_attente';
+  const filleulUpdate={parrain_tel:parrainTel,parrain_status:statusClient,parrain_mois:mois};
+  await dbUpdate(filleul.id,filleulUpdate);
+  if(!limite){compteur[mois]=nbCeMois+1;await dbUpdate(parrain.id,{parrain_mois_count:compteur});}
+  await dbCreateParrainage({
+    parrain_id:String(parrain.id),parrain_tel:parrainTel,
+    filleul_id:String(filleul.id),filleul_prenom:filleul.prenom||'',filleul_nom:filleul.nom||'',
+    mois,status:statusParrainage,pts_parrain_verse:false,pts_filleul_verse:false
+  });
+  const ldb=lLoad();const li=ldb.findIndex(x=>x.id===filleul.id);
+  if(li>=0){Object.assign(ldb[li],filleulUpdate);lSave(ldb);}
+  if(limite) showToast('Code parrain enregistré — bonus activé le 1er du mois prochain 📅');
+}
+
+/* ── Vérification & validation à la commande ── */
 async function verifierParrainageFilleul(client, montant){
   if(!client.parrain_tel||client.parrain_status==='valide') return;
   const mois=getParrainageMonth();
+  // Déblocage si nouveau mois
   if(client.parrain_status==='attente_mois'){
-    if(client.parrain_mois===mois) return;
+    if(client.parrain_mois===mois) return; // encore dans le même mois
     await dbUpdate(client.id,{parrain_status:'en_attente_commande'});
     const ldb=lLoad();const li=ldb.findIndex(x=>x.id===client.id);
     if(li>=0){ldb[li].parrain_status='en_attente_commande';lSave(ldb);}
+    client.parrain_status='en_attente_commande';
   }
-  if(client.parrain_status==='en_attente_commande' && montant>=8){
-    await dbUpdate(client.id,{parrain_status:'valide'});
-    const ldb=lLoad();const li=ldb.findIndex(x=>x.id===client.id);
-    if(li>=0){ldb[li].parrain_status='valide';lSave(ldb);}
-    const parrain=await dbByTel(client.parrain_tel);
-    if(parrain){
-      const newPts=(parseFloat(parrain.cagnotte)||0)+15;
-      await dbUpdate(parrain.id,{cagnotte:newPts});
+  if(client.parrain_status!=='en_attente_commande') return;
+  if(montant<8){showToast('⏳ Parrainage en attente — commande min. 8€ requise');return;}
+  // Commande valide → créditer filleul +20 pts
+  const ds=fmtDateParr(new Date().toISOString());
+  const newPtsFilleul=(parseFloat(client.cagnotte)||0)+20;
+  await dbUpdate(client.id,{cagnotte:newPtsFilleul,parrain_status:'valide'});
+  const ldbF=lLoad();const lif=ldbF.findIndex(x=>x.id===client.id);
+  if(lif>=0){
+    ldbF[lif].cagnotte=newPtsFilleul;ldbF[lif].parrain_status='valide';
+    ldbF[lif].history=ldbF[lif].history||[];
+    ldbF[lif].history.push({type:'g',label:'🎉 Bonus parrainage débloqué',amount:'+20 pts',date:ds});
+    lSave(ldbF);
+  }
+  client.cagnotte=newPtsFilleul;
+  // Récupérer le record parrainage
+  const rec=await dbGetParrainageFilleul(String(client.id));
+  const estReporte=rec&&rec.status==='reporte';
+  const now=new Date().toISOString();
+  if(rec){
+    await dbUpdateParrainage(rec.id,{
+      status:estReporte?'reporte':'valide',
+      date_validation:now,
+      pts_filleul_verse:true,
+      pts_parrain_verse:!estReporte
+    });
+  }
+  // Créditer parrain
+  const parrain=await dbByTel(client.parrain_tel);
+  if(parrain){
+    if(!estReporte){
+      const newPtsP=(parseFloat(parrain.cagnotte)||0)+15;
+      await dbUpdate(parrain.id,{cagnotte:newPtsP});
       const ldbP=lLoad();const lip=ldbP.findIndex(x=>x.id===parrain.id);
       if(lip>=0){
-        ldbP[lip].cagnotte=newPts;
+        ldbP[lip].cagnotte=newPtsP;
         ldbP[lip].history=ldbP[lip].history||[];
-        ldbP[lip].history.push({type:'g',label:'🎉 Parrainage validé — '+client.prenom,amount:'+15 pts',date:new Date().toLocaleDateString('fr')});
+        ldbP[lip].history.push({type:'g',label:'🎉 Parrainage — '+client.prenom,amount:'+15 pts',date:ds});
         lSave(ldbP);
       }
-      showToast('🎉 Parrainage validé ! +20 pts pour '+client.prenom+' · +15 pts pour '+parrain.prenom);
-      const newPtsFilleul=(parseFloat(client.cagnotte)||0)+20;
-      await dbUpdate(client.id,{cagnotte:newPtsFilleul});
-      const ldbF=lLoad();const lif=ldbF.findIndex(x=>x.id===client.id);
-      if(lif>=0){ldbF[lif].cagnotte=newPtsFilleul;lSave(ldbF);}
+      showToast(`🎉 Parrainage validé ! +20 pts pour ${client.prenom} · +15 pts pour ${parrain.prenom}`);
+    } else {
+      showToast(`🎉 +20 pts pour ${client.prenom} — pts de ${parrain.prenom} reportés le 1er du mois`);
     }
-  } else if(client.parrain_status==='en_attente_commande' && montant<8){
-    showToast('⏳ Parrainage en attente — commande min. 8€ requise');
   }
+}
+
+/* ── Traitement des parrainages reportés (appelé à l'ouverture de la page parrainage) ── */
+async function processerParrainagesReportes(client){
+  try{
+    const recs=await dbGetParrainages(String(client.id));
+    const moisCourant=getParrainageMonth();
+    const aTraiter=recs.filter(r=>r.status==='reporte'&&r.pts_filleul_verse===true&&r.pts_parrain_verse===false&&r.mois!==moisCourant);
+    if(!aTraiter.length) return 0;
+    let totalPts=0;
+    const ds=fmtDateParr(new Date().toISOString());
+    for(const r of aTraiter){
+      await dbUpdateParrainage(r.id,{status:'valide',pts_parrain_verse:true});
+      totalPts+=r.pts_parrain||15;
+    }
+    if(totalPts>0){
+      const newPts=(parseFloat(client.cagnotte)||0)+totalPts;
+      await dbUpdate(client.id,{cagnotte:newPts});
+      const ldb=lLoad();const li=ldb.findIndex(x=>x.id===client.id);
+      if(li>=0){
+        ldb[li].cagnotte=newPts;
+        ldb[li].history=ldb[li].history||[];
+        ldb[li].history.push({type:'g',label:`🎉 ${aTraiter.length} parrainage${aTraiter.length>1?'s':''} reporté${aTraiter.length>1?'s':''} crédité${aTraiter.length>1?'s':''}`,amount:`+${totalPts} pts`,date:ds});
+        lSave(ldb);
+      }
+      showToast(`🎉 +${totalPts} pts de parrainage crédités ce mois !`);
+    }
+    return aTraiter.length;
+  }catch(e){console.error('processerParrainagesReportes:',e);return 0;}
 }
 
 function getParrainStats(clients){
@@ -2227,7 +2346,9 @@ function animateCount(el, from, to, duration){
   requestAnimationFrame(update);
 }
 
+let currentPortalClient=null;
 function renderPortal(c){
+  currentPortalClient=c;
   const rewards=getRewards();
   const pts=Math.floor(parseFloat(c.cagnotte)||0);
   const prevPts=parseInt(localStorage.getItem('kbb_prev_pts_'+(c.tel||c.telephone))||'0');
@@ -2373,67 +2494,7 @@ function renderPortal(c){
     else lvlNext.innerHTML='<strong style="color:var(--gold)">👑 Vous êtes au sommet — niveau Or !</strong>';
   }
 
-  // parrainage block — maintenant dans page-parrainage
-  const parrainEl=document.getElementById('portal-parrainage-page');
-  if(parrainEl){
-    const ldb=lLoad();
-    const mesFilleuls=ldb.filter(x=>x.parrain_tel===(c.tel||c.telephone));
-    const nbValides=mesFilleuls.filter(x=>x.parrain_status==='valide').length;
-    const nbAttente=mesFilleuls.filter(x=>x.parrain_status==='en_attente_commande').length;
-    const nbMoisProchain=mesFilleuls.filter(x=>x.parrain_status==='attente_mois').length;
-    const monTel=c.tel||c.telephone;
-    const mois=getParrainageMonth();
-    const compteur=c.parrain_mois_count?c.parrain_mois_count[mois]||0:0;
-    const restant=Math.max(0,5-compteur);
-    parrainEl.innerHTML=`
-    <div style="background:linear-gradient(135deg,rgba(255,107,43,.1),rgba(255,184,48,.08));border:1px solid rgba(255,107,43,.2);border-radius:var(--radius);padding:1.1rem 1.25rem;margin-bottom:.875rem;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.875rem;">
-        <span style="font-size:22px;">🤝</span>
-        <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text);">Parrainez vos amis</div>
-          <div style="font-size:12px;color:var(--text3);">+15 pts par ami parrainé · +20 pts pour eux</div>
-        </div>
-      </div>
-      <div style="background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:.875rem;">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Mon code parrain</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="font-size:18px;font-weight:700;color:var(--fire);letter-spacing:1px;flex:1;">${monTel}</div>
-          <button onclick="copierCodeParrain('${monTel}')" style="background:var(--fire);border:none;border-radius:var(--radius-xs);padding:6px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">Copier</button>
-        </div>
-      </div>
-      <button onclick="partagerParrainage('${monTel}','${c.prenom}')" style="width:100%;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:var(--radius-sm);padding:.75rem;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:.875rem;">
-        <span>📲</span> Partager avec un ami
-      </button>
-      ${mesFilleuls.length>0?`
-      <div style="border-top:1px solid var(--border);padding-top:.75rem;">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;">Mes filleuls</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:.5rem;">
-          <div style="background:rgba(76,175,116,.1);border-radius:var(--radius-xs);padding:6px;text-align:center;">
-            <div style="font-size:18px;font-weight:700;color:var(--green);">${nbValides}</div>
-            <div style="font-size:10px;color:var(--text3);">Validés</div>
-          </div>
-          <div style="background:rgba(255,184,48,.1);border-radius:var(--radius-xs);padding:6px;text-align:center;">
-            <div style="font-size:18px;font-weight:700;color:var(--gold);">${nbAttente}</div>
-            <div style="font-size:10px;color:var(--text3);">En attente</div>
-          </div>
-          <div style="background:rgba(255,107,43,.08);border-radius:var(--radius-xs);padding:6px;text-align:center;">
-            <div style="font-size:18px;font-weight:700;color:var(--fire);">${nbMoisProchain}</div>
-            <div style="font-size:10px;color:var(--text3);">Mois prochain</div>
-          </div>
-        </div>
-        ${mesFilleuls.map(f=>`
-        <div style="display:flex;align-items:center;gap:8px;padding:.4rem 0;border-bottom:1px solid var(--border);">
-          <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--fire2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;">${(f.prenom||'?')[0]}${(f.nom||'?')[0]}</div>
-          <div style="flex:1;">
-            <div style="font-size:13px;font-weight:600;color:var(--text);">${f.prenom||''} ${f.nom||''}</div>
-            <div style="font-size:11px;color:var(--text3);">${f.parrain_status==='valide'?'✓ Validé — +15 pts reçus':f.parrain_status==='attente_mois'?'⏳ Activé le 1er du mois prochain':'⏳ En attente 1ère commande 8€+'}</div>
-          </div>
-          <div style="font-size:11px;background:${f.parrain_status==='valide'?'rgba(76,175,116,.12)':f.parrain_status==='attente_mois'?'rgba(255,184,48,.12)':'rgba(255,107,43,.1)'};color:${f.parrain_status==='valide'?'var(--green)':f.parrain_status==='attente_mois'?'var(--gold)':'var(--fire3)'};border-radius:99px;padding:3px 8px;">${f.parrain_status==='valide'?'✓':f.parrain_status==='attente_mois'?'📅':'⏳'}</div>
-        </div>`).join('')}
-      </div>`:''}
-      <div style="font-size:11px;color:var(--text3);margin-top:.6rem;text-align:center;">${restant} parrainage${restant>1?'s':''} restant${restant>1?'s':''} ce mois</div>
-    </div>`;
-  }
+  // page-parrainage rendered async via renderParrainagePage()
 
   // history
   const hist=document.getElementById('portal-hist');
@@ -2448,23 +2509,117 @@ function renderPortal(c){
 }
 
 function copierCodeParrain(tel){
-  navigator.clipboard.writeText(tel).then(()=>{
-    showToast('✓ Code copié ! Envoyez-le à vos amis 📲');
-  }).catch(()=>{
-    showToast('Code parrain : '+tel);
-  });
+  navigator.clipboard.writeText(tel).then(()=>showToast('✓ Code copié ! Envoyez-le à vos amis 📲')).catch(()=>showToast('Code parrain : '+tel));
 }
 
-function partagerParrainage(tel, prenom){
-  const msg=`Salut ! Je suis chez KBB à la Braise et j'adore 🔥
-Inscris-toi sur leur appli fidélité avec mon code parrain : ${tel}
-Tu gagneras +20 points dès ta 1ère commande !
-👉 https://kbb-fidelite.github.io/kbb-fidelite/`;
-  if(navigator.share){
-    navigator.share({title:'KBB à la Braise — Parrainage',text:msg}).catch(()=>{});
-  } else {
-    navigator.clipboard.writeText(msg).then(()=>showToast('✓ Message copié — collez-le à votre ami !')).catch(()=>showToast(msg));
+function partagerParrainage(tel,prenom){
+  const msg=`Salut ! Je suis chez KBB à la Braise et j'adore 🔥\nInscris-toi sur leur appli fidélité avec mon code parrain : ${tel}\nTu gagneras +20 points dès ta 1ère commande !\n👉 https://kbb-fidelite.github.io/kbb-fidelite/`;
+  if(navigator.share){navigator.share({title:'KBB à la Braise — Parrainage',text:msg}).catch(()=>{});}
+  else{navigator.clipboard.writeText(msg).then(()=>showToast('✓ Message copié — collez-le à votre ami !')).catch(()=>showToast(msg));}
+}
+
+function partagerWhatsApp(tel,prenom){
+  const msg=encodeURIComponent(`Salut ! Je suis chez KBB à la Braise et j'adore 🔥\nInscris-toi avec mon code parrain : ${tel}\nTu gagneras +20 pts dès ta 1ère commande 🎁\n👉 https://kbb-fidelite.github.io/kbb-fidelite/`);
+  window.open(`https://wa.me/?text=${msg}`,'_blank');
+}
+
+/* ── Ouverture page parrainage depuis dashboard ── */
+function ouvrirParrainage(){
+  // currentPortalClient est défini par renderPortal
+  const c=typeof currentPortalClient!=='undefined'?currentPortalClient:null;
+  go('page-parrainage');
+  if(c) renderParrainagePage(c);
+}
+
+/* ── Rendu complet de la page Parrainage (async Supabase) ── */
+let _parrCurrentClient=null;
+async function renderParrainagePage(client){
+  _parrCurrentClient=client;
+  const body=document.getElementById('parr-body');
+  if(!body) return;
+  const monTel=client.tel||client.telephone;
+  const mois=getParrainageMonth();
+  // 1. Traiter les reportés du mois précédent
+  await processerParrainagesReportes(client);
+  // 2. Charger depuis Supabase
+  let recs=[];
+  try{recs=await dbGetParrainages(String(client.id));}catch(e){console.error(e);}
+  // 3. Compteur mensuel
+  const recsMois=recs.filter(r=>r.mois===mois);
+  const nbValidesMois=recsMois.filter(r=>r.status==='valide'||r.status==='reporte').length;
+  const nbCeMois=Math.min(5,nbValidesMois);
+  const restant=Math.max(0,5-nbCeMois);
+  // 4. Sections
+  const enAttente=recs.filter(r=>r.status==='en_attente');
+  const valides=recs.filter(r=>r.status==='valide');
+  const reportes=recs.filter(r=>r.status==='reporte');
+  function filleulRow(r,cls){
+    const initiales=((r.filleul_prenom||'?')[0]+(r.filleul_nom||'?')[0]).toUpperCase();
+    const date=r.date_validation?fmtDateParr(r.date_validation):fmtDateParr(r.date_inscription);
+    const labelDate=r.date_validation?'Validé le '+date:'Inscrit le '+date;
+    let badge='',badgeCls='';
+    if(cls==='attente'){badge='⏳ Attente 8€+';badgeCls='attente';}
+    else if(cls==='valide'){badge='+15 pts ✓';badgeCls='valide';}
+    else{badge='📅 Mois prochain';badgeCls='reporte';}
+    return `<div class="parr-row">
+      <div class="parr-avatar">${initiales}</div>
+      <div class="parr-row-info">
+        <div class="parr-row-name">${r.filleul_prenom||''} ${r.filleul_nom||''}</div>
+        <div class="parr-row-date">${labelDate}</div>
+      </div>
+      <div class="parr-row-badge ${badgeCls}">${badge}</div>
+    </div>`;
   }
+  function section(title,count,cls,rows,emptyMsg){
+    return`<div class="parr-section">
+      <div class="parr-section-head">
+        <div class="parr-section-title">${title}</div>
+        <div class="parr-section-count ${cls}">${count}</div>
+      </div>
+      ${rows.length?rows.map(r=>filleulRow(r,cls)).join(''):`<div class="parr-empty">${emptyMsg}</div>`}
+    </div>`;
+  }
+  body.innerHTML=`
+    <!-- Code parrain -->
+    <div class="parr-code-card">
+      <div class="parr-code-label">Mon code parrain</div>
+      <div class="parr-code-val">${monTel}</div>
+      <div class="parr-share-row">
+        <button class="parr-share-btn copy" onclick="copierCodeParrain('${monTel}')">
+          <span class="psb-ico">📋</span>Copier
+        </button>
+        <button class="parr-share-btn whatsapp" onclick="partagerWhatsApp('${monTel}','${client.prenom}')">
+          <span class="psb-ico">💬</span>WhatsApp
+        </button>
+        <button class="parr-share-btn share" onclick="partagerParrainage('${monTel}','${client.prenom}')">
+          <span class="psb-ico">📲</span>Partager
+        </button>
+      </div>
+    </div>
+    <!-- Compteur mensuel -->
+    <div class="parr-counter">
+      <div class="parr-counter-header">
+        <div class="parr-counter-title">Parrainages ce mois</div>
+        <div class="parr-counter-val">${nbCeMois} / 5</div>
+      </div>
+      <div class="parr-counter-bar-wrap">
+        <div class="parr-counter-fill" id="parr-fill"></div>
+      </div>
+      <div class="parr-counter-sub">${restant===0?'⚠️ Limite atteinte — pts parrain reportés au mois prochain':restant+' parrainage'+(restant>1?'s':'')+' disponible'+(restant>1?'s':'')+' ce mois'}</div>
+    </div>
+    <!-- Sections -->
+    ${section('⏳ En attente de validation',enAttente.length,'attente',enAttente,'Aucun filleul en attente — partagez votre code !')}
+    ${valides.length?section('✅ Points crédités',valides.length,'valide',valides,'Aucun parrainage validé'):''}
+    ${reportes.length?section('📅 Reportés au mois prochain',reportes.length,'reporte',reportes,''):''}
+    <!-- Règles -->
+    <div class="parr-rules">
+      <div class="prule"><span class="prule-ico">🎁</span><span>Votre filleul reçoit <strong>+20 pts</strong> dès sa 1ère commande de <strong>8€+</strong></span></div>
+      <div class="prule"><span class="prule-ico">💰</span><span>Vous recevez <strong>+15 pts</strong> à la validation de sa commande</span></div>
+      <div class="prule"><span class="prule-ico">📅</span><span>Limite de <strong>5 parrainages validés</strong> par mois — les suivants sont crédités le 1er du mois prochain</span></div>
+      <div class="prule"><span class="prule-ico">🔒</span><span>Chaque filleul ne peut utiliser qu'un seul code parrain (à l'inscription uniquement)</span></div>
+    </div>`;
+  // Animer la barre
+  setTimeout(()=>{const f=document.getElementById('parr-fill');if(f)f.style.width=(nbCeMois/5*100)+'%';},100);
 }
 
 /* ══ PIN ══ */
