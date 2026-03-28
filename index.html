@@ -32,21 +32,34 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .page{display:none;flex-direction:column;min-height:100vh;}
 .page.active{display:flex;}
 
-/* ══ HOME ══ */
+/* ══ HOME LANDING (non connecté) ══ */
+.home-landing{position:relative;flex:1;background-size:cover;background-position:center;display:flex;flex-direction:column;overflow:hidden;}
+.home-landing-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,rgba(0,0,0,.18) 45%,rgba(0,0,0,.80) 100%);}
+.home-landing-top{position:relative;z-index:1;padding:3.5rem 1.5rem 0;text-align:center;}
+.home-landing-logo{font-family:var(--font-d);font-size:52px;letter-spacing:4px;color:#fff;text-shadow:0 3px 24px rgba(0,0,0,.7);line-height:1;}
+.home-landing-fire{display:block;margin:0 auto .6rem;}
+.home-landing-sub{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-top:8px;}
+.home-landing-actions{position:relative;z-index:1;margin-top:auto;padding:0 1.5rem 3rem;display:flex;flex-direction:column;gap:12px;}
+.home-landing-btn{width:100%;padding:1.05rem;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;border:none;letter-spacing:.3px;transition:opacity .15s;}
+.home-landing-btn:active{opacity:.85;}
+.home-landing-btn.primary{background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 6px 28px rgba(255,107,43,.4);}
+.home-landing-btn.secondary{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.35);backdrop-filter:blur(6px);}
+.home-emp-link{position:absolute;top:1rem;right:1rem;z-index:2;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.supa-status{display:none;}
+/* ══ DASHBOARD (connecté) ══ */
 .home-header{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.25rem;background:var(--coal);border-bottom:1px solid var(--border);flex-shrink:0;}
 .home-brand{font-family:var(--font-d);font-size:26px;letter-spacing:2px;color:var(--text);line-height:1;}
-.home-sub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-top:2px;}
+.home-sub-small{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-top:2px;}
 .home-emp-btn{width:34px;height:34px;border-radius:50%;background:var(--coal3);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2);}
 .home-tiles{display:flex;flex-direction:column;flex:1;gap:3px;padding-bottom:65px;}
 .tile{flex:1;position:relative;background-size:cover;background-position:center;cursor:pointer;overflow:hidden;min-height:130px;display:flex;align-items:flex-end;}
-.tile:active .tile-overlay{background:rgba(0,0,0,.6);}
-.tile-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.3) 60%,rgba(0,0,0,.15) 100%);transition:background .15s;}
+.tile:active .tile-overlay{background:rgba(0,0,0,.62);}
+.tile-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.75) 0%,rgba(0,0,0,.28) 60%,rgba(0,0,0,.12) 100%);transition:background .15s;}
 .tile-content{position:relative;z-index:1;padding:1rem 1.25rem 1.1rem;width:100%;}
 .tile-icon{font-size:26px;margin-bottom:4px;display:block;}
 .tile-title{font-family:var(--font-d);font-size:30px;letter-spacing:1.5px;color:#fff;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.5);}
 .tile-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:3px;font-weight:500;}
 .tile-arrow{position:absolute;right:1.25rem;bottom:1.1rem;z-index:1;width:32px;height:32px;border-radius:50%;background:rgba(255,107,43,.85);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;}
-.supa-status{display:none;}
 /* ══ BOTTOM NAV ══ */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--coal);border-top:1px solid var(--border2);display:flex;align-items:stretch;z-index:50;height:65px;}
 .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;color:var(--text3);font-family:var(--font);transition:color .15s;padding:.5rem .25rem;}
@@ -434,18 +447,39 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 </style>
 <div id="root">
 
-<!-- HOME -->
+<!-- HOME (non connecté) -->
 <div class="page active" id="page-home">
+  <button class="home-emp-link" onclick="go('page-pin')" title="Espace employé">🔐</button>
+  <div class="home-landing" style="background-image:url('https://images.unsplash.com/photo-1561651823-34feb02250e4?w=900&q=80&fit=crop')">
+    <div class="home-landing-overlay"></div>
+    <div class="home-landing-top">
+      <svg class="home-landing-fire" width="48" height="60" viewBox="0 0 58 72" fill="none">
+        <path d="M29 2C29 2 42 17 42 30C42 38 37 43 33 45C35 38 33 31 29 27C29 27 25 35 19 37C15 39 13 35 13 29C13 18 21 9 29 2Z" fill="#FF6B2B" opacity=".95"/>
+        <path d="M29 18C29 18 38 28 38 39C38 51 34 59 26 63C22 59 18 53 18 43C18 35 23 27 29 18Z" fill="#FF9A6C" opacity=".75"/>
+        <path d="M29 34C29 34 33 40 33 49C33 57 31 63 29 67C27 63 25 57 25 49C25 40 29 34 29 34Z" fill="#FFB830" opacity=".9"/>
+      </svg>
+      <div class="home-landing-logo">KBB À LA BRAISE</div>
+      <div class="home-landing-sub">Programme de fidélité</div>
+    </div>
+    <div class="home-landing-actions">
+      <button class="home-landing-btn primary" onclick="go('page-qr')">S'inscrire</button>
+      <button class="home-landing-btn secondary" onclick="go('page-client-login')">Se connecter</button>
+    </div>
+  </div>
+  <div class="supa-status" id="supa-status"></div>
+</div>
+
+<!-- DASHBOARD (connecté) -->
+<div class="page" id="page-dashboard">
   <div class="home-header">
     <div>
       <div class="home-brand">KBB à la braise</div>
-      <div class="home-sub">Programme de fidélité</div>
+      <div class="home-sub-small">Programme de fidélité</div>
     </div>
     <button class="home-emp-btn" onclick="go('page-pin')" title="Espace employé">🔐</button>
   </div>
   <div class="home-tiles">
-    <!-- Fidélité -->
-    <div class="tile" onclick="go('page-client-login')"
+    <div class="tile" onclick="go('page-client-portal')"
       style="background-image:url('https://images.unsplash.com/photo-1561651823-34feb02250e4?w=800&q=80&fit=crop')">
       <div class="tile-overlay"></div>
       <div class="tile-content">
@@ -455,8 +489,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       </div>
       <div class="tile-arrow">›</div>
     </div>
-    <!-- Parrainage -->
-    <div class="tile" onclick="go('page-client-login')"
+    <div class="tile" onclick="go('page-client-portal')"
       style="background-image:url('https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=800&q=80&fit=crop')">
       <div class="tile-overlay"></div>
       <div class="tile-content">
@@ -466,8 +499,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       </div>
       <div class="tile-arrow">›</div>
     </div>
-    <!-- Mes Commandes -->
-    <div class="tile" onclick="go('page-client-login')"
+    <div class="tile" onclick="go('page-client-portal')"
       style="background-image:url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80&fit=crop')">
       <div class="tile-overlay"></div>
       <div class="tile-content">
@@ -478,18 +510,16 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <div class="tile-arrow">›</div>
     </div>
   </div>
-  <div class="supa-status" id="supa-status"></div>
-  <!-- BARRE DE NAVIGATION FIXE -->
   <nav class="bottom-nav">
-    <button class="bnav-item active" onclick="go('page-home')">
+    <button class="bnav-item active" onclick="go('page-dashboard')">
+      <span class="bnav-icon">🏠</span>
+      <span class="bnav-label">Accueil</span>
+    </button>
+    <button class="bnav-item" onclick="go('page-client-portal')">
       <span class="bnav-icon">🏆</span>
       <span class="bnav-label">Fidélité</span>
     </button>
-    <button class="bnav-item" onclick="go('page-client-login')">
-      <span class="bnav-icon">🤝</span>
-      <span class="bnav-label">Parrainage</span>
-    </button>
-    <button class="bnav-item" onclick="go('page-client-login')">
+    <button class="bnav-item" onclick="go('page-client-portal')">
       <span class="bnav-icon">📦</span>
       <span class="bnav-label">Commandes</span>
     </button>
@@ -647,7 +677,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
         <div class="ph-logo">KBB 🔥</div>
         <div style="display:flex;gap:8px;align-items:center;">
           <button class="ph-exit" onclick="go('page-menu')" style="background:var(--fire);border-color:var(--fire);color:#fff;">🍖 La carte</button>
-          <button class="ph-exit" onclick="go('page-home')">Quitter</button>
+          <button class="ph-exit" onclick="go('page-dashboard')">Accueil</button>
         </div>
       </div>
       <div class="ph-greet" id="portal-greet">Bonjour,</div>
@@ -1722,7 +1752,7 @@ async function checkPinRapide(){
   if(pinRapideVal === pinRapideClient.pin_rapide){
     document.getElementById('pin-rapide-err').textContent = '';
     renderPortal(pinRapideClient);
-    go('page-client-portal');
+    go('page-dashboard');
     // Rafraîchir depuis Supabase en arrière-plan
     try{
       const fresh = await dbByTel(pinRapideClient.tel||pinRapideClient.telephone);
@@ -1799,7 +1829,7 @@ async function checkQuickPin(){
   document.getElementById('quick-pin-err').textContent='';
   const c=await dbByTel(d.tel);
   if(!c){showToast('Compte introuvable');return;}
-  renderPortal(c);go('page-client-portal');
+  renderPortal(c);go('page-dashboard');
   showToast('✓ Connecté avec ton PIN 🔢');
 }
 async function quickAutoLogin(){
@@ -1808,7 +1838,7 @@ async function quickAutoLogin(){
   const d=JSON.parse(saved);
   const c=await dbByTel(d.tel);
   if(!c){showToast('Compte introuvable');return;}
-  renderPortal(c);go('page-client-portal');
+  renderPortal(c);go('page-dashboard');
 }
 function showQuickChoice(client){
   quickLoginClient=client;
@@ -2049,7 +2079,7 @@ async function clientLogin(){
   setSessionCookie(token, c.tel||c.telephone, c.prenom, c.nom);
   try{ await dbUpdate(c.id,{session_token:token}); }catch(e){}
 
-  renderPortal(c);go('page-client-portal');
+  renderPortal(c);go('page-dashboard');
   if(!c.pin_rapide) proposerPinRapide(c);
 }
 
@@ -2888,14 +2918,14 @@ window.addEventListener('load', async function(){
             const c = localDb.find(x=>x.telephone===d.tel||x.tel===d.tel);
             if(c){
               renderPortal(c);
-              go('page-client-portal');
+              go('page-dashboard');
               // Sync Supabase en arrière-plan pour rafraîchir les points
               dbByTel(d.tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
               return true;
             }
             // Pas encore en local → attendre Supabase
             const fresh = await Promise.race([dbByTel(d.tel), new Promise(r=>setTimeout(()=>r(null),5000))]);
-            if(fresh){ renderPortal(fresh); go('page-client-portal'); return true; }
+            if(fresh){ renderPortal(fresh); go('page-dashboard'); return true; }
           }
           // Fallback : pré-remplir le numéro
           go('page-client-login');
@@ -2919,7 +2949,7 @@ window.addEventListener('load', async function(){
           const lc = localDb.find(x=>x.telephone===c.telephone||x.tel===c.telephone);
           const full = {...c, tel:c.telephone||c.tel, passages:c.points||0, cagnotte:parseFloat(c.cagnotte)||0, history:lc?lc.history:[]};
           renderPortal(full);
-          go('page-client-portal');
+          go('page-dashboard');
           return true;
         }
       }catch(e){ console.warn('Session check error:', e); }
