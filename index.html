@@ -2566,6 +2566,8 @@ function hideSplash(){
 
 window.addEventListener('load', async function(){
   // Auto-login au démarrage
+  let autoLoginAborted = false;
+
   async function tryAutoLogin(){
     // 1. Vérifier le token de session Supabase
     const session = getSessionCookie();
@@ -2576,6 +2578,7 @@ window.addEventListener('load', async function(){
           supaReq('clients?telephone=eq.'+encodeURIComponent(session.tel)+'&select=*'),
           new Promise(r=>setTimeout(()=>r(null),2000))
         ]);
+        if(autoLoginAborted) return false;
         if(clients && clients[0] && clients[0].session_token === session.token){
           const c = clients[0];
           const localDb = lLoad();
@@ -2587,6 +2590,7 @@ window.addEventListener('load', async function(){
         }
       }catch(e){ console.warn('Session check error:', e); }
     }
+    if(autoLoginAborted) return false;
     // 2. Fallback : connexion automatique ou pré-remplissage
     const saved = getQuickLogin();
     if(saved){
@@ -2599,6 +2603,7 @@ window.addEventListener('load', async function(){
               dbByTel(d.tel),
               new Promise(r=>setTimeout(()=>r(null), 5000))
             ]);
+            if(autoLoginAborted) return false;
             if(c){ renderPortal(c); go('page-client-portal'); return true; }
           }
           // Si mode PIN : afficher le clavier PIN
@@ -2624,16 +2629,15 @@ window.addEventListener('load', async function(){
     return false;
   }
 
-  // Timeout de sécurité : 2s max avant d'afficher l'accueil
-  const safetyTimer = setTimeout(()=>{ hideSplash(); }, 6000);
+  // Timeout de sécurité : budget total = 2s (session check) + 5s (dbByTel) + 500ms marge
+  const TOTAL_TIMEOUT = 7500;
+  const safetyTimer = setTimeout(()=>{ autoLoginAborted=true; hideSplash(); }, TOTAL_TIMEOUT);
 
   setTimeout(async function(){
     try{
-      await Promise.race([
-        tryAutoLogin(),
-        new Promise(resolve=>setTimeout(resolve, 5000))
-      ]);
+      await tryAutoLogin();
     }catch(e){}
+    autoLoginAborted = true;
     clearTimeout(safetyTimer);
     hideSplash();
   }, 300);
