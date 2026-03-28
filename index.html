@@ -69,6 +69,47 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .bnav-label{font-size:10px;font-weight:600;letter-spacing:.3px;}
 .bnav-item.commander{background:var(--fire);color:#fff;}
 .bnav-item.commander:active{background:var(--fire2);}
+/* ══ PAGE FIDÉLITÉ ══ */
+.fidel-hero{position:relative;min-height:44vh;background-size:cover;background-position:center;display:flex;flex-direction:column;flex-shrink:0;}
+.fidel-hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.6) 0%,rgba(0,0,0,.15) 40%,rgba(0,0,0,.88) 100%);}
+.fidel-hero-top{position:relative;z-index:1;display:flex;align-items:center;padding:.9rem 1rem .5rem;}
+.fidel-back{background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.18);border-radius:50%;width:38px;height:38px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.fidel-hero-content{position:relative;z-index:1;padding:0 1.5rem 1.75rem;margin-top:auto;}
+.fidel-hook{font-size:13px;color:rgba(255,255,255,.68);font-style:italic;margin-bottom:.875rem;line-height:1.5;}
+.fidel-name{font-family:var(--font-d);font-size:38px;letter-spacing:2px;color:#fff;line-height:1;text-shadow:0 2px 14px rgba(0,0,0,.6);}
+.fidel-lvl-row{margin-top:.5rem;margin-bottom:.5rem;}
+.fidel-lvl-badge{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;}
+.fidel-lvl-badge.lvl-bronze{background:rgba(205,127,50,.25);color:#E8A87C;border:1px solid rgba(205,127,50,.4);}
+.fidel-lvl-badge.lvl-argent{background:rgba(192,192,192,.2);color:#D0D0D0;border:1px solid rgba(192,192,192,.35);}
+.fidel-lvl-badge.lvl-or{background:rgba(255,184,48,.2);color:var(--gold);border:1px solid rgba(255,184,48,.4);}
+.fidel-pts-row{display:flex;align-items:baseline;gap:6px;margin-top:.3rem;}
+.fidel-pts-val{font-family:var(--font-d);font-size:56px;color:var(--fire);line-height:1;text-shadow:0 3px 18px rgba(255,107,43,.5);}
+.fidel-pts-unit{font-size:16px;color:rgba(255,255,255,.7);font-weight:600;}
+.fidel-prog-wrap{height:6px;background:rgba(255,255,255,.15);border-radius:99px;margin-top:.875rem;overflow:hidden;}
+.fidel-prog-fill{height:100%;background:linear-gradient(90deg,var(--fire),var(--gold));border-radius:99px;transition:width .7s ease;width:0%;}
+.fidel-prog-sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:.5rem;}
+.fidel-body{flex:1;overflow-y:auto;padding:1.25rem;background:var(--coal);}
+/* Level cards */
+.fidel-lvl-section{margin-bottom:1.25rem;}
+.fidel-lvl-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:.75rem;}
+.fidel-lvl-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.flvl-card{border-radius:var(--radius);padding:.875rem .5rem;text-align:center;border:1px solid var(--border);transition:border-color .2s;}
+.flvl-card.flvl-active{border-width:2px;}
+.flvl-emoji{font-size:22px;margin-bottom:4px;}
+.flvl-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.flvl-desc{font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.3;}
+.flvl-range{font-size:11px;font-weight:700;border-radius:99px;padding:3px 8px;display:inline-block;}
+.flvl-card.bronze{background:rgba(205,127,50,.07);border-color:rgba(205,127,50,.2);}
+.flvl-card.bronze .flvl-range{background:rgba(205,127,50,.15);color:#CD7F32;}
+.flvl-card.bronze.flvl-active{border-color:#CD7F32;box-shadow:0 0 12px rgba(205,127,50,.2);}
+.flvl-card.argent{background:rgba(176,176,176,.07);border-color:rgba(176,176,176,.15);}
+.flvl-card.argent .flvl-range{background:rgba(176,176,176,.15);color:#C0C0C0;}
+.flvl-card.argent.flvl-active{border-color:#C0C0C0;box-shadow:0 0 12px rgba(192,192,192,.2);}
+.flvl-card.or{background:rgba(255,184,48,.07);border-color:rgba(255,184,48,.15);}
+.flvl-card.or .flvl-range{background:rgba(255,184,48,.15);color:var(--gold);}
+.flvl-card.or.flvl-active{border-color:var(--gold);box-shadow:0 0 12px rgba(255,184,48,.2);}
+/* ══ PAGE PARRAINAGE ══ */
+.parrain-page-body{flex:1;overflow-y:auto;padding:1.25rem;background:var(--coal);}
 .hbtn{display:flex;align-items:center;gap:14px;padding:1.05rem 1.25rem;border-radius:var(--radius);border:none;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;transition:transform .1s;text-align:left;width:100%;}
 .hbtn:active{transform:scale(.975);}
 .hbtn.fire{background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 6px 28px rgba(255,107,43,.28);}
@@ -450,7 +491,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 <!-- HOME (non connecté) -->
 <div class="page active" id="page-home">
   <button class="home-emp-link" onclick="go('page-pin')" title="Espace employé">🔐</button>
-  <div class="home-landing" style="background-image:url('https://images.unsplash.com/photo-1561651823-34feb02250e4?w=900&q=80&fit=crop')">
+  <div class="home-landing" style="background-image:url('https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?w=900&q=80&fit=crop')">
     <div class="home-landing-overlay"></div>
     <div class="home-landing-top">
       <svg class="home-landing-fire" width="48" height="60" viewBox="0 0 58 72" fill="none">
@@ -479,7 +520,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
     <button class="home-emp-btn" onclick="go('page-pin')" title="Espace employé">🔐</button>
   </div>
   <div class="home-tiles">
-    <div class="tile" onclick="go('page-client-portal')"
+    <div class="tile" onclick="go('page-fidelite')"
       style="background-image:url('https://images.unsplash.com/photo-1561651823-34feb02250e4?w=800&q=80&fit=crop')">
       <div class="tile-overlay"></div>
       <div class="tile-content">
@@ -489,7 +530,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       </div>
       <div class="tile-arrow">›</div>
     </div>
-    <div class="tile" onclick="go('page-client-portal')"
+    <div class="tile" onclick="go('page-parrainage')"
       style="background-image:url('https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=800&q=80&fit=crop')">
       <div class="tile-overlay"></div>
       <div class="tile-content">
@@ -528,6 +569,75 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <span class="bnav-label">Commander</span>
     </button>
   </nav>
+</div>
+
+<!-- PAGE FIDÉLITÉ -->
+<div class="page" id="page-fidelite">
+  <div class="fidel-hero" style="background-image:url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=900&q=80&fit=crop')">
+    <div class="fidel-hero-overlay"></div>
+    <div class="fidel-hero-top">
+      <button class="fidel-back" onclick="go('page-dashboard')">←</button>
+    </div>
+    <div class="fidel-hero-content">
+      <div class="fidel-hook">Chaque repas vous rapproche d'une récompense d'exception ✨</div>
+      <div class="fidel-name" id="fidel-name">—</div>
+      <div class="fidel-lvl-row"><span class="fidel-lvl-badge" id="fidel-lvl-badge">🥉 Bronze</span></div>
+      <div class="fidel-pts-row">
+        <span class="fidel-pts-val" id="fidel-pts">0</span>
+        <span class="fidel-pts-unit">pts</span>
+      </div>
+      <div class="fidel-prog-wrap"><div class="fidel-prog-fill" id="fidel-prog"></div></div>
+      <div class="fidel-prog-sub" id="fidel-prog-sub"></div>
+    </div>
+  </div>
+  <div class="fidel-body">
+    <!-- Système de niveaux -->
+    <div class="fidel-lvl-section">
+      <div class="fidel-lvl-title">Système de niveaux</div>
+      <div class="fidel-lvl-cards">
+        <div class="flvl-card bronze" id="flvl-bronze">
+          <div class="flvl-emoji">🥉</div>
+          <div class="flvl-name">Bronze</div>
+          <div class="flvl-desc">Niveau débutant</div>
+          <div class="flvl-range">0 – 50 pts</div>
+        </div>
+        <div class="flvl-card argent" id="flvl-argent">
+          <div class="flvl-emoji">⭐</div>
+          <div class="flvl-name">Argent</div>
+          <div class="flvl-desc">Niveau intermédiaire</div>
+          <div class="flvl-range">51 – 150 pts</div>
+        </div>
+        <div class="flvl-card or" id="flvl-or">
+          <div class="flvl-emoji">👑</div>
+          <div class="flvl-name">Or</div>
+          <div class="flvl-desc">Top clients</div>
+          <div class="flvl-range">151+ pts</div>
+        </div>
+      </div>
+      <div id="fidel-lvl-next-msg" style="margin-top:.75rem;font-size:12px;color:var(--text3);text-align:center;line-height:1.5;"></div>
+    </div>
+    <!-- Récompenses -->
+    <div id="fidel-rewards"></div>
+    <!-- Flash -->
+    <div id="fidel-flash"></div>
+    <!-- Rappel règle -->
+    <div class="motive" style="margin-top:.875rem;">
+      <span style="font-size:17px;flex-shrink:0">💡</span>
+      <p><strong>1€ dépensé = 1 point !</strong> Une commande à 25€ vous rapporte <strong>+25 points.</strong></p>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE PARRAINAGE -->
+<div class="page" id="page-parrainage">
+  <div class="topbar"><button class="tbback" onclick="go('page-dashboard')">←</button><div class="tbtitle">Parrainage</div></div>
+  <div class="parrain-page-body">
+    <div class="motive" style="margin-bottom:1rem;">
+      <span style="font-size:17px;flex-shrink:0">🤝</span>
+      <p><strong>Parrainez un ami</strong> et gagnez chacun des points : <strong>+15 pts</strong> pour vous, <strong>+20 pts</strong> pour votre filleul !</p>
+    </div>
+    <div id="portal-parrainage-page"></div>
+  </div>
 </div>
 
 <!-- QR -->
@@ -701,7 +811,6 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <p><strong>1€ dépensé = 1 point !</strong> Cumulez vos points pour débloquer des récompenses. Une commande à 25€ = <strong>+25 points.</strong></p>
     </div>
     <div id="portal-filleul-status"></div>
-    <div id="portal-parrainage"></div>
     <div class="stats-row">
       <div class="sbox"><div class="sv" id="portal-passages">0</div><div class="sl">Passages</div></div>
       <div class="sbox"><div class="sv" id="portal-total">0€</div><div class="sl">Total dépensé</div></div>
@@ -2225,8 +2334,47 @@ function renderPortal(c){
   const filleulEl=document.getElementById('portal-filleul-status');
   if(filleulEl) renderFilleulStatus(filleulEl, c);
 
-  // parrainage block
-  const parrainEl=document.getElementById('portal-parrainage');
+  // ── PAGE FIDÉLITÉ ──
+  const fName=document.getElementById('fidel-name');
+  if(fName) fName.textContent=c.prenom;
+  const fBadge=document.getElementById('fidel-lvl-badge');
+  if(fBadge){fBadge.textContent=lvl.emoji+' '+lvl.label;fBadge.className='fidel-lvl-badge '+lvl.cls;}
+  const fPts=document.getElementById('fidel-pts');
+  if(fPts) fPts.textContent=pts;
+  const fProg=document.getElementById('fidel-prog');
+  if(fProg){
+    if(nextR){
+      const base2=rewards.find(r=>r.pts<=pts);
+      const b2=base2?base2.pts:0;
+      const p2=Math.min(100,Math.round((pts-b2)/(nextR.pts-b2)*100));
+      setTimeout(()=>fProg.style.width=p2+'%',120);
+    } else { setTimeout(()=>fProg.style.width='100%',120); }
+  }
+  const fSub=document.getElementById('fidel-prog-sub');
+  if(fSub){
+    if(nextR) fSub.innerHTML=`Plus que <strong style="color:var(--fire)">${nextR.pts-pts} pts</strong> pour : ${nextR.icon} ${nextR.name}`;
+    else fSub.innerHTML='<strong style="color:var(--gold)">🎉 Toutes les récompenses débloquées !</strong>';
+  }
+  // Rewards on fidélité page
+  const fRw=document.getElementById('fidel-rewards');
+  if(fRw) fRw.innerHTML=document.getElementById('portal-rewards').innerHTML;
+  // Flash on fidélité page
+  const fFlash=document.getElementById('fidel-flash');
+  if(fFlash) renderFlash(fFlash);
+  // Level cards highlight
+  ['bronze','argent','or'].forEach(n=>{
+    const el=document.getElementById('flvl-'+n);
+    if(el) el.classList.toggle('flvl-active', lvl.label.toLowerCase()===n);
+  });
+  const lvlNext=document.getElementById('fidel-lvl-next-msg');
+  if(lvlNext){
+    if(lvl.label==='Bronze') lvlNext.innerHTML=`Encore <strong style="color:#CD7F32">${51-pts} pts</strong> pour passer au niveau ⭐ Argent`;
+    else if(lvl.label==='Argent') lvlNext.innerHTML=`Encore <strong style="color:var(--gold)">${151-pts} pts</strong> pour atteindre le niveau 👑 Or`;
+    else lvlNext.innerHTML='<strong style="color:var(--gold)">👑 Vous êtes au sommet — niveau Or !</strong>';
+  }
+
+  // parrainage block — maintenant dans page-parrainage
+  const parrainEl=document.getElementById('portal-parrainage-page');
   if(parrainEl){
     const ldb=lLoad();
     const mesFilleuls=ldb.filter(x=>x.parrain_tel===(c.tel||c.telephone));
