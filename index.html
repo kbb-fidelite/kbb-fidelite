@@ -3986,34 +3986,76 @@ let _rtWs=null,_rtRef=0,_rtHb=null,_rtRetry=null,_rtCbs={};
 function rtInit(){
   if(!supaOk()) return;
   if(_rtWs&&(_rtWs.readyState===0||_rtWs.readyState===1)) return;
+  clearTimeout(_rtRetry);
   try{
-    _rtWs=new WebSocket(SURL.replace('https://','wss://')+'/realtime/v1/websocket?apikey='+SKEY+'&vsn=1.0.0');
+    const wsUrl=SURL.replace('https://','wss://').replace('http://','ws://')+'/realtime/v1/websocket?apikey='+SKEY+'&vsn=1.0.0';
+    _rtWs=new WebSocket(wsUrl);
     _rtWs.onopen=()=>{
+      console.log('[RT] WebSocket connecté');
       clearInterval(_rtHb);
-      _rtHb=setInterval(()=>{if(_rtWs.readyState===1)_rtWs.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:String(++_rtRef)}));},28000);
+      _rtHb=setInterval(()=>{
+        if(_rtWs&&_rtWs.readyState===1)
+          _rtWs.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:String(++_rtRef)}));
+      },28000);
       Object.entries(_rtCbs).forEach(([t,cb])=>_rtJoin(t,cb));
     };
     _rtWs.onmessage=(e)=>{
       try{
         const m=JSON.parse(e.data);
-        if(m.event==='postgres_changes'&&m.payload&&m.payload.data){
-          const d=m.payload.data;
-          Object.values(_rtCbs).forEach(cb=>{
-            if(m.topic==='realtime:'+cb.topic) cb.fn(d.record,d.type,d.old_record);
-          });
+        // Ignorer heartbeat replies
+        if(m.event==='phx_reply'&&m.topic==='phoenix') return;
+        // Log toutes les réponses phx pour debug
+        if(m.event==='phx_reply'){
+          const ok=m.payload&&m.payload.status==='ok';
+          console.log('[RT] phx_reply topic='+m.topic+' status='+(m.payload&&m.payload.status));
+          if(!ok) console.warn('[RT] Échec jointure:',m.payload);
+          return;
         }
-      }catch(_){}
+        if(m.event==='system'){
+          console.log('[RT] system:',m.payload&&m.payload.message);
+          return;
+        }
+        if(m.event==='postgres_changes'&&m.payload){
+          // Supabase Realtime envoie le record dans payload.data OU directement dans payload
+          const d=m.payload.data||m.payload;
+          const record=d.record||d.new||null;
+          const type=d.type||(m.payload.data?null:m.payload.type)||'UPDATE';
+          const old_record=d.old_record||d.old||null;
+          console.log('[RT] postgres_changes topic='+m.topic+' type='+type, record);
+          if(record){
+            Object.values(_rtCbs).forEach(cb=>{
+              if(m.topic==='realtime:'+cb.topic) cb.fn(record,type,old_record);
+            });
+          }
+        }
+      }catch(err){ console.warn('[RT] onmessage error:',err); }
     };
-    _rtWs.onclose=()=>{clearInterval(_rtHb);clearTimeout(_rtRetry);_rtRetry=setTimeout(rtInit,5000);};
-    _rtWs.onerror=()=>{};
-  }catch(_){}
+    _rtWs.onclose=(ev)=>{
+      console.log('[RT] WebSocket fermé code='+ev.code+' — retry dans 5s');
+      clearInterval(_rtHb);
+      clearTimeout(_rtRetry);
+      _rtRetry=setTimeout(rtInit,5000);
+    };
+    _rtWs.onerror=(err)=>{ console.warn('[RT] WebSocket erreur:',err); };
+  }catch(err){ console.warn('[RT] rtInit erreur:',err); }
 }
 
 function _rtJoin(topic,cb){
   if(!_rtWs||_rtWs.readyState!==1) return;
   const pg={event:cb.event||'*',schema:'public',table:cb.table};
   if(cb.filter) pg.filter=cb.filter;
-  _rtWs.send(JSON.stringify({topic:'realtime:'+topic,event:'phx_join',payload:{config:{broadcast:{self:false},presence:{key:''},postgres_changes:[pg]},access_token:SKEY},ref:String(++_rtRef)}));
+  const ref=String(++_rtRef);
+  console.log('[RT] phx_join topic=realtime:'+topic, pg);
+  _rtWs.send(JSON.stringify({
+    topic:'realtime:'+topic,
+    event:'phx_join',
+    payload:{
+      config:{broadcast:{self:false},presence:{key:''},postgres_changes:[pg]},
+      access_token:SKEY
+    },
+    ref,
+    join_ref:ref
+  }));
 }
 
 function rtOn(topic,table,event,filter,fn){
@@ -4027,6 +4069,8 @@ function rtOff(topic){
     _rtWs.send(JSON.stringify({topic:'realtime:'+topic,event:'phx_leave',payload:{},ref:String(++_rtRef)}));
   delete _rtCbs[topic];
 }
+
+function rtStatus(){ return _rtWs?['CONNECTING','OPEN','CLOSING','CLOSED'][_rtWs.readyState]:'NO_WS'; }
 
 /* ══ SOUND NOTIFICATION ══ */
 function playReadySound(){
@@ -4104,20 +4148,27 @@ function startSuiviPolling(){
   stopSuiviPolling();
   const o=getActiveOrder();
   if(!o) return;
-  // Realtime subscription (primary)
+  // ── Realtime (primaire) ──
   if(o.supaId&&supaOk()){
-    rtOn('suivi-order','commandes','UPDATE','id=eq.'+String(o.supaId),(record)=>{
+    console.log('[Suivi] Abonnement RT commande id='+o.supaId+' WS='+rtStatus());
+    rtOn('suivi-order','commandes','UPDATE','id=eq.'+String(o.supaId),(record,type)=>{
+      console.log('[Suivi] RT event reçu type='+type+' statut='+record?.statut, record);
       if(record&&record.statut) _handleSuiviStatusChange(record.statut);
     });
+  } else {
+    console.warn('[Suivi] Pas de souscription RT (supaId='+o.supaId+' supaOk='+supaOk()+')');
   }
-  // Polling fallback (5s) — still needed if Realtime not yet ready
+  // ── Polling fallback (5s) — filet de sécurité ──
   suiviInterval=setInterval(async()=>{
     const ao=getActiveOrder();
     if(!ao||!ao.supaId){stopSuiviPolling();return;}
     try{
       const rows=await supaReq('commandes?select=statut&id=eq.'+encodeURIComponent(String(ao.supaId)));
-      if(rows&&rows[0]) _handleSuiviStatusChange(rows[0].statut);
-    }catch(e){console.warn('Suivi poll:',e);}
+      if(rows&&rows[0]){
+        if(rows[0].statut!==ao.statut) console.log('[Suivi] Poll détecte changement:',ao.statut,'→',rows[0].statut);
+        _handleSuiviStatusChange(rows[0].statut);
+      }
+    }catch(e){console.warn('[Suivi] Poll erreur:',e);}
   },5000);
 }
 
@@ -4174,17 +4225,21 @@ function renderSuivi(){
       :'';
   }
 
-  const isRtConnected=_rtWs&&_rtWs.readyState===1&&_rtCbs['suivi-order'];
+  const wsOk=_rtWs&&_rtWs.readyState===1;
+  const rtSub=!!_rtCbs['suivi-order'];
+  const isRtConnected=wsOk&&rtSub;
   if(footer){
     if(o.statut==='archive'){
       footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">Retour à l'accueil</button>`;
     } else if(o.statut==='pret'){
       footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">✅ J'ai récupéré ma commande</button>`;
     } else {
+      // Si RT non connecté, forcer une reconnexion
+      if(!wsOk&&supaOk()&&o.supaId) rtInit();
       footer.innerHTML=`
         ${isRtConnected
           ?`<div class="suivi-rt-hint"><span class="emp-rt-dot live" style="display:inline-block"></span>Suivi en temps réel actif</div>`
-          :`<div class="suivi-poll-hint">Mise à jour toutes les 5 secondes…</div>`}
+          :`<div class="suivi-poll-hint">⟳ Mise à jour toutes les 5 secondes…</div>`}
         <button class="abtn sec" onclick="stopSuiviPolling();go('page-dashboard')">Retour à l'accueil</button>`;
     }
   }
