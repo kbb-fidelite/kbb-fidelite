@@ -508,6 +508,26 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .cmd-badge.attente{background:rgba(255,184,48,.15);color:var(--gold);}
 .cmd-badge.encours{background:rgba(79,195,247,.15);color:#4FC3F7;}
 .cmd-badge.pret{background:rgba(76,175,116,.2);color:var(--green);}
+/* ══ CMD TYPE BADGES + TIMER + SERVICE ══ */
+.cmd-type-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.4px;}
+.cmd-type-badge.sur_place,.cmd-type-badge.table{background:rgba(232,78,15,.18);color:#FF5722;}
+.cmd-type-badge.click_collect{background:rgba(79,195,247,.15);color:#4FC3F7;}
+.cmd-type-badge.reservation{background:rgba(206,147,216,.18);color:#CE93D8;}
+.cmd-type-badge.urgent{animation:cmd-urgent-pulse 1.2s ease-in-out infinite;}
+@keyframes cmd-urgent-pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.cmd-timer{font-size:11px;font-weight:700;font-family:monospace;color:var(--text3);}
+.cmd-timer.warn{color:var(--gold);}
+.cmd-timer.late{color:#FF5722;}
+.cmd-section-hdr{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:.5rem 0 .4rem;border-bottom:1px solid var(--border);margin-bottom:.6rem;margin-top:.25rem;}
+.cmd-section-hdr.urgent{color:#FF5722;}
+.cmd-section-hdr.approaching{color:var(--gold);}
+.cmd-section-hdr.later{color:var(--text3);}
+.serv-card{background:var(--coal3);border:1.5px solid rgba(76,175,116,.3);border-radius:var(--radius);padding:1.25rem;margin-bottom:.875rem;text-align:center;animation:conf-fadein .35s ease both;}
+.serv-num{font-family:var(--font-d);font-size:52px;letter-spacing:4px;color:var(--fire);line-height:1;text-shadow:0 0 24px rgba(255,107,43,.25);}
+.serv-type{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin:.35rem 0 .75rem;}
+.serv-items{font-size:12px;color:var(--text2);margin-bottom:.875rem;line-height:1.6;}
+.serv-btn{width:100%;padding:.85rem;background:linear-gradient(130deg,var(--green),#2E8B57);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.serv-btn:active{opacity:.82;}
 .cmd-highlight{font-size:14px;font-weight:700;color:var(--text);margin-bottom:.35rem;}
 .cmd-items{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:.4rem;}
 .cmd-footer{display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem;}
@@ -664,6 +684,45 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .conf-actions{display:flex;flex-direction:column;gap:.75rem;}
 .conf-suivi-btn{width:100%;padding:1.05rem;background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(255,107,43,.35);display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
 .conf-suivi-btn:active{opacity:.87;}
+
+/* ══ KDS (Kitchen Display System) ══ */
+#page-kds,#page-comptoir{background:var(--coal);}
+.kds-header{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;background:var(--coal2);border-bottom:3px solid var(--fire);flex-shrink:0;}
+.kds-title{font-family:var(--font-d);font-size:24px;letter-spacing:2px;color:var(--fire);}
+.kds-clock{font-family:monospace;font-size:18px;font-weight:700;color:var(--text2);}
+.kds-exit{background:none;border:1px solid var(--border2);color:var(--text3);padding:.35rem .9rem;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:var(--font);}
+.kds-grid{flex:1;overflow-y:auto;padding:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1rem;align-content:start;}
+.kds-card{background:var(--coal3);border-radius:var(--radius);padding:1.25rem;border-left:5px solid var(--border2);}
+.kds-card.sur_place,.kds-card.table{border-left-color:#FF5722;}
+.kds-card.click_collect{border-left-color:var(--gold);}
+.kds-card.reservation{border-left-color:#CE93D8;}
+.kds-card.en_cours{background:rgba(79,195,247,.06);border-top:1px solid rgba(79,195,247,.2);}
+.kds-badge-statut{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px;margin-bottom:.5rem;background:rgba(79,195,247,.18);color:#4FC3F7;}
+.kds-num{font-family:var(--font-d);font-size:44px;letter-spacing:3px;color:var(--fire);line-height:1;}
+.kds-type-row{display:flex;align-items:center;justify-content:space-between;margin:.3rem 0 .6rem;}
+.kds-type-lbl{font-size:13px;font-weight:700;color:var(--text2);}
+.kds-chrono{font-family:monospace;font-size:22px;font-weight:900;color:var(--green);}
+.kds-chrono.warn{color:var(--gold);}
+.kds-chrono.late{color:#FF5722;animation:cmd-urgent-pulse .7s ease-in-out infinite;}
+.kds-items{font-size:15px;font-weight:600;color:var(--text);line-height:1.9;margin:.5rem 0 1rem;border-top:1px solid var(--border);padding-top:.75rem;}
+.kds-btn{width:100%;padding:1rem;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;}
+.kds-btn:active{opacity:.85;transform:scale(.99);}
+.kds-btn.start{background:rgba(79,195,247,.18);color:#4FC3F7;border:1.5px solid rgba(79,195,247,.3);}
+.kds-btn.ready{background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 4px 18px rgba(255,107,43,.35);}
+.kds-empty-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:.75rem;color:var(--text3);padding:3rem 1rem;}
+.kds-empty-ico{font-size:64px;}
+.kds-empty-txt{font-family:var(--font-d);font-size:22px;letter-spacing:1px;}
+/* ══ COMPTOIR ══ */
+.cpt-header{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;background:var(--coal2);border-bottom:3px solid var(--green);flex-shrink:0;}
+.cpt-title{font-family:var(--font-d);font-size:24px;letter-spacing:2px;color:var(--green);}
+.cpt-grid{flex:1;overflow-y:auto;padding:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;align-content:start;}
+.cpt-card{background:var(--coal3);border:2px solid rgba(76,175,116,.35);border-radius:var(--radius);padding:1.5rem;text-align:center;animation:conf-fadein .3s ease both;}
+.cpt-num{font-family:var(--font-d);font-size:62px;letter-spacing:5px;color:var(--fire);line-height:1;text-shadow:0 0 40px rgba(255,107,43,.25);}
+.cpt-type{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin:.45rem 0 .3rem;}
+.cpt-time-badge{display:inline-block;font-size:13px;font-weight:700;color:var(--gold);background:rgba(255,184,48,.12);border:1px solid rgba(255,184,48,.25);border-radius:99px;padding:3px 14px;margin-bottom:.75rem;}
+.cpt-items{font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:1.25rem;text-align:left;}
+.cpt-btn{width:100%;padding:1.1rem;background:linear-gradient(130deg,var(--green),#2E8B57);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 5px 20px rgba(76,175,116,.28);transition:opacity .15s,transform .1s;}
+.cpt-btn:active{opacity:.85;transform:scale(.99);}
 </style>
 </head>
 <body>
@@ -1211,6 +1270,30 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
   <div class="suivi-footer" id="suivi-footer"></div>
 </div>
 
+<!-- KDS — Kitchen Display System -->
+<div class="page" id="page-kds">
+  <div class="kds-header">
+    <div class="kds-title">🔥 CUISINE</div>
+    <div class="kds-clock" id="kds-clock"></div>
+    <button class="kds-exit" onclick="exitKds()">✕ Quitter</button>
+  </div>
+  <div id="kds-body" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="kds-empty-wrap"><div class="kds-empty-ico">📋</div><div class="kds-empty-txt">Aucune commande</div></div>
+  </div>
+</div>
+
+<!-- COMPTOIR — Distribution -->
+<div class="page" id="page-comptoir">
+  <div class="cpt-header">
+    <div class="cpt-title">🍽️ COMPTOIR</div>
+    <div class="kds-clock" id="cpt-clock"></div>
+    <button class="kds-exit" onclick="exitComptoir()">✕ Quitter</button>
+  </div>
+  <div id="cpt-body" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="kds-empty-wrap"><div class="kds-empty-ico">🍽️</div><div class="kds-empty-txt">Aucune commande prête</div></div>
+  </div>
+</div>
+
 <!-- PIN -->
 <div class="page" id="page-pin">
   <div class="topbar"><button class="tbback" onclick="go('page-home')">←</button><div class="tbtitle">Accès employé</div></div>
@@ -1238,6 +1321,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
     <div class="etab active" onclick="etab('commande')">Commande</div>
     <div class="etab" onclick="etab('clients')">Clients</div>
     <div class="etab" onclick="etab('commandes')" id="tab-commandes">Commandes</div>
+    <div class="etab" onclick="etab('service')" id="tab-service">Service</div>
     <div class="etab" onclick="etab('dashboard')" id="tab-dashboard" style="display:none">Stats</div>
     <div class="etab" onclick="etab('reglages')" id="tab-reglages" style="display:none">Réglages</div>
   </div>
@@ -1313,6 +1397,14 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
         <label>PIN patron<small>Accès complet + réglages</small></label>
         <input class="set-inp" type="password" id="new-pin-patron" maxlength="4" placeholder="••••" style="letter-spacing:4px;">
       </div>
+      <div class="set-row">
+        <label>PIN cuisine<small>Écran KDS — tablette cuisine</small></label>
+        <input class="set-inp" type="password" id="new-pin-cuisine" maxlength="4" placeholder="••••" style="letter-spacing:4px;">
+      </div>
+      <div class="set-row">
+        <label>PIN comptoir<small>Écran distribution</small></label>
+        <input class="set-inp" type="password" id="new-pin-comptoir" maxlength="4" placeholder="••••" style="letter-spacing:4px;">
+      </div>
       <button class="save-set-btn" onclick="savePins()">✓ Changer les codes PIN</button>
     </div>
     <div class="settings-block" style="margin-top:1rem;">
@@ -1357,6 +1449,13 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
     </div>
     <div id="emp-commandes-list"><div class="empty"><div class="big">📋</div><p>Aucune commande</p></div></div>
   </div>
+  <div class="epanel" id="epanel-service">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <span style="font-size:14px;font-weight:700;color:var(--text);">Commandes prêtes</span>
+      <button class="emp-cmd-refresh" onclick="loadEmpService()">⟳</button>
+    </div>
+    <div id="emp-service-list"><div class="empty"><div class="big">🍽️</div><p>Aucune commande prête</p></div></div>
+  </div>
 </div>
 
 <!-- SUPABASE CONFIG -->
@@ -1389,6 +1488,8 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 /* ══ CONFIG ══ */
 let PIN = localStorage.getItem('kbb_pin')||'1234';
 let PIN_PATRON = localStorage.getItem('kbb_pin_patron')||'5678';
+let PIN_CUISINE = localStorage.getItem('kbb_pin_cuisine')||'2222';
+let PIN_COMPTOIR = localStorage.getItem('kbb_pin_comptoir')||'3333';
 let pinVal = '';
 let empRole = 'employe'; // 'employe' or 'patron'
 let empClient = null;
@@ -1410,13 +1511,17 @@ function getRewards(){
 function savePins(){
   const emp=document.getElementById('new-pin-emp').value.trim();
   const patron=document.getElementById('new-pin-patron').value.trim();
-  if(emp && emp.length!==4){showToast('PIN employé doit faire 4 chiffres');return;}
-  if(patron && patron.length!==4){showToast('PIN patron doit faire 4 chiffres');return;}
-  if(emp===patron && emp!==''){showToast('Les deux PIN doivent être différents');return;}
+  const cuisine=document.getElementById('new-pin-cuisine')?.value.trim()||'';
+  const comptoir=document.getElementById('new-pin-comptoir')?.value.trim()||'';
+  const all=[emp,patron,cuisine,comptoir].filter(p=>p);
+  for(const p of all){ if(p.length!==4){showToast('Chaque PIN doit faire 4 chiffres');return;} }
+  const uniq=new Set(all);
+  if(uniq.size!==all.length){showToast('Les PIN doivent tous être différents');return;}
   if(emp){PIN=emp;localStorage.setItem('kbb_pin',emp);}
   if(patron){PIN_PATRON=patron;localStorage.setItem('kbb_pin_patron',patron);}
-  document.getElementById('new-pin-emp').value='';
-  document.getElementById('new-pin-patron').value='';
+  if(cuisine){PIN_CUISINE=cuisine;localStorage.setItem('kbb_pin_cuisine',cuisine);}
+  if(comptoir){PIN_COMPTOIR=comptoir;localStorage.setItem('kbb_pin_comptoir',comptoir);}
+  ['new-pin-emp','new-pin-patron','new-pin-cuisine','new-pin-comptoir'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   showToast('PIN mis à jour ✓');
 }
 
@@ -1452,6 +1557,8 @@ function loadSettingsUI(){
   if(el('set-r4-pts')) el('set-r4-pts').value=s.r4_pts||200;
   if(el('new-pin-emp')) el('new-pin-emp').value='';
   if(el('new-pin-patron')) el('new-pin-patron').value='';
+  if(el('new-pin-cuisine')) el('new-pin-cuisine').value='';
+  if(el('new-pin-comptoir')) el('new-pin-comptoir').value='';
 }
 
 /* ══ RULES ══ */
@@ -1671,7 +1778,7 @@ const MENU_DATA=[
   {cat:'desserts',icon:'🍨',name:'Mövenpick',desc:'2 parfums au choix + 1 coulis au choix + 1 topping au choix.',price:4.90,badge:'⭐ Premium'},
 ];
 let cart=[];
-let orderMode=null; // 'table' | 'click_collect'
+let orderMode=null; // 'sur_place' | 'click_collect' | 'reservation'
 let orderTableNum='';
 let selectedPickupTime='';
 
@@ -2064,10 +2171,10 @@ function renderOrderOptions(){
     <div class="order-mode-section">
       <div class="order-mode-title">Comment souhaitez-vous commander ?</div>
       <div class="order-mode-cards" style="grid-template-columns:1fr 1fr 1fr;">
-        <div class="order-mode-card ${orderMode==='table'?'selected':''}" onclick="selectOrderMode('table')">
+        <div class="order-mode-card ${orderMode==='sur_place'?'selected':''}" onclick="selectOrderMode('sur_place')">
           <div class="order-mode-ico">🪑</div>
-          <div class="order-mode-name">À table</div>
-          <div class="order-mode-desc">Je suis en salle</div>
+          <div class="order-mode-name">Sur place</div>
+          <div class="order-mode-desc">Je mange ici</div>
         </div>
         <div class="order-mode-card ${orderMode==='reservation'?'selected':''}" onclick="selectOrderMode('reservation')">
           <div class="order-mode-ico">📅</div>
@@ -2080,13 +2187,6 @@ function renderOrderOptions(){
           <div class="order-mode-desc">Je repars avec</div>
         </div>
       </div>
-      ${orderMode==='table'?`
-        <div class="order-detail-box">
-          <div class="order-detail-label">Numéro de table</div>
-          <input class="table-num-input" type="number" min="1" max="99" placeholder="N° de table"
-            value="${orderTableNum}" oninput="orderTableNum=this.value;renderOrderOptions();" id="table-num-input">
-        </div>
-      `:''}
       ${orderMode==='reservation'?`
         <div class="order-detail-box">
           <div class="order-detail-label">Heure d'arrivée prévue</div>
@@ -2105,7 +2205,7 @@ function renderOrderOptions(){
       `:''}
       ${orderMode?`
         <button class="order-submit-btn" onclick="submitClientOrder()"
-          ${(orderMode==='table'&&!orderTableNum)||((orderMode==='click_collect'||orderMode==='reservation')&&!selectedPickupTime)?'disabled':''}>
+          ${((orderMode==='click_collect'||orderMode==='reservation')&&!selectedPickupTime)?'disabled':''}>
           Envoyer ma commande →
         </button>
       `:''}
@@ -2138,7 +2238,6 @@ function getPickupTimeSlots(){
 
 async function submitClientOrder(){
   if(!orderMode) return;
-  if(orderMode==='table'&&!orderTableNum){showToast('Entrez votre numéro de table');return;}
   if(orderMode==='click_collect'&&!selectedPickupTime){showToast('Choisissez une heure de retrait');return;}
   if(orderMode==='reservation'&&!selectedPickupTime){showToast("Choisissez votre heure d'arrivée");return;}
   const total=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
@@ -2155,7 +2254,7 @@ async function submitClientOrder(){
   }).join(', ');
   const payload={
     type:orderMode,
-    table_num:orderMode==='table'?parseInt(orderTableNum):null,
+    table_num:null,
     heure_retrait:(orderMode==='click_collect'||orderMode==='reservation')?selectedPickupTime:null,
     items:itemsText,
     montant:parseFloat(total.toFixed(2)),
@@ -2192,7 +2291,7 @@ async function submitClientOrder(){
   setActiveOrder(activeOrder);
   updateCommandesTile();
   // Label commande
-  const label=orderMode==='table'?'Table n°'+orderTableNum:orderMode==='reservation'?'Réservation — arrivée à '+selectedPickupTime:'Retrait à '+selectedPickupTime;
+  const label=orderMode==='sur_place'?'Sur place':orderMode==='reservation'?'Réservation — arrivée à '+selectedPickupTime:'Retrait à '+selectedPickupTime;
   // Afficher la page de confirmation
   renderConfirmation(orderNum, label, grouped, total);
   go('page-confirmation');
@@ -3078,7 +3177,162 @@ function udots(){for(let i=0;i<4;i++)document.getElementById('d'+i).classList.to
 function checkPin(){
   if(pinVal===PIN_PATRON){empRole='patron';pinVal='';udots();go('page-employee');}
   else if(pinVal===PIN){empRole='employe';pinVal='';udots();go('page-employee');}
+  else if(pinVal===PIN_CUISINE){pinVal='';udots();go('page-kds');startKds();}
+  else if(pinVal===PIN_COMPTOIR){pinVal='';udots();go('page-comptoir');startComptoir();}
   else{document.getElementById('pin-err').textContent='Code incorrect';pinVal='';udots();}
+}
+
+/* ══ KDS ══ */
+let _kdsRtInterval=null,_kdsClockInterval=null;
+
+function startKds(){
+  loadKDS();
+  _kdsClockInterval=setInterval(()=>{
+    const el=document.getElementById('kds-clock');
+    if(!el) return;
+    const n=new Date();
+    el.textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')+':'+n.getSeconds().toString().padStart(2,'0');
+  },1000);
+  rtOn('kds-orders','commandes','*',null,()=>{
+    const p=document.getElementById('page-kds');
+    if(p&&p.classList.contains('active')) loadKDS();
+  });
+  _kdsRtInterval=setInterval(()=>{
+    const p=document.getElementById('page-kds');
+    if(p&&p.classList.contains('active')) loadKDS();
+  },30000);
+}
+
+function exitKds(){
+  clearInterval(_kdsRtInterval);clearInterval(_kdsClockInterval);
+  _kdsRtInterval=null;_kdsClockInterval=null;
+  rtOff('kds-orders');
+  go('page-home');
+}
+
+async function loadKDS(){
+  const el=document.getElementById('kds-body');
+  if(!el) return;
+  let orders=[];
+  try{
+    if(supaOk()){
+      const r=await supaReq('commandes?select=*&statut=in.(en_attente,en_cours)&order=created_at.asc&limit=100');
+      if(r) orders=r;
+    }
+  }catch(e){}
+  if(!orders.length){
+    el.innerHTML='<div class="kds-empty-wrap"><div class="kds-empty-ico">✅</div><div class="kds-empty-txt">Tout est à jour</div><div style="font-size:14px;color:var(--text3);margin-top:.35rem">Aucune commande en cours</div></div>';
+    return;
+  }
+  orders.sort((a,b)=>{
+    const ga=_cmdPriorityGroup(a),gb=_cmdPriorityGroup(b);
+    if(ga!==gb) return ga-gb;
+    if(a.statut==='en_cours'&&b.statut!=='en_cours') return -1;
+    if(b.statut==='en_cours'&&a.statut!=='en_cours') return 1;
+    return new Date(a.created_at)-new Date(b.created_at);
+  });
+  el.innerHTML='<div class="kds-grid">'+orders.map(o=>{
+    const elapsed=Math.floor((Date.now()-new Date(o.created_at))/1000);
+    const mm=Math.floor(elapsed/60).toString().padStart(2,'0');
+    const ss=(elapsed%60).toString().padStart(2,'0');
+    const chronoCls=elapsed>600?'late':elapsed>300?'warn':'';
+    const isSP=o.type==='sur_place'||o.type==='table';
+    const isResa=o.type==='reservation';
+    const typeKey=isSP?'sur_place':isResa?'reservation':'click_collect';
+    const typeIcon=isSP?'🪑 SUR PLACE':isResa?'📅 RÉSA '+(o.heure_retrait||''):'🏃 RETRAIT '+(o.heure_retrait||'');
+    const orderNum=o.id?'#KBB-'+String(o.id).padStart(3,'0'):'—';
+    const isEnCours=o.statut==='en_cours';
+    const itemsHtml=(o.items||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<div>• ${s}</div>`).join('');
+    return `<div class="kds-card ${typeKey}${isEnCours?' en_cours':''}">
+      ${isEnCours?`<div class="kds-badge-statut">🔥 EN PRÉPARATION</div>`:''}
+      <div class="kds-num">${orderNum}</div>
+      <div class="kds-type-row">
+        <div class="kds-type-lbl">${typeIcon}</div>
+        <div class="kds-chrono ${chronoCls}">${mm}:${ss}</div>
+      </div>
+      <div class="kds-items">${itemsHtml||o.items||''}</div>
+      ${o.statut==='en_attente'?`<button class="kds-btn start" onclick="kdsUpdateStatus('${o.id}','en_cours')">🔥 En préparation</button>`:''}
+      ${o.statut==='en_cours'?`<button class="kds-btn ready" onclick="kdsUpdateStatus('${o.id}','pret')">✅ Prête !</button>`:''}
+    </div>`;
+  }).join('')+'</div>';
+}
+
+async function kdsUpdateStatus(id,status){
+  try{
+    if(supaOk()&&!String(id).startsWith('local_'))
+      await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:status});
+  }catch(e){console.warn('KDS status:',e);}
+  loadKDS();
+}
+
+/* ══ COMPTOIR ══ */
+let _cptRtInterval=null,_cptClockInterval=null;
+
+function startComptoir(){
+  loadComptoir();
+  _cptClockInterval=setInterval(()=>{
+    const el=document.getElementById('cpt-clock');
+    if(!el) return;
+    const n=new Date();
+    el.textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')+':'+n.getSeconds().toString().padStart(2,'0');
+  },1000);
+  rtOn('cpt-orders','commandes','UPDATE',null,(record)=>{
+    const p=document.getElementById('page-comptoir');
+    if(p&&p.classList.contains('active')) loadComptoir();
+  });
+  _cptRtInterval=setInterval(()=>{
+    const p=document.getElementById('page-comptoir');
+    if(p&&p.classList.contains('active')) loadComptoir();
+  },15000);
+}
+
+function exitComptoir(){
+  clearInterval(_cptRtInterval);clearInterval(_cptClockInterval);
+  _cptRtInterval=null;_cptClockInterval=null;
+  rtOff('cpt-orders');
+  go('page-home');
+}
+
+async function loadComptoir(){
+  const el=document.getElementById('cpt-body');
+  if(!el) return;
+  let orders=[];
+  try{
+    if(supaOk()){
+      const r=await supaReq('commandes?select=*&statut=eq.pret&order=created_at.asc&limit=50');
+      if(r) orders=r;
+    }
+  }catch(e){}
+  if(!orders.length){
+    el.innerHTML='<div class="kds-empty-wrap"><div class="kds-empty-ico">🍽️</div><div class="kds-empty-txt">Aucune commande prête</div><div style="font-size:13px;color:var(--text3);margin-top:.35rem">En attente de nouvelles commandes…</div></div>';
+    return;
+  }
+  el.innerHTML='<div class="cpt-grid">'+orders.map(o=>{
+    const orderNum=o.id?'#KBB-'+String(o.id).padStart(3,'0'):'—';
+    const isSP=o.type==='sur_place'||o.type==='table';
+    const isResa=o.type==='reservation';
+    const isCnC=o.type==='click_collect';
+    const typeLabel=isSP?'Sur place':isResa?'Réservation':'Click & Collect';
+    const timeBadge=(isResa||isCnC)&&o.heure_retrait?`<div class="cpt-time-badge">⏰ ${o.heure_retrait}</div>`:'';
+    const itemsHtml=(o.items||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<div>• ${s}</div>`).join('');
+    return `<div class="cpt-card">
+      <div class="cpt-num">${orderNum}</div>
+      <div class="cpt-type">${typeLabel}</div>
+      ${timeBadge}
+      <div class="cpt-items">${itemsHtml||o.items||''}</div>
+      <button class="cpt-btn" onclick="cptRemis('${o.id}')">✅ Remis au client</button>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+async function cptRemis(id){
+  const btn=event?.target;
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  try{
+    if(supaOk()&&!String(id).startsWith('local_'))
+      await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:'archive'});
+  }catch(e){console.warn('Cpt remis:',e);}
+  loadComptoir();
 }
 
 /* ══ EMPLOYEE ══ */
@@ -3094,6 +3348,7 @@ function etab(n){
   if(n==='reglages') loadSettingsUI();
   if(n==='dashboard') loadDashboard();
   if(n==='commandes'){ loadEmpCommandes(); startEmpRealtime(); }
+  else if(n==='service'){ loadEmpService(); startEmpRealtime(); }
   else stopEmpRealtime();
 }
 
@@ -3110,6 +3365,24 @@ async function refreshEmp(){
   if(badge) badge.style.background=isP?'rgba(255,184,48,.15)':'rgba(255,107,43,.12)';
 }
 
+function _cmdPriorityGroup(o){
+  if(o.type==='sur_place'||o.type==='table') return 1; // URGENT
+  if(!o.heure_retrait) return 3;
+  const parts=o.heure_retrait.split(':');
+  if(parts.length<2) return 3;
+  const now=new Date();
+  const eta=new Date(now);
+  eta.setHours(parseInt(parts[0]),parseInt(parts[1]),0,0);
+  const diff=(eta-now)/60000;
+  return diff<=15?2:3;
+}
+function _cmdTimer(created_at){
+  const elapsed=Math.floor((Date.now()-new Date(created_at))/1000);
+  const mm=Math.floor(elapsed/60).toString().padStart(2,'0');
+  const ss=(elapsed%60).toString().padStart(2,'0');
+  const cls=elapsed>1800?'late':elapsed>900?'warn':'';
+  return `<span class="cmd-timer${cls?' '+cls:''}">⏱ ${mm}:${ss}</span>`;
+}
 async function loadEmpCommandes(){
   const el=document.getElementById('emp-commandes-list');
   if(!el) return;
@@ -3122,12 +3395,6 @@ async function loadEmpCommandes(){
   }catch(e){}
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
   localOrders.forEach(lo=>{ if(!orders.find(o=>String(o.id)===String(lo.id))&&lo.statut!=='archive') orders.push(lo); });
-  // Prêts en tête, puis plus ancienne en premier
-  orders.sort((a,b)=>{
-    if(a.statut==='pret'&&b.statut!=='pret') return -1;
-    if(b.statut==='pret'&&a.statut!=='pret') return 1;
-    return new Date(a.created_at)-new Date(b.created_at);
-  });
   const pending=orders.filter(o=>o.statut==='en_attente').length;
   const pret=orders.filter(o=>o.statut==='pret').length;
   const tab=document.getElementById('tab-commandes');
@@ -3136,36 +3403,62 @@ async function loadEmpCommandes(){
     el.innerHTML='<div class="empty"><div class="big">📋</div><p>Aucune commande en cours</p></div>';
     return;
   }
-  el.innerHTML=orders.map(o=>{
-    const isTable=o.type==='table';
+  // Priority sort: group 1 (urgent) first, then group 2 (approaching), then group 3 (later); within groups oldest first
+  orders.sort((a,b)=>{
+    const ga=_cmdPriorityGroup(a),gb=_cmdPriorityGroup(b);
+    if(ga!==gb) return ga-gb;
+    return new Date(a.created_at)-new Date(b.created_at);
+  });
+  const groups={1:[],2:[],3:[]};
+  orders.forEach(o=>groups[_cmdPriorityGroup(o)].push(o));
+  const sectionHdrs={1:'🔴 URGENT — Sur place',2:'🟡 Bientôt — Approche',3:'🔵 Plus tard'};
+  const renderCard=o=>{
+    const isSurPlace=o.type==='sur_place'||o.type==='table';
     const isResa=o.type==='reservation';
-    const cardClass=(isTable?'table':isResa?'reservation':'cnc')+(o.statut==='pret'?' pret-glow':'');
+    const isCnC=o.type==='click_collect';
+    const typeKey=o.type==='table'?'table':o.type==='sur_place'?'sur_place':isResa?'reservation':'click_collect';
+    const typeIcon=isSurPlace?'🪑 Sur place':isResa?'📅 Résa '+(o.heure_retrait||''):'🏃 Retrait '+(o.heure_retrait||'');
+    const badgeUrgent=_cmdPriorityGroup(o)===1?' urgent':'';
+    const cardClass=(isSurPlace?'table':isResa?'reservation':'cnc')+(o.statut==='pret'?' pret-glow':'');
     const sb=o.statut==='en_attente'?'attente':o.statut==='en_cours'?'encours':'pret';
     const sl=o.statut==='en_attente'?'⏳ En attente':o.statut==='en_cours'?'🔥 En préparation':'✅ Prête !';
     const t=new Date(o.created_at);
     const ts=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
     const orderNum=o.id?'#KBB-'+String(o.id).padStart(3,'0'):'—';
-    const typeLabel=isTable?'🪑 Table n°'+(o.table_num||'?'):isResa?'📅 Réservation — '+(o.heure_retrait||'?'):'🏃 Retrait '+(o.heure_retrait||'');
     return `<div class="cmd-card ${cardClass}">
       <div class="cmd-header">
-        <div><div class="cmd-num">${orderNum}</div><div class="cmd-type">${typeLabel}</div></div>
-        <div style="text-align:right;"><div class="cmd-badge ${sb}">${sl}</div><div class="cmd-time" style="margin-top:4px;">Reçue à ${ts}</div></div>
+        <div><div class="cmd-num">${orderNum}</div>
+          <div style="display:flex;gap:5px;align-items:center;margin-top:3px;">
+            <span class="cmd-type-badge ${typeKey}${badgeUrgent}">${typeIcon}</span>
+            ${_cmdTimer(o.created_at)}
+          </div>
+        </div>
+        <div style="text-align:right;"><div class="cmd-badge ${sb}">${sl}</div><div class="cmd-time" style="margin-top:4px;">${ts}</div></div>
       </div>
       <div class="cmd-items" style="margin-top:.5rem;">${o.items||''}</div>
       <div class="cmd-footer"><div class="cmd-total">${parseFloat(o.montant||0).toFixed(2).replace('.',',')}€</div></div>
       <div class="cmd-actions">
-        ${o.statut==='en_attente'?`<button class="cmd-btn start" onclick="updateOrderStatus('${o.id}','en_cours')">▶ Démarrer préparation</button>`:''}
+        ${o.statut==='en_attente'?`<button class="cmd-btn start" onclick="updateOrderStatus('${o.id}','en_cours')">▶ Démarrer</button>`:''}
         ${o.statut==='en_cours'?`<button class="cmd-btn ready" onclick="updateOrderStatus('${o.id}','pret')">✓ Marquer Prête</button>`:''}
-        ${o.statut==='pret'?`<button class="cmd-btn done" onclick="updateOrderStatus('${o.id}','archive')">✅ Commande récupérée</button>`:''}
+        ${o.statut==='pret'?`<button class="cmd-btn done" onclick="updateOrderStatus('${o.id}','archive')">✅ Récupérée</button>`:''}
       </div>
     </div>`;
-  }).join('');
+  };
+  let html='';
+  [1,2,3].forEach(g=>{
+    if(!groups[g].length) return;
+    html+=`<div class="cmd-section-hdr ${g===1?'urgent':g===2?'approaching':'later'}">${sectionHdrs[g]} (${groups[g].length})</div>`;
+    html+=groups[g].map(renderCard).join('');
+  });
+  el.innerHTML=html;
 }
 
 function startEmpRealtime(){
   updateEmpRtStatus(false,'Connexion…');
   rtOn('emp-commandes','commandes','*',null,(record,type)=>{
-    loadEmpCommandes();
+    const servPanel=document.getElementById('epanel-service');
+    if(servPanel&&servPanel.classList.contains('active')) loadEmpService();
+    else loadEmpCommandes();
     if(type==='INSERT') showToast('🔔 Nouvelle commande !');
   });
   setTimeout(()=>{
@@ -3175,6 +3468,38 @@ function startEmpRealtime(){
 }
 
 function stopEmpRealtime(){ rtOff('emp-commandes'); updateEmpRtStatus(false,'—'); }
+
+async function loadEmpService(){
+  const el=document.getElementById('emp-service-list');
+  if(!el) return;
+  let orders=[];
+  try{
+    if(supaOk()){
+      const remote=await supaReq('commandes?select=*&statut=eq.pret&order=created_at.asc&limit=50');
+      if(remote) orders=remote;
+    }
+  }catch(e){}
+  if(!orders.length){
+    el.innerHTML='<div class="empty"><div class="big">🍽️</div><p>Aucune commande prête</p></div>';
+    const t=document.getElementById('tab-service');
+    if(t) t.textContent='Service';
+    return;
+  }
+  const t=document.getElementById('tab-service');
+  if(t) t.textContent='Service ('+orders.length+')';
+  el.innerHTML=orders.map(o=>{
+    const orderNum=o.id?'#KBB-'+String(o.id).padStart(3,'0'):'—';
+    const isSurPlace=o.type==='sur_place'||o.type==='table';
+    const isResa=o.type==='reservation';
+    const typeLabel=isSurPlace?'Sur place':isResa?'Réservation — '+(o.heure_retrait||''):'À emporter — '+(o.heure_retrait||'');
+    return `<div class="serv-card">
+      <div class="serv-num">${orderNum}</div>
+      <div class="serv-type">${typeLabel}</div>
+      <div class="serv-items">${o.items||''}</div>
+      <button class="serv-btn" onclick="updateOrderStatus('${o.id}','archive');loadEmpService()">✅ Remis au client</button>
+    </div>`;
+  }).join('');
+}
 
 function updateEmpRtStatus(live,label){
   const dot=document.getElementById('emp-rt-dot');const lbl=document.getElementById('emp-rt-label');
@@ -3195,11 +3520,14 @@ async function updateOrderStatus(id,status){
   loadEmpCommandes();
 }
 
-// Auto-refresh commandes toutes les 30s quand le panel est ouvert
+// Auto-refresh toutes les 30s quand le panel est ouvert
 setInterval(()=>{
-  const panel=document.getElementById('epanel-commandes');
-  if(panel&&panel.classList.contains('active')&&document.getElementById('page-employee')?.classList.contains('active'))
-    loadEmpCommandes();
+  const empPage=document.getElementById('page-employee');
+  if(!empPage?.classList.contains('active')) return;
+  const commPanel=document.getElementById('epanel-commandes');
+  const servPanel=document.getElementById('epanel-service');
+  if(commPanel&&commPanel.classList.contains('active')) loadEmpCommandes();
+  else if(servPanel&&servPanel.classList.contains('active')) loadEmpService();
 },30000);
 
 async function renderClist(){
@@ -3762,7 +4090,12 @@ function _handleSuiviStatusChange(newStatut){
   renderSuivi();
   updateCommandesTile();
   if(newStatut==='pret'){playReadySound();showRTNotif('✅ Votre commande est prête !');}
-  if(newStatut==='archive'){setActiveOrder(null);updateCommandesTile();stopSuiviPolling();}
+  if(newStatut==='archive'){
+    const num=o.orderNum||'';
+    renderSuivi();
+    showRTNotif('🎉 '+(num?num+' — ':'')+'Bonne dégustation !');
+    setTimeout(()=>{setActiveOrder(null);updateCommandesTile();stopSuiviPolling();},3000);
+  }
 }
 
 function startSuiviPolling(){
@@ -3806,7 +4139,7 @@ function renderSuivi(){
 
   // Numéro en grand
   if(numEl){
-    const lbl=o.type==='table'?'🪑 Table n°'+o.tableNum:o.type==='reservation'?'📅 Réservation — '+o.heure:'🏃 Retrait à '+o.heure;
+    const lbl=(o.type==='table'||o.type==='sur_place')?'🪑 Sur place':o.type==='reservation'?'📅 Réservation — '+o.heure:'🏃 Retrait à '+o.heure;
     numEl.innerHTML=`
       ${o.orderNum?`<div class="suivi-num-card"><div class="suivi-num-big">${o.orderNum}</div><div class="suivi-num-sub">Numéro de commande</div></div>`:''}
       <div style="text-align:center;font-size:13px;color:var(--text2);padding:.4rem 1.25rem 0;">${lbl}</div>`;
