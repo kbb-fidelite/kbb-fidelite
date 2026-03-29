@@ -652,6 +652,53 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .cart-item-custom .c-removed{color:#FF7043;}
 .cart-item-custom .c-sauce{color:#4FC3F7;}
 .cart-item-custom .c-suppl{color:#FF9800;}
+.cart-item-custom .c-pain{color:#FFC107;font-weight:700;}
+/* Pain/galette selector */
+.ps-pain-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem;}
+.ps-pain-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem .5rem;border-radius:var(--radius-sm);border:2.5px solid var(--border2);background:var(--coal3);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;gap:4px;user-select:none;}
+.ps-pain-btn:active{transform:scale(.98);}
+.ps-pain-btn.sel{border-color:var(--fire);background:rgba(255,107,43,.1);}
+.ps-pain-ico{font-size:34px;}
+.ps-pain-lbl{font-size:14px;font-weight:700;color:var(--text2);}
+.ps-pain-btn.sel .ps-pain-lbl{color:var(--fire);}
+.prod-add-btn:disabled{opacity:.5;cursor:not-allowed;}
+/* KDS type badges */
+.kds-item-badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.4px;padding:2px 9px;border-radius:99px;margin-bottom:5px;text-transform:uppercase;}
+.kds-item-badge.b-kebab{background:rgba(255,87,34,.25);color:#FF7043;}
+.kds-item-badge.b-tacos{background:rgba(255,152,0,.25);color:#FFA726;}
+.kds-item-badge.b-salade{background:rgba(76,175,80,.25);color:#66BB6A;}
+.kds-item-badge.b-autre{background:rgba(158,158,158,.2);color:#BDBDBD;}
+.kds-item-pain{font-size:15px;font-weight:800;color:#FFF176;margin:.15rem 0 .3rem;letter-spacing:.3px;}
+/* Comptoir tabs */
+.cpt-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);background:var(--coal2);flex-shrink:0;}
+.cpt-tab{flex:1;padding:.7rem .5rem;font-size:13px;font-weight:700;color:var(--text3);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .15s;-webkit-tap-highlight-color:transparent;}
+.cpt-tab.active{color:var(--fire);border-bottom-color:var(--fire);}
+.cpt-tab-pane{display:none;flex-direction:column;flex:1;overflow:hidden;}
+.cpt-tab-pane.active{display:flex;}
+/* Comptoir points management */
+.cpt-pts-search{display:flex;gap:8px;padding:.875rem;border-bottom:1px solid var(--border);flex-shrink:0;}
+.cpt-pts-input{flex:1;padding:.6rem .9rem;border-radius:var(--radius-sm);border:1.5px solid var(--border2);background:var(--coal3);color:var(--text);font-size:14px;font-family:var(--font);}
+.cpt-pts-input:focus{outline:none;border-color:var(--fire);}
+.cpt-pts-results{flex:1;overflow-y:auto;padding:.875rem;}
+.cpt-client-card{background:var(--coal3);border:1.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;}
+.cpt-client-name{font-size:17px;font-weight:800;color:var(--text);margin-bottom:3px;}
+.cpt-client-meta{font-size:12px;color:var(--text3);margin-bottom:.65rem;}
+.cpt-client-pts{font-family:var(--font-d);font-size:30px;color:var(--fire);font-weight:700;line-height:1.1;}
+.cpt-client-lvl{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:.7rem;}
+.cpt-pts-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.75rem;}
+.cpt-pts-add-btn{padding:.6rem .5rem;border-radius:var(--radius-sm);border:1.5px solid #4CAF50;background:rgba(76,175,80,.1);color:#66BB6A;font-size:13px;font-weight:700;cursor:pointer;}
+.cpt-pts-rem-btn{padding:.6rem .5rem;border-radius:var(--radius-sm);border:1.5px solid #FF5722;background:rgba(255,87,34,.1);color:#FF7043;font-size:13px;font-weight:700;cursor:pointer;}
+.cpt-pts-form{background:var(--coal4);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.875rem;margin-top:.75rem;}
+.cpt-pts-form-ttl{font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.65rem;}
+.cpt-pts-num-row{display:flex;align-items:center;gap:8px;margin-bottom:.65rem;flex-wrap:wrap;}
+.cpt-pts-num-input{width:90px;padding:.5rem .7rem;border-radius:var(--radius-sm);border:1.5px solid var(--border2);background:var(--coal3);color:var(--text);font-size:16px;font-weight:700;font-family:var(--font-d);text-align:center;}
+.cpt-pts-num-input:focus{outline:none;border-color:var(--fire);}
+.cpt-pts-confirm-btn{padding:.6rem 1.1rem;border-radius:var(--radius-sm);background:var(--fire);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;}
+.cpt-pts-cancel-btn{padding:.6rem .9rem;border-radius:var(--radius-sm);background:var(--coal3);border:1px solid var(--border2);color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;}
+.cpt-pts-hist{margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--border);}
+.cpt-pts-hist-ttl{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;}
+.cpt-pts-hist-row{font-size:12px;color:var(--text3);padding:.3rem 0;border-bottom:1px solid rgba(255,255,255,.05);line-height:1.4;}
+.cpt-create-btn{width:100%;padding:.75rem;border-radius:var(--radius-sm);background:var(--coal3);border:1.5px dashed var(--border2);color:var(--fire);font-size:14px;font-weight:700;cursor:pointer;margin-top:1rem;}
 
 /* ══ PAGE TRANSITIONS ══ */
 .page{animation:pgIn .2s ease;}
@@ -724,33 +771,61 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .conf-suivi-btn{width:100%;padding:1.05rem;background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(255,107,43,.35);display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
 .conf-suivi-btn:active{opacity:.87;}
 
-/* ══ KDS (Kitchen Display System) ══ */
-#page-kds,#page-comptoir{background:var(--coal);}
-.kds-header{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;background:var(--coal2);border-bottom:3px solid var(--fire);flex-shrink:0;}
-.kds-title{font-family:var(--font-d);font-size:24px;letter-spacing:2px;color:var(--fire);}
-.kds-clock{font-family:monospace;font-size:18px;font-weight:700;color:var(--text2);}
-.kds-exit{background:none;border:1px solid var(--border2);color:var(--text3);padding:.35rem .9rem;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:var(--font);}
-.kds-grid{flex:1;overflow-y:auto;padding:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1rem;align-content:start;}
-.kds-card{background:var(--coal3);border-radius:var(--radius);padding:1.25rem;border-left:5px solid var(--border2);}
-.kds-card.sur_place,.kds-card.table{border-left-color:#FF5722;}
-.kds-card.click_collect{border-left-color:var(--gold);}
-.kds-card.reservation{border-left-color:#CE93D8;}
-.kds-card.en_cours{background:rgba(79,195,247,.06);border-top:1px solid rgba(79,195,247,.2);}
-.kds-badge-statut{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px;margin-bottom:.5rem;background:rgba(79,195,247,.18);color:#4FC3F7;}
-.kds-num{font-family:var(--font-d);font-size:44px;letter-spacing:3px;color:var(--fire);line-height:1;}
-.kds-type-row{display:flex;align-items:center;justify-content:space-between;margin:.3rem 0 .6rem;}
-.kds-type-lbl{font-size:13px;font-weight:700;color:var(--text2);}
-.kds-chrono{font-family:monospace;font-size:22px;font-weight:900;color:var(--green);}
-.kds-chrono.warn{color:var(--gold);}
-.kds-chrono.late{color:#FF5722;animation:cmd-urgent-pulse .7s ease-in-out infinite;}
-.kds-items{font-size:15px;font-weight:600;color:var(--text);line-height:1.9;margin:.5rem 0 1rem;border-top:1px solid var(--border);padding-top:.75rem;}
-.kds-btn{width:100%;padding:1rem;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;}
-.kds-btn:active{opacity:.85;transform:scale(.99);}
-.kds-btn.start{background:rgba(79,195,247,.18);color:#4FC3F7;border:1.5px solid rgba(79,195,247,.3);}
-.kds-btn.ready{background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 4px 18px rgba(255,107,43,.35);}
-.kds-empty-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:.75rem;color:var(--text3);padding:3rem 1rem;}
+/* ══ KDS (Kitchen Display System) — PRO ══ */
+#page-kds{background:#0d0d0d;}
+#page-comptoir{background:var(--coal);}
+.kds-header{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.1rem;background:#111111;border-bottom:3px solid #E24B4A;flex-shrink:0;gap:8px;}
+.kds-title{font-family:var(--font-d);font-size:20px;letter-spacing:2px;color:#ffffff;flex-shrink:0;}
+.kds-clock{font-family:monospace;font-size:18px;font-weight:700;color:#aaaaaa;letter-spacing:1px;}
+.kds-exit{background:none;border:1px solid #333;color:#888;padding:.32rem .85rem;border-radius:6px;font-size:13px;cursor:pointer;font-family:var(--font);flex-shrink:0;}
+.kds-exit:active{border-color:#666;color:#ccc;}
+/* Grid : 3 colonnes tablette/landscape, 2 colonnes portrait */
+.kds-grid{flex:1;overflow-y:auto;padding:.875rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.875rem;align-content:start;}
+@media(max-width:900px){.kds-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:480px){.kds-grid{grid-template-columns:1fr;}}
+/* Cartes */
+.kds-card{background:#1c1c1c;border-radius:10px;border:2px solid #3B6D11;display:flex;flex-direction:column;overflow:hidden;transition:border-color .3s;}
+.kds-card.kds-warn{border-color:#EF9F27;}
+.kds-card.kds-late{border-color:#E24B4A;animation:kds-late-glow 1.8s ease-in-out infinite;}
+@keyframes kds-late-glow{0%,100%{box-shadow:0 0 0 0 rgba(226,75,74,0);}50%{box-shadow:0 0 12px 2px rgba(226,75,74,.3);}}
+/* En-tête carte */
+.kds-card-hdr{display:flex;align-items:center;gap:8px;padding:.55rem .875rem;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap;}
+.kds-card-num{font-family:var(--font-d);font-size:18px;font-weight:900;color:#ffffff;letter-spacing:1px;flex-shrink:0;}
+.kds-card-type{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 9px;border-radius:5px;flex-shrink:0;}
+.kds-card-type.t-surplace{background:rgba(226,75,74,.25);color:#FF7070;border:1px solid rgba(226,75,74,.4);}
+.kds-card-type.t-collect{background:rgba(239,159,39,.25);color:#F5B942;border:1px solid rgba(239,159,39,.4);}
+.kds-card-type.t-resa{background:rgba(100,160,255,.2);color:#82B1FF;border:1px solid rgba(100,160,255,.35);}
+.kds-card-chrono{font-family:monospace;font-size:12px;font-weight:700;color:#4CAF50;margin-left:auto;white-space:nowrap;}
+.kds-card-chrono.warn{color:#EF9F27;}
+.kds-card-chrono.late{color:#E24B4A;font-weight:900;}
+/* Badge "en préparation" */
+.kds-card-status{padding:.28rem .875rem;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;background:rgba(79,195,247,.12);color:#4FC3F7;border-bottom:1px solid rgba(79,195,247,.15);}
+/* Zone articles */
+.kds-card-items{padding:.5rem .875rem .25rem;flex:1;}
+.kds-item-wrap{padding:.5rem 0;border-bottom:1px dashed rgba(255,255,255,.1);}
+.kds-item-wrap:last-child{border-bottom:none;}
+.kds-item-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;padding:2px 7px;border-radius:4px;margin-bottom:3px;text-transform:uppercase;}
+.kds-item-badge.b-kebab{background:rgba(226,75,74,.2);color:#FF7070;border:1px solid rgba(226,75,74,.35);}
+.kds-item-badge.b-tacos{background:rgba(239,159,39,.2);color:#F5B942;border:1px solid rgba(239,159,39,.35);}
+.kds-item-badge.b-salade{background:rgba(76,175,80,.2);color:#81C784;border:1px solid rgba(76,175,80,.35);}
+.kds-item-badge.b-autre{background:rgba(180,180,180,.1);color:#9E9E9E;border:1px solid rgba(180,180,180,.2);}
+.kds-item-name{font-size:15px;font-weight:800;color:#ffffff;line-height:1.3;margin-bottom:1px;}
+.kds-item-pain{font-size:13px;font-weight:700;color:#EF9F27;line-height:1.7;}
+.kds-item-removed{font-size:13px;font-weight:700;color:#E24B4A;line-height:1.65;}
+.kds-item-sauce{font-size:13px;color:#64B5F6;line-height:1.65;}
+.kds-item-suppl{font-size:13px;color:#FFD54F;line-height:1.65;}
+.kds-item-default{font-size:12px;color:#4CAF50;line-height:1.65;}
+/* Boutons d'action */
+.kds-card-actions{padding:.75rem .875rem;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:7px;}
+.kds-btn{width:100%;padding:.85rem;border:none;border-radius:8px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s;letter-spacing:.2px;}
+.kds-btn:active:not(:disabled){opacity:.82;transform:scale(.99);}
+.kds-btn:disabled{opacity:.3;cursor:not-allowed;}
+.kds-btn.start{background:#C0392B;color:#fff;}
+.kds-btn.ready{background:#2E7D32;color:#fff;}
+/* État vide */
+.kds-empty-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:.75rem;padding:3rem 1rem;}
 .kds-empty-ico{font-size:64px;}
-.kds-empty-txt{font-family:var(--font-d);font-size:22px;letter-spacing:1px;}
+.kds-empty-txt{font-family:var(--font-d);font-size:22px;letter-spacing:1px;color:#555;}
 /* ══ COMPTOIR ══ */
 .cpt-header{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;background:var(--coal2);border-bottom:3px solid var(--green);flex-shrink:0;}
 .cpt-title{font-family:var(--font-d);font-size:24px;letter-spacing:2px;color:var(--green);}
@@ -1328,8 +1403,22 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
     <div class="kds-clock" id="cpt-clock"></div>
     <button class="kds-exit" onclick="exitComptoir()">✕ Quitter</button>
   </div>
-  <div id="cpt-body" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-    <div class="kds-empty-wrap"><div class="kds-empty-ico">🍽️</div><div class="kds-empty-txt">Aucune commande prête</div></div>
+  <div class="cpt-tabs">
+    <button class="cpt-tab active" id="cpt-tab-btn-orders" onclick="showCptTab('orders')">🍽️ Commandes prêtes</button>
+    <button class="cpt-tab" id="cpt-tab-btn-points" onclick="showCptTab('points')">⭐ Points clients</button>
+  </div>
+  <div id="cpt-tab-pane-orders" class="cpt-tab-pane active">
+    <div id="cpt-body" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="kds-empty-wrap"><div class="kds-empty-ico">🍽️</div><div class="kds-empty-txt">Aucune commande prête</div></div>
+    </div>
+  </div>
+  <div id="cpt-tab-pane-points" class="cpt-tab-pane">
+    <div class="cpt-pts-search">
+      <input class="cpt-pts-input" id="cpt-pts-search-input" type="text" placeholder="Nom ou téléphone…" oninput="cptPtsSearch(this.value)">
+    </div>
+    <div class="cpt-pts-results" id="cpt-pts-results">
+      <div style="text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px;">Recherchez un client par nom ou numéro de téléphone</div>
+    </div>
   </div>
 </div>
 
@@ -1891,7 +1980,7 @@ function addToCart(idx){
 
 /* ══ PRODUCT SHEET ══ */
 let sheetIdx=null, sheetTaille='M', sheetMenuUpgrade=false;
-
+let sheetPain=null; // 'pain' | 'galette' | null — requis pour les kebabs
 let sheetRemovedIngredients=[];
 let sheetSauces=[];
 
@@ -1921,6 +2010,7 @@ function openProductSheet(idx){
   sheetIdx=idx;
   sheetTaille=m.cat==='tacos'?'M':null;
   sheetMenuUpgrade=false;
+  sheetPain=null;
   selectedSupplements=[];
   sheetRemovedIngredients=[];
   sheetSauces=[];
@@ -1948,6 +2038,21 @@ function renderProdSheetBody(){
   let html=`<div class="prod-sheet-name">${m.name}</div>`;
   if(m.badge) html+=`<div class="prod-sheet-badges"><span class="mi-badge">${m.badge}</span></div>`;
   html+=`<div class="prod-sheet-desc">${m.desc}</div>`;
+
+  /* ── ÉTAPE ⓪ : Pain / Galette (kebabs uniquement) ── */
+  if(m.cat==='kebabs'){
+    html+=`<div class="ps-section-title">⓪ Pain ou galette ?</div>
+    <div class="ps-pain-grid">
+      <div class="ps-pain-btn${sheetPain==='pain'?' sel':''}" onclick="setSheetPain('pain')">
+        <div class="ps-pain-ico">🍞</div>
+        <div class="ps-pain-lbl">Pain</div>
+      </div>
+      <div class="ps-pain-btn${sheetPain==='galette'?' sel':''}" onclick="setSheetPain('galette')">
+        <div class="ps-pain-ico">🫓</div>
+        <div class="ps-pain-lbl">Galette</div>
+      </div>
+    </div>`;
+  }
 
   /* Taille tacos */
   if(m.cat==='tacos'){
@@ -2025,10 +2130,13 @@ function renderProdSheetBody(){
 
   /* ── Récapitulatif ── */
   if(isCusto){
-    const hasCustom=sheetRemovedIngredients.length||sheetSauces.length||selectedSupplements.length||sheetMenuUpgrade;
+    const hasCustom=sheetRemovedIngredients.length||sheetSauces.length||selectedSupplements.length||sheetMenuUpgrade||sheetPain==='galette';
     html+=`<div class="ps-summary">
       <div class="ps-summary-ttl">📋 Récapitulatif</div>
       <div class="ps-sum-line">${m.icon} <strong>${m.name}</strong>${sheetTaille&&sheetTaille!=='M'?' ('+sheetTaille+')':''}</div>`;
+    if(m.cat==='kebabs'&&sheetPain){
+      html+=`<div class="ps-sum-line" style="color:#FFC107;font-weight:700;">${sheetPain==='galette'?'🫓 Galette':'🍞 Pain'}</div>`;
+    }
     if(sheetRemovedIngredients.length){
       sheetRemovedIngredients.forEach(ing=>{ html+=`<div class="ps-sum-line s-removed">❌ Sans ${ing}</div>`; });
     }
@@ -2046,8 +2154,9 @@ function renderProdSheetBody(){
     html+=`</div>`;
   }
 
-  html+=`<button class="prod-add-btn" onclick="confirmProdSheet()">
-    <span>Ajouter au panier</span>
+  const needsPain=m.cat==='kebabs'&&!sheetPain;
+  html+=`<button class="prod-add-btn" onclick="confirmProdSheet()"${needsPain?' disabled':''}>
+    <span>${needsPain?'👆 Choisissez pain ou galette':'Ajouter au panier'}</span>
     <span class="prod-add-price">${price.toFixed(2).replace('.',',')}€</span>
   </button>`;
 
@@ -2055,6 +2164,7 @@ function renderProdSheetBody(){
 }
 
 function setSheetTaille(t){ sheetTaille=t; renderProdSheetBody(); }
+function setSheetPain(p){ sheetPain=p; renderProdSheetBody(); }
 function toggleSheetMenu(){ sheetMenuUpgrade=!sheetMenuUpgrade; renderProdSheetBody(); }
 function toggleSheetSuppl(id){
   const i=selectedSupplements.indexOf(id);
@@ -2063,12 +2173,14 @@ function toggleSheetSuppl(id){
 }
 
 function confirmProdSheet(){
+  const m=MENU_DATA[sheetIdx];
+  if(m.cat==='kebabs'&&!sheetPain){ showToast('Choisissez pain ou galette 👆'); return; }
   closeProdSheet();
   const suppls=selectedSupplements.map(sid=>{
     const s=SUPPLEMENTS.find(x=>x.id===sid);
     return s?{name:s.name,price:s.price}:null;
   }).filter(Boolean);
-  finalAddToCart(sheetIdx, sheetTaille, sheetMenuUpgrade, [...sheetRemovedIngredients], [...sheetSauces], suppls);
+  finalAddToCart(sheetIdx, sheetTaille, sheetMenuUpgrade, [...sheetRemovedIngredients], [...sheetSauces], suppls, sheetPain);
 }
 
 function closeProdSheet(){
@@ -2143,7 +2255,7 @@ function closeSupplements(){
   finalAddToCart(pendingIdx, pendingTaille, false);
 }
 
-function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls){
+function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain){
   const m=MENU_DATA[idx];
   let price=m.price;
   let name=m.name;
@@ -2156,7 +2268,7 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls){
 
   cart.push({
     idx, price:parseFloat(price.toFixed(2)), name, taille:taille||null,
-    removed:removed||[], sauces:sauces||[], suppls:suppls||[],
+    pain:pain||null, removed:removed||[], sauces:sauces||[], suppls:suppls||[],
     menu:menuUpgrade||false, icon:m.icon||'🍴', cat:m.cat
   });
 
@@ -2167,7 +2279,7 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls){
   if((sauces||[]).length) extras.push((sauces||[]).join('+'));
   showToast(`✓ ${name} ajouté${extras.length?' — '+extras.join(' | '):''}`);
   pendingIdx=null; pendingTaille=null; selectedSupplements=[];
-  sheetRemovedIngredients=[]; sheetSauces=[];
+  sheetRemovedIngredients=[]; sheetSauces=[]; sheetPain=null;
 }
 
 function updateCartBar(){
@@ -2227,6 +2339,7 @@ function renderCart(){
     let customHtml='';
     if(isObj&&!item.isSuppl){
       const parts=[];
+      if(item.pain) parts.push(`<span class="c-pain">${item.pain==='galette'?'🫓 Galette':'🍞 Pain'}</span>`);
       if(item.removed?.length) parts.push(item.removed.map(r=>`<span class="c-removed">❌ Sans ${r}</span>`).join(' '));
       if(item.sauces?.length) parts.push(`<span class="c-sauce">🥫 ${item.sauces.join(', ')}</span>`);
       if(item.suppls?.length) parts.push(item.suppls.map(s=>`<span class="c-suppl">➕ ${s.name}</span>`).join(' '));
@@ -2398,7 +2511,7 @@ async function submitClientOrder(){
               removed:[],sauces:[],suppls:[],menu:false,taille:null};
     }
     return {name:ci.name,icon:ci.icon||'🍴',cat:ci.cat||'',price:ci.price,
-            removed:ci.removed||[],sauces:ci.sauces||[],
+            pain:ci.pain||null,removed:ci.removed||[],sauces:ci.sauces||[],
             suppls:(ci.suppls||[]).map(s=>s.name),menu:ci.menu||false,taille:ci.taille||null};
   });
   const itemsText=JSON.stringify(itemsArr);
@@ -3340,12 +3453,21 @@ function checkPin(){
 
 /* ══ ITEMS PARSER (KDS + Comptoir) ══ */
 function parseItemsKDS(itemsStr){
+  const catBadgeMap={
+    'kebabs':'<span class="kds-item-badge b-kebab">🥙 KEBAB</span>',
+    'tacos':'<span class="kds-item-badge b-tacos">🌮 TACOS</span>',
+    'salades':'<span class="kds-item-badge b-salade">🥗 SALADE</span>'
+  };
   try{
     const arr=JSON.parse(itemsStr);
     if(!Array.isArray(arr)) throw new Error();
     return arr.map(it=>{
       const lines=[];
+      const badge=catBadgeMap[it.cat]||'<span class="kds-item-badge b-autre">🍽️ AUTRE</span>';
+      lines.push(badge);
       lines.push(`<div class="kds-item-name">${it.icon||'🍴'} ${it.name}${it.taille?' ('+it.taille+')':''}</div>`);
+      if(it.cat==='kebabs'&&it.pain)
+        lines.push(`<div class="kds-item-pain">${it.pain==='galette'?'🫓 GALETTE':'🍞 PAIN'}</div>`);
       if(it.removed&&it.removed.length)
         it.removed.forEach(r=>lines.push(`<div class="kds-item-removed">❌ Sans ${r}</div>`));
       if(it.sauces&&it.sauces.length)
@@ -3403,7 +3525,7 @@ async function loadKDS(){
     }
   }catch(e){}
   if(!orders.length){
-    el.innerHTML='<div class="kds-empty-wrap"><div class="kds-empty-ico">✅</div><div class="kds-empty-txt">Tout est à jour</div><div style="font-size:14px;color:var(--text3);margin-top:.35rem">Aucune commande en cours</div></div>';
+    el.innerHTML='<div class="kds-empty-wrap"><div class="kds-empty-ico">✅</div><div class="kds-empty-txt">Tout est à jour</div><div style="font-size:14px;color:#555;margin-top:.35rem">Aucune commande en cours</div></div>';
     return;
   }
   orders.sort((a,b)=>{
@@ -3415,37 +3537,46 @@ async function loadKDS(){
   });
   el.innerHTML='<div class="kds-grid">'+orders.map(o=>{
     const elapsed=Math.floor((Date.now()-new Date(o.created_at))/1000);
-    const chronoCls=elapsed>=600?'late':elapsed>=300?'warn':'';
+    const isLate=elapsed>=600, isWarn=elapsed>=300;
+    const urgencyCls=isLate?'kds-late':isWarn?'kds-warn':'';
+    const chronoCls=isLate?'late':isWarn?'warn':'';
     let chronoTxt;
-    if(elapsed<60) chronoTxt='il y a '+elapsed+' sec';
-    else if(elapsed<3600){const m=Math.floor(elapsed/60);chronoTxt='il y a '+m+' min';}
-    else{const h=Math.floor(elapsed/3600);const m=Math.floor((elapsed%3600)/60);chronoTxt='il y a '+h+'h'+(m?' '+m+'min':'');}
+    if(elapsed<60) chronoTxt='il y a '+elapsed+'s';
+    else if(elapsed<3600){const mm=Math.floor(elapsed/60);chronoTxt='il y a '+mm+' min';}
+    else{const hh=Math.floor(elapsed/3600);const mm=Math.floor((elapsed%3600)/60);chronoTxt='il y a '+hh+'h'+(mm?' '+mm+'min':'');}
     const isSP=o.type==='sur_place'||o.type==='table';
     const isResa=o.type==='reservation';
-    const typeKey=isSP?'sur_place':isResa?'reservation':'click_collect';
-    const typeIcon=isSP?'🪑 SUR PLACE':isResa?'📅 RÉSA '+(o.heure_retrait||''):'🏃 RETRAIT '+(o.heure_retrait||'');
+    const typeClass=isSP?'t-surplace':isResa?'t-resa':'t-collect';
+    const typeIcon=isSP?'🪑 Sur place':isResa?'📅 Résa'+(o.heure_retrait?' '+o.heure_retrait:''):'🏃 Click & Collect'+(o.heure_retrait?' '+o.heure_retrait:'');
     const orderNum=o.id?'#KBB-'+String(o.id).padStart(3,'0'):'—';
     const isEnCours=o.statut==='en_cours';
     const itemsHtml=parseItemsKDS(o.items);
-    return `<div class="kds-card ${typeKey}${isEnCours?' en_cours':''}">
-      ${isEnCours?`<div class="kds-badge-statut">🔥 EN PRÉPARATION</div>`:''}
-      <div class="kds-num">${orderNum}</div>
-      <div class="kds-type-row">
-        <div class="kds-type-lbl">${typeIcon}</div>
-        <div class="kds-chrono ${chronoCls}">${chronoTxt}</div>
+    return `<div class="kds-card ${urgencyCls}">
+      ${isEnCours?'<div class="kds-card-status">🔥 EN PRÉPARATION</div>':''}
+      <div class="kds-card-hdr">
+        <div class="kds-card-num">${orderNum}</div>
+        <div class="kds-card-type ${typeClass}">${typeIcon}</div>
+        <div class="kds-card-chrono ${chronoCls}">${chronoTxt}</div>
       </div>
-      <div class="kds-items">${itemsHtml||o.items||''}</div>
-      ${o.statut==='en_attente'?`<button class="kds-btn start" onclick="kdsUpdateStatus('${o.id}','en_cours')">🔥 En préparation</button>`:''}
-      ${o.statut==='en_cours'?`<button class="kds-btn ready" onclick="kdsUpdateStatus('${o.id}','pret')">✅ Prête !</button>`:''}
+      <div class="kds-card-items">${itemsHtml||('<div class="kds-item-wrap"><div class="kds-item-name">'+o.items+'</div></div>')}</div>
+      <div class="kds-card-actions">
+        ${o.statut==='en_attente'?`<button class="kds-btn start" onclick="kdsUpdateStatus('${o.id}','en_cours',this)">🔥 En préparation</button>`:''}
+        ${o.statut==='en_cours'?`<button class="kds-btn ready" onclick="kdsUpdateStatus('${o.id}','pret',this)">✅ Prête !</button>`:''}
+      </div>
     </div>`;
   }).join('')+'</div>';
 }
 
-async function kdsUpdateStatus(id,status){
+async function kdsUpdateStatus(id,status,btn){
+  if(btn){btn.disabled=true;btn.textContent='…';}
   try{
     if(supaOk()&&!String(id).startsWith('local_'))
       await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:status});
-  }catch(e){console.warn('KDS status:',e);}
+  }catch(e){
+    console.warn('KDS status:',e);
+    if(btn){btn.disabled=false;btn.textContent=status==='en_cours'?'🔥 En préparation':'✅ Prête !';}
+    return;
+  }
   loadKDS();
 }
 
@@ -3563,6 +3694,241 @@ async function cptRemis(id){
   }catch(e){console.warn('Cpt remis:',e);}
   finally{_cptLock.delete(String(id));}
   loadComptoir();
+}
+
+/* ══ COMPTOIR — POINTS CLIENTS ══ */
+function showCptTab(tab){
+  document.querySelectorAll('.cpt-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.cpt-tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('cpt-tab-btn-'+tab).classList.add('active');
+  document.getElementById('cpt-tab-pane-'+tab).classList.add('active');
+  if(tab==='points'){
+    const inp=document.getElementById('cpt-pts-search-input');
+    if(inp) inp.value='';
+    document.getElementById('cpt-pts-results').innerHTML=
+      '<div style="text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px;">Recherchez un client par nom ou numéro de téléphone</div>';
+  }
+}
+
+let _cptPtsDebounce=null;
+function cptPtsSearch(q){
+  clearTimeout(_cptPtsDebounce);
+  if(!q||q.trim().length<2){
+    document.getElementById('cpt-pts-results').innerHTML=
+      '<div style="text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px;">Saisissez au moins 2 caractères</div>';
+    return;
+  }
+  _cptPtsDebounce=setTimeout(()=>_cptPtsDoSearch(q.trim()),300);
+}
+
+async function _cptPtsDoSearch(q){
+  const el=document.getElementById('cpt-pts-results');
+  el.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px;">⏳ Recherche…</div>';
+  let results=[];
+  try{
+    if(supaOk()){
+      const enc=encodeURIComponent(q);
+      // Search by phone exact match first, then by name partial match
+      const byPhone=await supaReq('clients?telephone=ilike.*'+enc+'*&select=*&limit=5');
+      const byName=await supaReq('clients?or=(prenom.ilike.*'+enc+'*,nom.ilike.*'+enc+'*)&select=*&limit=5');
+      const seen=new Set();
+      [...(byPhone||[]),...(byName||[])].forEach(c=>{
+        if(!seen.has(c.id)){seen.add(c.id);results.push(c);}
+      });
+    } else {
+      const loc=lLoad();
+      const ql=q.toLowerCase();
+      results=loc.filter(c=>(c.telephone||c.tel||'').includes(q)||
+        (c.prenom||'').toLowerCase().includes(ql)||(c.nom||'').toLowerCase().includes(ql)).slice(0,8);
+    }
+  }catch(e){ console.warn('cptPtsSearch:',e); }
+
+  if(!results.length){
+    el.innerHTML=`<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px;">Aucun client trouvé pour "${q}"</div>
+      <button class="cpt-create-btn" onclick="cptPtsCreateForm('${q.replace(/'/g,"\\'")}')">➕ Créer un nouveau client</button>`;
+    return;
+  }
+  el.innerHTML=results.map(c=>{
+    const pts=Math.floor(parseFloat(c.cagnotte||c.points||0));
+    const lvl=getLevel(pts);
+    const tel=c.telephone||c.tel||'—';
+    return `<div class="cpt-client-card" id="cpt-cc-${c.id}">
+      <div class="cpt-client-name">${c.prenom||''} ${c.nom||''}</div>
+      <div class="cpt-client-meta">${tel} · ${c.passages||c.points||0} passage${(c.passages||0)>1?'s':''}</div>
+      <div class="cpt-client-pts">${pts} pts</div>
+      <div class="cpt-client-lvl">${lvl.emoji} Niveau ${lvl.label}</div>
+      <div class="cpt-pts-actions">
+        <button class="cpt-pts-add-btn" onclick="cptPtsAddOpen('${c.id}','${c.telephone||c.tel||''}')">➕ Ajouter des points</button>
+        <button class="cpt-pts-rem-btn" onclick="cptPtsRemoveOpen('${c.id}','${c.telephone||c.tel||''}',${pts})">➖ Retirer des points</button>
+      </div>
+      <div id="cpt-cc-form-${c.id}"></div>
+      <div id="cpt-cc-hist-${c.id}"></div>
+    </div>`;
+  }).join('');
+  // Load history for each client
+  results.forEach(c=>cptPtsLoadHist(c.id));
+}
+
+async function cptPtsLoadHist(clientId){
+  const el=document.getElementById('cpt-cc-hist-'+clientId);
+  if(!el) return;
+  let hist=[];
+  try{
+    if(supaOk()){
+      // Check for manual_points_ops table or use commandes history
+      const rows=await supaReq('commandes?client_telephone=eq.'+encodeURIComponent(
+        (document.querySelector(`#cpt-cc-${clientId} .cpt-client-meta`)?.textContent||'').split(' ·')[0].trim()
+      )+'&select=id,montant,pts_a_crediter,created_at,statut&order=created_at.desc&limit=5').catch(()=>[]);
+      hist=rows||[];
+    }
+  }catch(e){}
+  if(!hist.length){ el.innerHTML=''; return; }
+  el.innerHTML=`<div class="cpt-pts-hist">
+    <div class="cpt-pts-hist-ttl">Dernières commandes</div>
+    ${hist.map(h=>`<div class="cpt-pts-hist-row">📦 ${h.id?'#KBB-'+String(h.id).padStart(3,'0'):'—'} · ${parseFloat(h.montant||0).toFixed(2).replace('.',',')}€ · +${h.pts_a_crediter||0} pts · ${new Date(h.created_at).toLocaleDateString('fr-FR')}</div>`).join('')}
+  </div>`;
+}
+
+function cptPtsAddOpen(clientId, tel){
+  document.getElementById('cpt-cc-form-'+clientId).innerHTML=`
+    <div class="cpt-pts-form">
+      <div class="cpt-pts-form-ttl">➕ Ajouter des points</div>
+      <div class="cpt-pts-num-row">
+        <input class="cpt-pts-num-input" id="cpt-add-val-${clientId}" type="number" min="1" max="9999" placeholder="pts" oninput="cptPtsAddPreview('${clientId}')">
+        <span id="cpt-add-preview-${clientId}" style="font-size:12px;color:var(--text3);"></span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="cpt-pts-confirm-btn" onclick="cptPtsAddConfirm('${clientId}','${tel}')">✅ Confirmer</button>
+        <button class="cpt-pts-cancel-btn" onclick="cptPtsFormClose('${clientId}')">Annuler</button>
+      </div>
+    </div>`;
+  setTimeout(()=>{const el=document.getElementById('cpt-add-val-'+clientId);if(el)el.focus();},50);
+}
+
+function cptPtsAddPreview(clientId){
+  const val=parseInt(document.getElementById('cpt-add-val-'+clientId)?.value)||0;
+  const el=document.getElementById('cpt-add-preview-'+clientId);
+  if(el) el.textContent=val>0?`→ +${val} points`:'';
+}
+
+async function cptPtsAddConfirm(clientId, tel){
+  const pts=parseInt(document.getElementById('cpt-add-val-'+clientId)?.value)||0;
+  if(pts<=0){ showToast('Entrez un nombre de points valide'); return; }
+  const btn=document.querySelector(`#cpt-cc-form-${clientId} .cpt-pts-confirm-btn`);
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  try{
+    const client=await dbByTel(tel);
+    if(!client){ showToast('Client introuvable'); return; }
+    const newPts=Math.floor(parseFloat(client.cagnotte||0))+pts;
+    await dbUpdate(client.id,{cagnotte:newPts,points:client.passages||0});
+    // sync local
+    const ldb=lLoad();
+    const li=ldb.findIndex(x=>x.id===client.id||x.telephone===tel||x.tel===tel);
+    if(li>=0){ldb[li].cagnotte=newPts;lSave(ldb);}
+    showToast(`✅ +${pts} points ajoutés (total : ${newPts} pts)`);
+    cptPtsFormClose(clientId);
+    // refresh card
+    await _cptRefreshCard(clientId,tel);
+  }catch(e){showToast('Erreur: '+e.message);if(btn){btn.disabled=false;btn.textContent='✅ Confirmer';}}
+}
+
+function cptPtsRemoveOpen(clientId, tel, currentPts){
+  document.getElementById('cpt-cc-form-'+clientId).innerHTML=`
+    <div class="cpt-pts-form">
+      <div class="cpt-pts-form-ttl">➖ Retirer des points</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:.5rem;">Solde actuel : <strong style="color:var(--fire);">${currentPts} pts</strong></div>
+      <div class="cpt-pts-num-row">
+        <input class="cpt-pts-num-input" id="cpt-rem-val-${clientId}" type="number" min="1" max="${currentPts}" placeholder="pts" oninput="cptPtsRemPreview('${clientId}',${currentPts})">
+        <span id="cpt-rem-preview-${clientId}" style="font-size:12px;color:var(--text3);"></span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="cpt-pts-confirm-btn" style="background:#FF5722;" onclick="cptPtsRemoveConfirm('${clientId}','${tel}',${currentPts})">✅ Confirmer le retrait</button>
+        <button class="cpt-pts-cancel-btn" onclick="cptPtsFormClose('${clientId}')">Annuler</button>
+      </div>
+    </div>`;
+  setTimeout(()=>{const el=document.getElementById('cpt-rem-val-'+clientId);if(el)el.focus();},50);
+}
+
+function cptPtsRemPreview(clientId, currentPts){
+  const val=parseInt(document.getElementById('cpt-rem-val-'+clientId)?.value)||0;
+  const el=document.getElementById('cpt-rem-preview-'+clientId);
+  if(el) el.textContent=val>0?`→ reste ${Math.max(0,currentPts-val)} pts`:'';
+}
+
+async function cptPtsRemoveConfirm(clientId, tel, currentPts){
+  const pts=parseInt(document.getElementById('cpt-rem-val-'+clientId)?.value)||0;
+  if(pts<=0){ showToast('Entrez un nombre de points valide'); return; }
+  if(pts>currentPts){ showToast(`Solde insuffisant (${currentPts} pts disponibles)`); return; }
+  const btn=document.querySelector(`#cpt-cc-form-${clientId} .cpt-pts-confirm-btn`);
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  try{
+    const client=await dbByTel(tel);
+    if(!client){ showToast('Client introuvable'); return; }
+    const newPts=Math.max(0,Math.floor(parseFloat(client.cagnotte||0))-pts);
+    await dbUpdate(client.id,{cagnotte:newPts,points:client.passages||0});
+    const ldb=lLoad();
+    const li=ldb.findIndex(x=>x.id===client.id||x.telephone===tel||x.tel===tel);
+    if(li>=0){ldb[li].cagnotte=newPts;lSave(ldb);}
+    showToast(`✅ −${pts} points retirés (reste : ${newPts} pts)`);
+    cptPtsFormClose(clientId);
+    await _cptRefreshCard(clientId,tel);
+  }catch(e){showToast('Erreur: '+e.message);if(btn){btn.disabled=false;btn.textContent='✅ Confirmer le retrait';}}
+}
+
+function cptPtsFormClose(clientId){
+  const el=document.getElementById('cpt-cc-form-'+clientId);
+  if(el) el.innerHTML='';
+}
+
+async function _cptRefreshCard(clientId, tel){
+  try{
+    const client=await dbByTel(tel);
+    if(!client) return;
+    const pts=Math.floor(parseFloat(client.cagnotte||0));
+    const lvl=getLevel(pts);
+    const card=document.getElementById('cpt-cc-'+clientId);
+    if(!card) return;
+    card.querySelector('.cpt-client-pts').textContent=pts+' pts';
+    card.querySelector('.cpt-client-lvl').textContent=lvl.emoji+' Niveau '+lvl.label;
+    // update remove button with new pts
+    const remBtn=card.querySelector('.cpt-pts-rem-btn');
+    if(remBtn) remBtn.setAttribute('onclick',`cptPtsRemoveOpen('${clientId}','${tel}',${pts})`);
+  }catch(e){}
+}
+
+function cptPtsCreateForm(query){
+  const el=document.getElementById('cpt-pts-results');
+  const isPhone=/^[0-9+\s]+$/.test(query);
+  el.innerHTML=`<div class="cpt-client-card">
+    <div class="cpt-pts-form-ttl" style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:.75rem;">➕ Nouveau client</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:.75rem;">
+      <input class="cpt-pts-input" id="cpt-new-prenom" type="text" placeholder="Prénom" value="${isPhone?'':query}">
+      <input class="cpt-pts-input" id="cpt-new-nom" type="text" placeholder="Nom">
+      <input class="cpt-pts-input" id="cpt-new-tel" type="tel" placeholder="Téléphone" value="${isPhone?query:''}">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="cpt-pts-confirm-btn" onclick="cptPtsCreateConfirm()">✅ Créer</button>
+      <button class="cpt-pts-cancel-btn" onclick="cptPtsSearch(document.getElementById('cpt-pts-search-input').value)">Annuler</button>
+    </div>
+  </div>`;
+}
+
+async function cptPtsCreateConfirm(){
+  const prenom=(document.getElementById('cpt-new-prenom')?.value||'').trim();
+  const nom=(document.getElementById('cpt-new-nom')?.value||'').trim();
+  const tel=(document.getElementById('cpt-new-tel')?.value||'').trim();
+  if(!prenom||!tel){ showToast('Prénom et téléphone requis'); return; }
+  const btn=document.querySelector('#cpt-pts-results .cpt-pts-confirm-btn');
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  try{
+    const existing=await dbByTel(tel);
+    if(existing){ showToast('Ce numéro est déjà utilisé'); if(btn){btn.disabled=false;btn.textContent='✅ Créer';} return; }
+    const client=await dbCreate({prenom,nom,telephone:tel,tel,cagnotte:0,passages:0,history:[]});
+    showToast(`✅ Client ${prenom} ${nom} créé !`);
+    const input=document.getElementById('cpt-pts-search-input');
+    if(input){ input.value=prenom+' '+nom; }
+    _cptPtsDoSearch(tel);
+  }catch(e){showToast('Erreur: '+e.message);if(btn){btn.disabled=false;btn.textContent='✅ Créer';}}
 }
 
 /* ══ EMPLOYEE ══ */
