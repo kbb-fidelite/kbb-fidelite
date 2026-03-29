@@ -3233,9 +3233,11 @@ async function loadKDS(){
   });
   el.innerHTML='<div class="kds-grid">'+orders.map(o=>{
     const elapsed=Math.floor((Date.now()-new Date(o.created_at))/1000);
-    const mm=Math.floor(elapsed/60).toString().padStart(2,'0');
-    const ss=(elapsed%60).toString().padStart(2,'0');
-    const chronoCls=elapsed>600?'late':elapsed>300?'warn':'';
+    const chronoCls=elapsed>=600?'late':elapsed>=300?'warn':'';
+    let chronoTxt;
+    if(elapsed<60) chronoTxt='il y a '+elapsed+' sec';
+    else if(elapsed<3600){const m=Math.floor(elapsed/60);chronoTxt='il y a '+m+' min';}
+    else{const h=Math.floor(elapsed/3600);const m=Math.floor((elapsed%3600)/60);chronoTxt='il y a '+h+'h'+(m?' '+m+'min':'');}
     const isSP=o.type==='sur_place'||o.type==='table';
     const isResa=o.type==='reservation';
     const typeKey=isSP?'sur_place':isResa?'reservation':'click_collect';
@@ -3248,7 +3250,7 @@ async function loadKDS(){
       <div class="kds-num">${orderNum}</div>
       <div class="kds-type-row">
         <div class="kds-type-lbl">${typeIcon}</div>
-        <div class="kds-chrono ${chronoCls}">${mm}:${ss}</div>
+        <div class="kds-chrono ${chronoCls}">${chronoTxt}</div>
       </div>
       <div class="kds-items">${itemsHtml||o.items||''}</div>
       ${o.statut==='en_attente'?`<button class="kds-btn start" onclick="kdsUpdateStatus('${o.id}','en_cours')">🔥 En préparation</button>`:''}
