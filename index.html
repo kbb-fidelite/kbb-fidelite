@@ -3375,14 +3375,18 @@ async function crediterPointsCommande(orderId){
   }catch(e){ console.warn('[Points] Erreur crédit:',e); }
 }
 
+const _cptLock=new Set(); // anti double-clic
 async function cptRemis(id){
+  if(_cptLock.has(String(id))) return;
+  _cptLock.add(String(id));
   const btn=event?.target;
   if(btn){btn.disabled=true;btn.textContent='…';}
   try{
     if(supaOk()&&!String(id).startsWith('local_'))
       await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:'archive'});
+    await crediterPointsCommande(id);
   }catch(e){console.warn('Cpt remis:',e);}
-  await crediterPointsCommande(id);
+  finally{_cptLock.delete(String(id));}
   loadComptoir();
 }
 
@@ -3568,7 +3572,6 @@ async function updateOrderStatus(id,status){
     if(supaOk()&&!String(id).startsWith('local_'))
       await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:status});
   }catch(e){ console.warn('Status update:',e); }
-  if(status==='archive') await crediterPointsCommande(id);
   loadEmpCommandes();
 }
 
@@ -4163,13 +4166,18 @@ function _handleSuiviStatusChange(newStatut){
     const num=o.orderNum||'';
     const pts=o.expectedPts||0;
     renderSuivi();
-    const notif=pts>0
-      ?`🎉 Commande récupérée ! +${pts} pts crédités`
-      :`🎉 ${num?num+' — ':''}Bonne dégustation !`;
-    showRTNotif(notif);
-    // Rafraîchir le solde du portail si le client est connecté
-    if(pts>0&&currentPortalClient?.telephone===o.clientTel&&typeof renderPortal==='function'){
-      dbByTel(o.clientTel).then(c=>{if(c){currentPortalClient=c;renderPortal(c);}}).catch(()=>{});
+    if(pts>0){
+      // Calculer le nouveau solde localement sans attendre un fetch
+      const ancienSolde=Math.floor(parseFloat(currentPortalClient?.cagnotte)||0);
+      const nouveauSolde=ancienSolde+pts;
+      showRTNotif(`🎉 Commande récupérée ! +${pts} pts crédités — vous avez maintenant ${nouveauSolde} pts`);
+      // Mettre à jour l'affichage du portail si le client est sur cet écran
+      if(currentPortalClient&&(currentPortalClient.telephone===o.clientTel||currentPortalClient.tel===o.clientTel)){
+        currentPortalClient.cagnotte=nouveauSolde;
+        if(typeof renderPortal==='function') renderPortal(currentPortalClient);
+      }
+    } else {
+      showRTNotif(`🎉 ${num?num+' — ':''}Bonne dégustation !`);
     }
     setTimeout(()=>{setActiveOrder(null);updateCommandesTile();stopSuiviPolling();},3500);
   }
