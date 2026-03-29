@@ -494,27 +494,47 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .order-submit-btn{width:100%;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:var(--radius);padding:1rem;color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:.5rem;}
 .order-submit-btn:disabled{opacity:.4;cursor:not-allowed;}
 /* ══ EMP COMMANDES ══ */
-.cmd-card{background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;}
+.cmd-card{background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;transition:border-color .2s;}
 .cmd-card.table{border-left:3px solid var(--gold);}
 .cmd-card.cnc{border-left:3px solid #4FC3F7;}
 .cmd-card.reservation{border-left:3px solid #CE93D8;}
-.cmd-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;}
-.cmd-type{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
+.cmd-card.pret-glow{border-color:rgba(76,175,116,.45);box-shadow:0 0 18px rgba(76,175,116,.12);}
+.cmd-card.new-anim{animation:cmd-new .5s cubic-bezier(.34,1.56,.64,1);}
+@keyframes cmd-new{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.cmd-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;}
+.cmd-num{font-family:var(--font-d);font-size:22px;color:var(--fire);letter-spacing:1.5px;line-height:1;}
+.cmd-type{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
 .cmd-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;}
 .cmd-badge.attente{background:rgba(255,184,48,.15);color:var(--gold);}
 .cmd-badge.encours{background:rgba(79,195,247,.15);color:#4FC3F7;}
-.cmd-badge.pret{background:rgba(76,175,80,.15);color:var(--green);}
-.cmd-highlight{font-family:var(--font-d);font-size:22px;color:var(--text);margin-bottom:.35rem;}
+.cmd-badge.pret{background:rgba(76,175,116,.2);color:var(--green);}
+.cmd-highlight{font-size:14px;font-weight:700;color:var(--text);margin-bottom:.35rem;}
 .cmd-items{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:.4rem;}
-.cmd-total{font-family:var(--font-d);font-size:18px;color:var(--fire);margin-bottom:.35rem;}
+.cmd-footer{display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem;}
+.cmd-total{font-family:var(--font-d);font-size:18px;color:var(--fire);}
 .cmd-time{font-size:11px;color:var(--text3);}
 .cmd-actions{display:flex;gap:8px;margin-top:.75rem;}
-.cmd-btn{flex:1;padding:.55rem;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;}
-.cmd-btn.start{background:rgba(79,195,247,.15);color:#4FC3F7;}
-.cmd-btn.ready{background:rgba(76,175,80,.15);color:var(--green);}
+.cmd-btn{flex:1;padding:.6rem;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.cmd-btn:active{opacity:.8;}
+.cmd-btn.start{background:rgba(79,195,247,.18);color:#4FC3F7;}
+.cmd-btn.ready{background:rgba(76,175,116,.2);color:var(--green);}
 .cmd-btn.done{background:var(--coal5);color:var(--text3);}
 .emp-cmd-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
 .emp-cmd-refresh{font-size:12px;font-weight:600;color:var(--fire);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;}
+.emp-rt-status{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;}
+.emp-rt-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);}
+.emp-rt-dot.live{background:#4CAF74;animation:rt-blink 1.5s ease-in-out infinite;}
+
+/* ══ REALTIME NOTIFICATIONS ══ */
+@keyframes rt-blink{0%,100%{opacity:1}50%{opacity:.25}}
+.rt-notif{position:fixed;top:1.1rem;left:50%;transform:translateX(-50%);background:linear-gradient(130deg,#4CAF74,#2E8B57);color:#fff;padding:.75rem 1.5rem;border-radius:99px;font-size:14px;font-weight:700;z-index:600;white-space:nowrap;box-shadow:0 6px 24px rgba(76,175,116,.4);animation:rt-notif-in .35s cubic-bezier(.34,1.56,.64,1);}
+@keyframes rt-notif-in{from{opacity:0;transform:translateX(-50%) translateY(-20px) scale(.9)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+
+/* ══ IMPROVED SUIVI ══ */
+.suivi-num-card{background:rgba(255,107,43,.07);border:1.5px solid rgba(255,107,43,.22);border-radius:var(--radius);padding:.65rem 1.5rem;margin:1rem 1.25rem .25rem;text-align:center;}
+.suivi-num-big{font-family:var(--font-d);font-size:44px;letter-spacing:3px;color:var(--fire);line-height:1;text-shadow:0 0 30px rgba(255,107,43,.3);}
+.suivi-num-sub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-top:3px;}
+.suivi-rt-hint{font-size:11px;color:var(--green);text-align:center;padding:.4rem 1.25rem 0;display:flex;align-items:center;justify-content:center;gap:5px;}
 /* ══ SUIVI COMMANDE ══ */
 .suivi-hero{padding:1.25rem 1.25rem .75rem;text-align:center;}
 .suivi-order-num{font-size:13px;color:var(--text2);margin-bottom:.25rem;}
@@ -1327,7 +1347,13 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
   <div class="epanel" id="epanel-commandes">
     <div class="emp-cmd-header">
       <span style="font-size:14px;font-weight:700;color:var(--text);">Commandes en cours</span>
-      <button class="emp-cmd-refresh" onclick="loadEmpCommandes()">⟳ Actualiser</button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="emp-rt-status" id="emp-rt-status">
+          <div class="emp-rt-dot" id="emp-rt-dot"></div>
+          <span id="emp-rt-label" style="color:var(--text3);">Connexion…</span>
+        </div>
+        <button class="emp-cmd-refresh" onclick="loadEmpCommandes()">⟳</button>
+      </div>
     </div>
     <div id="emp-commandes-list"><div class="empty"><div class="big">📋</div><p>Aucune commande</p></div></div>
   </div>
@@ -3067,7 +3093,8 @@ function etab(n){
   if(n==='clients') renderClist();
   if(n==='reglages') loadSettingsUI();
   if(n==='dashboard') loadDashboard();
-  if(n==='commandes') loadEmpCommandes();
+  if(n==='commandes'){ loadEmpCommandes(); startEmpRealtime(); }
+  else stopEmpRealtime();
 }
 
 async function refreshEmp(){
@@ -3086,27 +3113,25 @@ async function refreshEmp(){
 async function loadEmpCommandes(){
   const el=document.getElementById('emp-commandes-list');
   if(!el) return;
-  el.innerHTML='<div class="empty"><div class="big">⏳</div><p>Chargement...</p></div>';
   let orders=[];
   try{
     if(supaOk()){
-      const remote=await supaReq('commandes?select=*&order=created_at.desc&limit=100');
+      const remote=await supaReq('commandes?select=*&order=created_at.asc&limit=150');
       if(remote) orders=remote.filter(o=>o.statut!=='archive');
     }
   }catch(e){}
-  // Fusion commandes locales (offline/fallback)
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
   localOrders.forEach(lo=>{ if(!orders.find(o=>String(o.id)===String(lo.id))&&lo.statut!=='archive') orders.push(lo); });
-  // Tri : click_collect urgents d'abord, puis par heure de création
+  // Prêts en tête, puis plus ancienne en premier
   orders.sort((a,b)=>{
-    if(a.type==='click_collect'&&b.type!=='click_collect') return -1;
-    if(b.type==='click_collect'&&a.type!=='click_collect') return 1;
+    if(a.statut==='pret'&&b.statut!=='pret') return -1;
+    if(b.statut==='pret'&&a.statut!=='pret') return 1;
     return new Date(a.created_at)-new Date(b.created_at);
   });
-  // Badge sur l'onglet
   const pending=orders.filter(o=>o.statut==='en_attente').length;
+  const pret=orders.filter(o=>o.statut==='pret').length;
   const tab=document.getElementById('tab-commandes');
-  if(tab) tab.textContent=pending>0?'Commandes ('+pending+')':'Commandes';
+  if(tab) tab.textContent=(pending+pret)>0?'Commandes ('+(pending+pret)+')':'Commandes';
   if(!orders.length){
     el.innerHTML='<div class="empty"><div class="big">📋</div><p>Aucune commande en cours</p></div>';
     return;
@@ -3114,32 +3139,52 @@ async function loadEmpCommandes(){
   el.innerHTML=orders.map(o=>{
     const isTable=o.type==='table';
     const isResa=o.type==='reservation';
-    const cardClass=isTable?'table':isResa?'reservation':'cnc';
+    const cardClass=(isTable?'table':isResa?'reservation':'cnc')+(o.statut==='pret'?' pret-glow':'');
     const sb=o.statut==='en_attente'?'attente':o.statut==='en_cours'?'encours':'pret';
-    const sl=o.statut==='en_attente'?'En attente':o.statut==='en_cours'?'En cours ':'Prêt ✓';
+    const sl=o.statut==='en_attente'?'⏳ En attente':o.statut==='en_cours'?'🔥 En préparation':'✅ Prête !';
     const t=new Date(o.created_at);
     const ts=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
-    const typeLabel=isTable?'🪑 À table':isResa?'📅 Réservation':'🏃 À emporter';
-    const highlight=isTable?'Table n°'+(o.table_num||'?'):isResa?'Arrivée : '+(o.heure_retrait||'?'):'Retrait : '+(o.heure_retrait||'?');
+    const orderNum=o.id?'#KBB-'+String(o.id).padStart(3,'0'):'—';
+    const typeLabel=isTable?'🪑 Table n°'+(o.table_num||'?'):isResa?'📅 Réservation — '+(o.heure_retrait||'?'):'🏃 Retrait '+(o.heure_retrait||'');
     return `<div class="cmd-card ${cardClass}">
       <div class="cmd-header">
-        <div class="cmd-type">${typeLabel}</div>
-        <div class="cmd-badge ${sb}">${sl}</div>
+        <div><div class="cmd-num">${orderNum}</div><div class="cmd-type">${typeLabel}</div></div>
+        <div style="text-align:right;"><div class="cmd-badge ${sb}">${sl}</div><div class="cmd-time" style="margin-top:4px;">Reçue à ${ts}</div></div>
       </div>
-      <div class="cmd-highlight">${highlight}</div>
-      <div class="cmd-items">${o.items||''}</div>
-      <div class="cmd-total">${parseFloat(o.montant||0).toFixed(2).replace('.',',')}€</div>
-      <div class="cmd-time">Reçue à ${ts}</div>
+      <div class="cmd-items" style="margin-top:.5rem;">${o.items||''}</div>
+      <div class="cmd-footer"><div class="cmd-total">${parseFloat(o.montant||0).toFixed(2).replace('.',',')}€</div></div>
       <div class="cmd-actions">
-        ${o.statut==='en_attente'?`<button class="cmd-btn start" onclick="updateOrderStatus('${o.id}','en_cours')">▶ Commencer</button>`:''}
-        ${o.statut==='en_cours'?`<button class="cmd-btn ready" onclick="updateOrderStatus('${o.id}','pret')">✓ Prêt</button>`:''}
-        ${o.statut==='pret'?`<button class="cmd-btn done" onclick="updateOrderStatus('${o.id}','archive')">Archiver</button>`:''}
+        ${o.statut==='en_attente'?`<button class="cmd-btn start" onclick="updateOrderStatus('${o.id}','en_cours')">▶ Démarrer préparation</button>`:''}
+        ${o.statut==='en_cours'?`<button class="cmd-btn ready" onclick="updateOrderStatus('${o.id}','pret')">✓ Marquer Prête</button>`:''}
+        ${o.statut==='pret'?`<button class="cmd-btn done" onclick="updateOrderStatus('${o.id}','archive')">✅ Commande récupérée</button>`:''}
       </div>
     </div>`;
   }).join('');
 }
 
+function startEmpRealtime(){
+  updateEmpRtStatus(false,'Connexion…');
+  rtOn('emp-commandes','commandes','*',null,(record,type)=>{
+    loadEmpCommandes();
+    if(type==='INSERT') showToast('🔔 Nouvelle commande !');
+  });
+  setTimeout(()=>{
+    const live=_rtWs&&_rtWs.readyState===1&&!!_rtCbs['emp-commandes'];
+    updateEmpRtStatus(live,live?'En direct':'Polling 30s');
+  },4000);
+}
+
+function stopEmpRealtime(){ rtOff('emp-commandes'); updateEmpRtStatus(false,'—'); }
+
+function updateEmpRtStatus(live,label){
+  const dot=document.getElementById('emp-rt-dot');const lbl=document.getElementById('emp-rt-label');
+  if(dot) dot.className='emp-rt-dot'+(live?' live':'');
+  if(lbl){lbl.textContent=label;lbl.style.color=live?'var(--green)':'var(--text3)';}
+}
 async function updateOrderStatus(id,status){
+  // Optimistic UI: disable button immediately
+  const btn=document.querySelector(`.cmd-card #cmd-${id} .cmd-btn, [onclick*="updateOrderStatus('${id}'"]`);
+  if(btn){btn.disabled=true;btn.textContent='…';}
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
   const li=localOrders.findIndex(o=>String(o.id)===String(id));
   if(li>=0){localOrders[li].statut=status;localStorage.setItem('kbb_client_orders',JSON.stringify(localOrders));}
@@ -3605,6 +3650,78 @@ function closeOv(){
   go('page-home');
 }
 
+/* ══ SUPABASE REALTIME (Phoenix Channels WebSocket) ══ */
+let _rtWs=null,_rtRef=0,_rtHb=null,_rtRetry=null,_rtCbs={};
+
+function rtInit(){
+  if(!supaOk()) return;
+  if(_rtWs&&(_rtWs.readyState===0||_rtWs.readyState===1)) return;
+  try{
+    _rtWs=new WebSocket(SURL.replace('https://','wss://')+'/realtime/v1/websocket?apikey='+SKEY+'&vsn=1.0.0');
+    _rtWs.onopen=()=>{
+      clearInterval(_rtHb);
+      _rtHb=setInterval(()=>{if(_rtWs.readyState===1)_rtWs.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:String(++_rtRef)}));},28000);
+      Object.entries(_rtCbs).forEach(([t,cb])=>_rtJoin(t,cb));
+    };
+    _rtWs.onmessage=(e)=>{
+      try{
+        const m=JSON.parse(e.data);
+        if(m.event==='postgres_changes'&&m.payload&&m.payload.data){
+          const d=m.payload.data;
+          Object.values(_rtCbs).forEach(cb=>{
+            if(m.topic==='realtime:'+cb.topic) cb.fn(d.record,d.type,d.old_record);
+          });
+        }
+      }catch(_){}
+    };
+    _rtWs.onclose=()=>{clearInterval(_rtHb);clearTimeout(_rtRetry);_rtRetry=setTimeout(rtInit,5000);};
+    _rtWs.onerror=()=>{};
+  }catch(_){}
+}
+
+function _rtJoin(topic,cb){
+  if(!_rtWs||_rtWs.readyState!==1) return;
+  const pg={event:cb.event||'*',schema:'public',table:cb.table};
+  if(cb.filter) pg.filter=cb.filter;
+  _rtWs.send(JSON.stringify({topic:'realtime:'+topic,event:'phx_join',payload:{config:{broadcast:{self:false},presence:{key:''},postgres_changes:[pg]},access_token:SKEY},ref:String(++_rtRef)}));
+}
+
+function rtOn(topic,table,event,filter,fn){
+  _rtCbs[topic]={topic,table,event,filter,fn};
+  if(_rtWs&&_rtWs.readyState===1) _rtJoin(topic,_rtCbs[topic]);
+  else rtInit();
+}
+
+function rtOff(topic){
+  if(_rtCbs[topic]&&_rtWs&&_rtWs.readyState===1)
+    _rtWs.send(JSON.stringify({topic:'realtime:'+topic,event:'phx_leave',payload:{},ref:String(++_rtRef)}));
+  delete _rtCbs[topic];
+}
+
+/* ══ SOUND NOTIFICATION ══ */
+function playReadySound(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [[523,.0],[659,.18],[784,.36],[1047,.54]].forEach(([freq,delay])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=freq;o.type='sine';
+      g.gain.setValueAtTime(0,ctx.currentTime+delay);
+      g.gain.linearRampToValueAtTime(.28,ctx.currentTime+delay+.04);
+      g.gain.linearRampToValueAtTime(0,ctx.currentTime+delay+.22);
+      o.start(ctx.currentTime+delay);o.stop(ctx.currentTime+delay+.25);
+    });
+  }catch(_){}
+}
+
+function showRTNotif(msg){
+  let el=document.getElementById('rt-notif');
+  if(!el){el=document.createElement('div');el.id='rt-notif';el.className='rt-notif';document.body.appendChild(el);}
+  el.textContent=msg;el.style.display='block';el.style.animation='none';
+  void el.offsetWidth;el.style.animation='';
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.display='none';},4000);
+}
+
 /* ══ SUIVI COMMANDE ══ */
 function getActiveOrder(){try{return JSON.parse(localStorage.getItem('kbb_active_order')||'null');}catch(e){return null;}}
 function setActiveOrder(o){if(o)localStorage.setItem('kbb_active_order',JSON.stringify(o));else localStorage.removeItem('kbb_active_order');}
@@ -3632,26 +3749,39 @@ function ouvrirCommandes(){
 }
 
 let suiviInterval=null;
-function stopSuiviPolling(){if(suiviInterval){clearInterval(suiviInterval);suiviInterval=null;}}
+function stopSuiviPolling(){
+  if(suiviInterval){clearInterval(suiviInterval);suiviInterval=null;}
+  rtOff('suivi-order');
+}
+
+function _handleSuiviStatusChange(newStatut){
+  const o=getActiveOrder();
+  if(!o||newStatut===o.statut) return;
+  o.statut=newStatut;
+  setActiveOrder(o);
+  renderSuivi();
+  updateCommandesTile();
+  if(newStatut==='pret'){playReadySound();showRTNotif('✅ Votre commande est prête !');}
+  if(newStatut==='archive'){setActiveOrder(null);updateCommandesTile();stopSuiviPolling();}
+}
+
 function startSuiviPolling(){
   stopSuiviPolling();
+  const o=getActiveOrder();
+  if(!o) return;
+  // Realtime subscription (primary)
+  if(o.supaId&&supaOk()){
+    rtOn('suivi-order','commandes','UPDATE','id=eq.'+String(o.supaId),(record)=>{
+      if(record&&record.statut) _handleSuiviStatusChange(record.statut);
+    });
+  }
+  // Polling fallback (5s) — still needed if Realtime not yet ready
   suiviInterval=setInterval(async()=>{
-    const o=getActiveOrder();
-    if(!o||!o.supaId){stopSuiviPolling();return;}
+    const ao=getActiveOrder();
+    if(!ao||!ao.supaId){stopSuiviPolling();return;}
     try{
-      const rows=await supaReq('commandes?select=statut&id=eq.'+encodeURIComponent(String(o.supaId)));
-      if(rows&&rows[0]){
-        const newStatut=rows[0].statut;
-        if(newStatut!==o.statut){
-          o.statut=newStatut;
-          setActiveOrder(o);
-          renderSuivi();
-          updateCommandesTile();
-          if(newStatut==='pret') showToast('✅ Votre commande est prête !');
-          if(newStatut==='archive'||newStatut==='pret'){stopSuiviPolling();}
-          if(newStatut==='archive'){setActiveOrder(null);updateCommandesTile();}
-        }
-      }
+      const rows=await supaReq('commandes?select=statut&id=eq.'+encodeURIComponent(String(ao.supaId)));
+      if(rows&&rows[0]) _handleSuiviStatusChange(rows[0].statut);
     }catch(e){console.warn('Suivi poll:',e);}
   },5000);
 }
@@ -3664,23 +3794,31 @@ function renderSuivi(){
   const pretBanner=document.getElementById('suivi-pret-banner');
   const footer=document.getElementById('suivi-footer');
   if(!timeline) return;
+
   if(!o){
-    if(numEl) numEl.textContent='';
+    if(numEl) numEl.innerHTML='';
     if(itemsEl) itemsEl.textContent='';
     timeline.innerHTML='<div style="text-align:center;padding:2rem 1rem;color:var(--text2);font-size:14px;">Aucune commande en cours</div>';
     if(pretBanner) pretBanner.innerHTML='';
     if(footer) footer.innerHTML=`<button class="abtn" onclick="go('page-menu')">🍖 Passer une commande</button>`;
     return;
   }
+
+  // Numéro en grand
   if(numEl){
-    const lbl=o.type==='table'?'Table n°'+o.tableNum:o.type==='reservation'?'Réservation — arrivée à '+o.heure:'Retrait à '+o.heure;
-    numEl.innerHTML=(o.orderNum?`<strong style="color:var(--fire);font-family:var(--font-d);font-size:18px;letter-spacing:1px;">${o.orderNum}</strong> · `:'') + lbl;
+    const lbl=o.type==='table'?'🪑 Table n°'+o.tableNum:o.type==='reservation'?'📅 Réservation — '+o.heure:'🏃 Retrait à '+o.heure;
+    numEl.innerHTML=`
+      ${o.orderNum?`<div class="suivi-num-card"><div class="suivi-num-big">${o.orderNum}</div><div class="suivi-num-sub">Numéro de commande</div></div>`:''}
+      <div style="text-align:center;font-size:13px;color:var(--text2);padding:.4rem 1.25rem 0;">${lbl}</div>`;
   }
   if(itemsEl) itemsEl.textContent=o.items;
+
+  // 4 étapes
   const STEPS=[
-    {id:'en_attente',icon:'⏳',label:'Commande reçue',sub:'Transmise à la cuisine'},
-    {id:'en_cours',icon:'🔥',label:'En préparation',sub:'Votre commande est en cours de préparation'},
-    {id:'pret',icon:'✅',label:'Prête !',sub:'Venez récupérer votre commande'}
+    {id:'en_attente', icon:'📋', label:'Commande reçue',   sub:'Transmise à la cuisine'},
+    {id:'en_cours',   icon:'🔥', label:'En préparation',   sub:'La cuisine prépare votre commande'},
+    {id:'pret',       icon:'✅', label:'Prête !',           sub:'Venez récupérer votre commande'},
+    {id:'archive',    icon:'🎉', label:'Récupérée',        sub:'Bon appétit !'}
   ];
   const idx=STEPS.findIndex(s=>s.id===o.statut);
   timeline.innerHTML=STEPS.map((s,i)=>{
@@ -3693,15 +3831,27 @@ function renderSuivi(){
       </div>
     </div>`;
   }).join('');
+
   if(pretBanner){
-    pretBanner.innerHTML=o.statut==='pret'?
-      `<div class="suivi-pret-banner"><div style="font-size:36px;margin-bottom:.5rem">🎉</div><div style="font-weight:700;font-size:17px;color:#4CAF74;margin-bottom:.25rem">C'est prêt !</div><div style="font-size:13px;color:var(--text2)">Votre commande vous attend</div></div>`:'';
+    pretBanner.innerHTML=o.statut==='pret'
+      ?`<div class="suivi-pret-banner"><div style="font-size:36px;margin-bottom:.5rem">🎉</div><div style="font-weight:700;font-size:18px;color:#4CAF74;margin-bottom:.3rem">Votre commande est prête !</div><div style="font-size:13px;color:var(--text2)">Venez la récupérer</div></div>`
+      :o.statut==='archive'?`<div class="suivi-pret-banner" style="background:rgba(255,184,48,.07);border-color:rgba(255,184,48,.2);"><div style="font-size:36px;margin-bottom:.5rem">😋</div><div style="font-weight:700;font-size:17px;color:var(--gold);margin-bottom:.3rem">Bon appétit !</div><div style="font-size:13px;color:var(--text2)">Merci de votre visite</div></div>`
+      :'';
   }
+
+  const isRtConnected=_rtWs&&_rtWs.readyState===1&&_rtCbs['suivi-order'];
   if(footer){
-    footer.innerHTML=o.statut==='pret'
-      ?`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">Retour à l'accueil</button>`
-      :`<div class="suivi-poll-hint">Mise à jour automatique toutes les 5 secondes…</div>
+    if(o.statut==='archive'){
+      footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">Retour à l'accueil</button>`;
+    } else if(o.statut==='pret'){
+      footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">✅ J'ai récupéré ma commande</button>`;
+    } else {
+      footer.innerHTML=`
+        ${isRtConnected
+          ?`<div class="suivi-rt-hint"><span class="emp-rt-dot live" style="display:inline-block"></span>Suivi en temps réel actif</div>`
+          :`<div class="suivi-poll-hint">Mise à jour toutes les 5 secondes…</div>`}
         <button class="abtn sec" onclick="stopSuiviPolling();go('page-dashboard')">Retour à l'accueil</button>`;
+    }
   }
 }
 
