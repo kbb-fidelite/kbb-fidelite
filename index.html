@@ -12,6 +12,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>KBB à la braise — Fidélité</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -3464,8 +3465,8 @@ function startEmpRealtime(){
     if(type==='INSERT') showToast('🔔 Nouvelle commande !');
   });
   setTimeout(()=>{
-    const live=_rtWs&&_rtWs.readyState===1&&!!_rtCbs['emp-commandes'];
-    updateEmpRtStatus(live,live?'En direct':'Polling 30s');
+    const live=!!_rtChannels['emp-commandes']&&_rtChannels['emp-commandes']?.state==='joined';
+    updateEmpRtStatus(live,live?'En direct':'Connexion…');
   },4000);
 }
 
@@ -3980,97 +3981,70 @@ function closeOv(){
   go('page-home');
 }
 
-/* ══ SUPABASE REALTIME (Phoenix Channels WebSocket) ══ */
-let _rtWs=null,_rtRef=0,_rtHb=null,_rtRetry=null,_rtCbs={};
+/* ══ SUPABASE REALTIME — SDK officiel ══ */
+let _supaClient=null;
+let _rtChannels={};
 
-function rtInit(){
-  if(!supaOk()) return;
-  if(_rtWs&&(_rtWs.readyState===0||_rtWs.readyState===1)) return;
-  clearTimeout(_rtRetry);
-  try{
-    const wsUrl=SURL.replace('https://','wss://').replace('http://','ws://')+'/realtime/v1/websocket?apikey='+SKEY+'&vsn=1.0.0';
-    _rtWs=new WebSocket(wsUrl);
-    _rtWs.onopen=()=>{
-      console.log('[RT] WebSocket connecté');
-      clearInterval(_rtHb);
-      _rtHb=setInterval(()=>{
-        if(_rtWs&&_rtWs.readyState===1)
-          _rtWs.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:String(++_rtRef)}));
-      },28000);
-      Object.entries(_rtCbs).forEach(([t,cb])=>_rtJoin(t,cb));
-    };
-    _rtWs.onmessage=(e)=>{
-      try{
-        const m=JSON.parse(e.data);
-        // Ignorer heartbeat replies
-        if(m.event==='phx_reply'&&m.topic==='phoenix') return;
-        // Log toutes les réponses phx pour debug
-        if(m.event==='phx_reply'){
-          const ok=m.payload&&m.payload.status==='ok';
-          console.log('[RT] phx_reply topic='+m.topic+' status='+(m.payload&&m.payload.status));
-          if(!ok) console.warn('[RT] Échec jointure:',m.payload);
-          return;
-        }
-        if(m.event==='system'){
-          console.log('[RT] system:',m.payload&&m.payload.message);
-          return;
-        }
-        if(m.event==='postgres_changes'&&m.payload){
-          // Supabase Realtime envoie le record dans payload.data OU directement dans payload
-          const d=m.payload.data||m.payload;
-          const record=d.record||d.new||null;
-          const type=d.type||(m.payload.data?null:m.payload.type)||'UPDATE';
-          const old_record=d.old_record||d.old||null;
-          console.log('[RT] postgres_changes topic='+m.topic+' type='+type, record);
-          if(record){
-            Object.values(_rtCbs).forEach(cb=>{
-              if(m.topic==='realtime:'+cb.topic) cb.fn(record,type,old_record);
-            });
-          }
-        }
-      }catch(err){ console.warn('[RT] onmessage error:',err); }
-    };
-    _rtWs.onclose=(ev)=>{
-      console.log('[RT] WebSocket fermé code='+ev.code+' — retry dans 5s');
-      clearInterval(_rtHb);
-      clearTimeout(_rtRetry);
-      _rtRetry=setTimeout(rtInit,5000);
-    };
-    _rtWs.onerror=(err)=>{ console.warn('[RT] WebSocket erreur:',err); };
-  }catch(err){ console.warn('[RT] rtInit erreur:',err); }
+function _getSupaClient(){
+  if(_supaClient) return _supaClient;
+  if(!supaOk()||typeof window.supabase==='undefined') return null;
+  _supaClient=window.supabase.createClient(SURL,SKEY,{
+    realtime:{params:{eventsPerSecond:10}},
+    auth:{persistSession:false,autoRefreshToken:false}
+  });
+  console.log('[RT] Supabase client initialisé');
+  return _supaClient;
 }
 
-function _rtJoin(topic,cb){
-  if(!_rtWs||_rtWs.readyState!==1) return;
-  const pg={event:cb.event||'*',schema:'public',table:cb.table};
-  if(cb.filter) pg.filter=cb.filter;
-  const ref=String(++_rtRef);
-  console.log('[RT] phx_join topic=realtime:'+topic, pg);
-  _rtWs.send(JSON.stringify({
-    topic:'realtime:'+topic,
-    event:'phx_join',
-    payload:{
-      config:{broadcast:{self:false},presence:{key:''},postgres_changes:[pg]},
-      access_token:SKEY
-    },
-    ref,
-    join_ref:ref
-  }));
-}
-
+/**
+ * rtOn(topic, table, event, filter, fn)
+ * Abonne au canal Supabase Realtime.
+ * fn(record, eventType, oldRecord) — record = payload.new
+ */
 function rtOn(topic,table,event,filter,fn){
-  _rtCbs[topic]={topic,table,event,filter,fn};
-  if(_rtWs&&_rtWs.readyState===1) _rtJoin(topic,_rtCbs[topic]);
-  else rtInit();
+  rtOff(topic); // supprimer souscription existante sur ce topic
+  const client=_getSupaClient();
+  if(!client){ console.warn('[RT] Client indisponible — topic:'+topic); return; }
+
+  const pgConfig={event:event||'*',schema:'public',table};
+  if(filter) pgConfig.filter=filter;
+
+  console.log('[RT] subscribe topic='+topic, pgConfig);
+
+  const channel=client
+    .channel('kbb:'+topic)
+    .on('postgres_changes',pgConfig,(payload)=>{
+      console.log('[RT] event topic='+topic+' type='+payload.eventType, payload.new);
+      fn(payload.new, payload.eventType, payload.old);
+    })
+    .subscribe((status,err)=>{
+      if(status==='SUBSCRIBED'){
+        console.log('[RT] ✅ SUBSCRIBED topic='+topic);
+      } else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+        console.warn('[RT] ❌ Erreur souscription topic='+topic+' status='+status, err);
+      } else {
+        console.log('[RT] topic='+topic+' status='+status);
+      }
+    });
+
+  _rtChannels[topic]=channel;
 }
 
 function rtOff(topic){
-  if(_rtCbs[topic]&&_rtWs&&_rtWs.readyState===1)
-    _rtWs.send(JSON.stringify({topic:'realtime:'+topic,event:'phx_leave',payload:{},ref:String(++_rtRef)}));
-  delete _rtCbs[topic];
+  if(_rtChannels[topic]){
+    const client=_getSupaClient();
+    if(client) client.removeChannel(_rtChannels[topic]).catch(()=>{});
+    delete _rtChannels[topic];
+  }
 }
 
-function rtStatus(){ return _rtWs?['CONNECTING','OPEN','CLOSING','CLOSED'][_rtWs.readyState]:'NO_WS'; }
+// Compat — plus besoin d'init manuelle avec le SDK
+function rtInit(){}
+function rtStatus(){
+  const keys=Object.keys(_rtChannels);
+  if(!keys.length) return 'NO_CHANNEL';
+  return keys.map(k=>k+':'+(_rtChannels[k]?.state||'?')).join(', ');
+}
 
 /* ══ SOUND NOTIFICATION ══ */
 function playReadySound(){
@@ -4225,17 +4199,14 @@ function renderSuivi(){
       :'';
   }
 
-  const wsOk=_rtWs&&_rtWs.readyState===1;
-  const rtSub=!!_rtCbs['suivi-order'];
-  const isRtConnected=wsOk&&rtSub;
+  const rtSub=!!_rtChannels['suivi-order'];
+  const isRtConnected=rtSub&&(_rtChannels['suivi-order']?.state==='joined');
   if(footer){
     if(o.statut==='archive'){
       footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">Retour à l'accueil</button>`;
     } else if(o.statut==='pret'){
       footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">✅ J'ai récupéré ma commande</button>`;
     } else {
-      // Si RT non connecté, forcer une reconnexion
-      if(!wsOk&&supaOk()&&o.supaId) rtInit();
       footer.innerHTML=`
         ${isRtConnected
           ?`<div class="suivi-rt-hint"><span class="emp-rt-dot live" style="display:inline-block"></span>Suivi en temps réel actif</div>`
