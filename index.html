@@ -592,6 +592,58 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 /* ══ DRINK UPSELL ══ */
 .cart-drink-card{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;background:var(--coal3);border:1px solid rgba(79,195,247,.25);border-radius:var(--radius-sm);margin:.5rem 0 .875rem;cursor:pointer;transition:border-color .15s;}
 .cart-drink-card:active{border-color:rgba(79,195,247,.55);}
+
+/* ══ CART ITEMS WITH THUMBNAIL ══ */
+.cart-item{display:flex;align-items:center;gap:10px;padding:.75rem 0;border-bottom:1px solid var(--border);}
+.cart-item-thumb{width:52px;height:52px;border-radius:var(--radius-xs);object-fit:cover;flex-shrink:0;}
+.cart-item-thumb-ph{width:52px;height:52px;border-radius:var(--radius-xs);background:var(--coal3);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.cart-item-mid{flex:1;min-width:0;}
+.cart-item-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;}
+.cart-item-qty-row{display:flex;align-items:center;gap:7px;margin-top:6px;}
+.cart-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.cart-item-total{font-family:var(--font-d);font-size:20px;color:var(--fire);}
+.cart-item-unit{font-size:11px;color:var(--text3);}
+
+/* ══ TUNNEL STEPS INDICATOR ══ */
+.tunnel-steps{display:flex;align-items:center;justify-content:center;gap:0;padding:.6rem 1.25rem;background:var(--coal);border-bottom:1px solid var(--border);flex-shrink:0;}
+.tstep{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--text3);}
+.tstep.active{color:var(--fire);}
+.tstep.done{color:var(--green);}
+.tstep-dot{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.tstep.active .tstep-dot{background:var(--fire);border-color:var(--fire);color:#fff;}
+.tstep.done .tstep-dot{background:var(--green);border-color:var(--green);color:#fff;}
+.tstep-line{width:24px;height:2px;background:var(--border2);margin:0 2px;}
+.tstep.done + .tstep-line, .tstep.done ~ .tstep-line:first-of-type{background:var(--green);}
+
+/* ══ PAGE CONFIRMATION ══ */
+.conf-page{display:flex;flex-direction:column;flex:1;overflow-y:auto;}
+.conf-hero{display:flex;flex-direction:column;align-items:center;padding:2.5rem 1.5rem 1.75rem;text-align:center;background:linear-gradient(to bottom,rgba(76,175,116,.06),transparent);}
+.conf-check-wrap{position:relative;width:84px;height:84px;margin-bottom:1.5rem;}
+.conf-check{width:84px;height:84px;background:linear-gradient(135deg,#4CAF74,#2E8B57);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff;position:relative;z-index:1;animation:conf-pop .5s cubic-bezier(.34,1.56,.64,1) .15s both;}
+@keyframes conf-pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.conf-ring{position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--green);animation:conf-ring .7s ease .5s both;}
+@keyframes conf-ring{from{transform:scale(1);opacity:.6}to{transform:scale(1.7);opacity:0}}
+.conf-num-wrap{background:rgba(255,107,43,.07);border:2px solid rgba(255,107,43,.2);border-radius:var(--radius);padding:.6rem 1.75rem;margin-bottom:.875rem;animation:conf-fadein .45s ease .35s both;}
+@keyframes conf-fadein{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.conf-num{font-family:var(--font-d);font-size:52px;letter-spacing:4px;color:var(--fire);line-height:1;}
+.conf-num-label{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-top:2px;}
+.conf-title{font-family:var(--font-d);font-size:26px;color:var(--text);letter-spacing:1px;animation:conf-fadein .45s ease .45s both;}
+.conf-sublabel{font-size:13px;color:var(--text2);margin-top:.35rem;margin-bottom:0;animation:conf-fadein .45s ease .5s both;}
+.conf-body{padding:1.25rem 1.25rem 2.5rem;animation:conf-fadein .45s ease .55s both;}
+.conf-sec-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:.75rem;}
+.conf-item-row{display:flex;align-items:center;gap:10px;padding:.55rem 0;border-bottom:1px solid var(--border);}
+.conf-item-thumb{width:40px;height:40px;border-radius:var(--radius-xs);object-fit:cover;flex-shrink:0;}
+.conf-item-thumb-ph{width:40px;height:40px;border-radius:var(--radius-xs);background:var(--coal3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.conf-item-name{flex:1;font-size:13px;font-weight:600;color:var(--text);}
+.conf-item-qty{font-size:12px;color:var(--text3);flex-shrink:0;}
+.conf-item-price{font-family:var(--font-d);font-size:18px;color:var(--text);flex-shrink:0;}
+.conf-total-row{display:flex;justify-content:space-between;align-items:center;padding:.875rem 0 .5rem;border-top:1px solid var(--border2);margin-top:.25rem;}
+.conf-total-lbl{font-size:14px;font-weight:700;color:var(--text2);}
+.conf-total-val{font-family:var(--font-d);font-size:34px;color:var(--fire);}
+.conf-pts-row{background:rgba(255,107,43,.06);border:1px solid rgba(255,107,43,.15);border-radius:var(--radius-sm);padding:.6rem 1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--fire3);}
+.conf-actions{display:flex;flex-direction:column;gap:.75rem;}
+.conf-suivi-btn{width:100%;padding:1.05rem;background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(255,107,43,.35);display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
+.conf-suivi-btn:active{opacity:.87;}
 </style>
 </head>
 <body>
@@ -1075,11 +1127,52 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 <!-- CART PAGE -->
 <div class="page" id="page-cart">
   <div class="topbar"><button class="tbback" onclick="goBack()">←</button><div class="tbtitle">Mon panier</div></div>
+  <div class="tunnel-steps">
+    <div class="tstep done"><div class="tstep-dot">✓</div><span>Carte</span></div>
+    <div class="tstep-line"></div>
+    <div class="tstep active"><div class="tstep-dot">2</div><span>Panier</span></div>
+    <div class="tstep-line"></div>
+    <div class="tstep"><div class="tstep-dot">3</div><span>Commande</span></div>
+    <div class="tstep-line"></div>
+    <div class="tstep"><div class="tstep-dot">4</div><span>Confirmation</span></div>
+  </div>
   <div class="wrap">
     <div id="cart-items"></div>
     <div id="cart-total-section"></div>
     <div id="cart-order-options"></div>
     <button class="abtn sec" onclick="clearCart()" id="cart-clear-btn" style="display:none;">🗑️ Vider le panier</button>
+  </div>
+</div>
+
+<!-- CONFIRMATION COMMANDE -->
+<div class="page" id="page-confirmation">
+  <div class="topbar"><button class="tbback" onclick="go('page-dashboard')">←</button><div class="tbtitle">Confirmation</div></div>
+  <div class="conf-page">
+    <div class="conf-hero">
+      <div class="conf-check-wrap">
+        <div class="conf-check">✓</div>
+        <div class="conf-ring"></div>
+      </div>
+      <div class="conf-num-wrap">
+        <div class="conf-num" id="conf-num">#KBB-001</div>
+        <div class="conf-num-label">Numéro de commande</div>
+      </div>
+      <div class="conf-title">Commande envoyée !</div>
+      <div class="conf-sublabel" id="conf-label"></div>
+    </div>
+    <div class="conf-body">
+      <div class="conf-sec-title">Votre commande</div>
+      <div id="conf-items"></div>
+      <div class="conf-total-row">
+        <div class="conf-total-lbl">Total</div>
+        <div class="conf-total-val" id="conf-total">0€</div>
+      </div>
+      <div class="conf-pts-row" id="conf-pts"></div>
+      <div class="conf-actions">
+        <button class="conf-suivi-btn" onclick="goToSuivi()">📍 Suivre ma commande en direct</button>
+        <button class="abtn sec" onclick="go('page-dashboard')">Retour à l'accueil</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1509,7 +1602,7 @@ function go(p){
   if(p==='page-supa-config'){document.getElementById('supa-url').value=SURL;document.getElementById('supa-key').value=SKEY;}
   if(p==='page-client-login'){initLoginPage();}
   if(p==='page-dashboard') updateCommandesTile();
-  if(p!=='page-suivi') stopSuiviPolling();
+  if(p!=='page-suivi'&&p!=='page-confirmation') stopSuiviPolling();
 }
 
 /* ══ MENU & CART ══ */
@@ -1859,19 +1952,26 @@ function renderCart(){
     const isObj=typeof item==='object';
     const m=isObj?item:MENU_DATA[item];
     const price=isObj?item.price:m.price;
-    const name=isObj?item.name:(m.icon+' '+m.name);
+    const name=isObj?item.name:m.name;
     const canQty=!isObj||!m.isSuppl;
+    const imgSrc=!isObj&&m.img?IMAGE_MAP[m.img]:null;
+    const thumb=imgSrc
+      ?`<img class="cart-item-thumb" src="${imgSrc}" alt="${name}">`
+      :`<div class="cart-item-thumb-ph">${isObj?'🍴':(m.icon||'🍴')}</div>`;
     return `<div class="cart-item">
-      <div class="cart-qty-ctrl">
-        ${canQty?`<button class="cart-qty-btn" onclick="cartMinusKey('${key}')">−</button>`:'<div style="width:30px"></div>'}
-        <div class="cart-qty-val">${qty}</div>
-        ${canQty&&!isObj?`<button class="cart-qty-btn" onclick="addToCart(${item});renderCart();">+</button>`:'<div style="width:30px"></div>'}
-      </div>
-      <div class="cart-item-info">
+      ${thumb}
+      <div class="cart-item-mid">
         <div class="cart-item-name">${name}</div>
-        <div class="cart-item-price">${price.toFixed(2).replace('.',',')}€ / unité</div>
+        <div class="cart-item-qty-row">
+          ${canQty?`<button class="cart-qty-btn" onclick="cartMinusKey('${key}')">−</button>`:''}
+          <div class="cart-qty-val" style="font-size:18px;">${qty}</div>
+          ${canQty&&!isObj?`<button class="cart-qty-btn" onclick="addToCart(${item});renderCart();">+</button>`:''}
+        </div>
       </div>
-      <div class="cart-item-total">${(price*qty).toFixed(2).replace('.',',')}€</div>
+      <div class="cart-item-right">
+        <div class="cart-item-total">${(price*qty).toFixed(2).replace('.',',')}€</div>
+        ${qty>1?`<div class="cart-item-unit">${price.toFixed(2).replace('.',',')}€/u</div>`:''}
+      </div>
     </div>`;
   }).join('');
 
@@ -2058,15 +2158,50 @@ async function submitClientOrder(){
     items:itemsText,
     montant:total.toFixed(2)
   };
+  // Générer le numéro de commande
+  const orderNum = supaId
+    ? '#KBB-' + String(supaId).padStart(3,'0')
+    : '#KBB-' + String(Date.now()).slice(-3);
+  activeOrder.orderNum = orderNum;
   setActiveOrder(activeOrder);
   updateCommandesTile();
-  // Confirmation
-  const label=orderMode==='table'?'Table n°'+orderTableNum:orderMode==='reservation'?"Réservation — arrivée à "+selectedPickupTime:'Retrait à '+selectedPickupTime;
-  pendingNavAfterOv='page-suivi';
-  showOv('✅','Commande envoyée !',label+'\n\nVotre commande a bien été transmise à la cuisine.\n\nSuivez l\'avancement en temps réel →');
+  // Label commande
+  const label=orderMode==='table'?'Table n°'+orderTableNum:orderMode==='reservation'?'Réservation — arrivée à '+selectedPickupTime:'Retrait à '+selectedPickupTime;
+  // Afficher la page de confirmation
+  renderConfirmation(orderNum, label, grouped, total);
+  go('page-confirmation');
   // Reset
   cart=[];orderMode=null;orderTableNum='';selectedPickupTime='';
   updateCartBar();
+}
+
+function renderConfirmation(orderNum, label, grouped, total){
+  document.getElementById('conf-num').textContent=orderNum;
+  document.getElementById('conf-label').textContent=label;
+  document.getElementById('conf-total').textContent=total.toFixed(2).replace('.',',')+'€';
+  document.getElementById('conf-pts').innerHTML='🔥 &nbsp;<strong>+'+Math.floor(total)+' points</strong> fidélité ajoutés à votre compte';
+  document.getElementById('conf-items').innerHTML=Object.entries(grouped).map(([key,{item,qty}])=>{
+    const isObj=typeof item==='object';
+    const m=isObj?item:MENU_DATA[item];
+    const price=isObj?item.price:m.price;
+    const name=isObj?item.name:m.name;
+    const imgSrc=!isObj&&m.img?IMAGE_MAP[m.img]:null;
+    const thumb=imgSrc
+      ?`<img class="conf-item-thumb" src="${imgSrc}" alt="${name}">`
+      :`<div class="conf-item-thumb-ph">${isObj?'🍴':(m.icon||'🍴')}</div>`;
+    return`<div class="conf-item-row">
+      ${thumb}
+      <div class="conf-item-name">${name}</div>
+      ${qty>1?`<div class="conf-item-qty">×${qty}</div>`:''}
+      <div class="conf-item-price">${(price*qty).toFixed(2).replace('.',',')}€</div>
+    </div>`;
+  }).join('');
+}
+
+function goToSuivi(){
+  go('page-suivi');
+  renderSuivi();
+  startSuiviPolling();
 }
 
 function cartMinus(idx){
@@ -3539,7 +3674,7 @@ function renderSuivi(){
   }
   if(numEl){
     const lbl=o.type==='table'?'Table n°'+o.tableNum:o.type==='reservation'?'Réservation — arrivée à '+o.heure:'Retrait à '+o.heure;
-    numEl.textContent=lbl;
+    numEl.innerHTML=(o.orderNum?`<strong style="color:var(--fire);font-family:var(--font-d);font-size:18px;letter-spacing:1px;">${o.orderNum}</strong> · `:'') + lbl;
   }
   if(itemsEl) itemsEl.textContent=o.items;
   const STEPS=[
