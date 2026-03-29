@@ -2253,6 +2253,8 @@ async function submitClientOrder(){
     const p=typeof item==='object'?item.price:MENU_DATA[item].price;
     return qty+'x '+n+' ('+( p*qty).toFixed(2)+'€)';
   }).join(', ');
+  const clientTel=currentPortalClient?.telephone||currentPortalClient?.tel||null;
+  const pts_a_crediter=clientTel?computePoints(total):0;
   const payload={
     type:orderMode,
     table_num:null,
@@ -2260,7 +2262,9 @@ async function submitClientOrder(){
     items:itemsText,
     montant:parseFloat(total.toFixed(2)),
     statut:'en_attente',
-    created_at:new Date().toISOString()
+    created_at:new Date().toISOString(),
+    client_telephone:clientTel,
+    pts_a_crediter:pts_a_crediter||0
   };
   // Sauvegarde locale
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
@@ -2282,7 +2286,9 @@ async function submitClientOrder(){
     tableNum:orderTableNum,
     heure:selectedPickupTime,
     items:itemsText,
-    montant:total.toFixed(2)
+    montant:total.toFixed(2),
+    clientTel,
+    expectedPts:pts_a_crediter
   };
   // Générer le numéro de commande
   const orderNum = supaId
@@ -3328,6 +3334,47 @@ async function loadComptoir(){
   }).join('')+'</div>';
 }
 
+async function crediterPointsCommande(orderId){
+  if(!supaOk()||!orderId||String(orderId).startsWith('local_')) return;
+  try{
+    // 1. Récupérer la commande complète
+    const orders=await supaReq('commandes?id=eq.'+encodeURIComponent(orderId)+'&select=*');
+    if(!orders||!orders[0]) return;
+    const o=orders[0];
+    // 2. Garde-fou double crédit
+    if(o.points_credites) return;
+    // 3. Client identifié ?
+    if(!o.client_telephone) return;
+    // 4. Charger le client
+    const client=await dbByTel(o.client_telephone);
+    if(!client){ console.warn('[Points] Client introuvable:',o.client_telephone); return; }
+    // 5. Calculer les points — utilise la valeur figée à la commande si disponible
+    const montant=parseFloat(o.montant)||0;
+    const pts=o.pts_a_crediter>0?o.pts_a_crediter:computePoints(montant);
+    const pass=computePassages(montant);
+    if(pts<=0) return;
+    // 6. Niveau avant
+    const ancienSolde=Math.floor(parseFloat(client.cagnotte)||0);
+    const ancienNiveau=getLevel(ancienSolde).label;
+    // 7. Mettre à jour le client
+    const c={...client};
+    c.cagnotte=ancienSolde+pts;
+    c.passages=(c.passages||0)+pass;
+    await dbUpdate(c.id,{cagnotte:c.cagnotte,points:c.passages});
+    // 8. Marquer la commande comme créditée
+    await supaReq('commandes?id=eq.'+encodeURIComponent(orderId),'PATCH',{points_credites:true});
+    // 9. Sync cache local
+    const ldb=lLoad();
+    const li=ldb.findIndex(x=>x.id===c.id||x.telephone===c.telephone||x.tel===c.tel);
+    if(li>=0){ldb[li].cagnotte=c.cagnotte;ldb[li].passages=c.passages;lSave(ldb);}
+    // 10. Niveau après — notifier montée de niveau si besoin
+    const nouveauNiveau=getLevel(c.cagnotte).label;
+    if(nouveauNiveau!==ancienNiveau)
+      console.log('[Points] 🎉 Montée niveau '+ancienNiveau+' → '+nouveauNiveau+' ('+c.cagnotte+' pts)');
+    console.log('[Points] +'+pts+' pts → '+c.cagnotte+' pts total ('+o.client_telephone+')');
+  }catch(e){ console.warn('[Points] Erreur crédit:',e); }
+}
+
 async function cptRemis(id){
   const btn=event?.target;
   if(btn){btn.disabled=true;btn.textContent='…';}
@@ -3335,6 +3382,7 @@ async function cptRemis(id){
     if(supaOk()&&!String(id).startsWith('local_'))
       await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:'archive'});
   }catch(e){console.warn('Cpt remis:',e);}
+  await crediterPointsCommande(id);
   loadComptoir();
 }
 
@@ -3520,6 +3568,7 @@ async function updateOrderStatus(id,status){
     if(supaOk()&&!String(id).startsWith('local_'))
       await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:status});
   }catch(e){ console.warn('Status update:',e); }
+  if(status==='archive') await crediterPointsCommande(id);
   loadEmpCommandes();
 }
 
@@ -4112,9 +4161,17 @@ function _handleSuiviStatusChange(newStatut){
   if(newStatut==='pret'){playReadySound();showRTNotif('✅ Votre commande est prête !');}
   if(newStatut==='archive'){
     const num=o.orderNum||'';
+    const pts=o.expectedPts||0;
     renderSuivi();
-    showRTNotif('🎉 '+(num?num+' — ':'')+'Bonne dégustation !');
-    setTimeout(()=>{setActiveOrder(null);updateCommandesTile();stopSuiviPolling();},3000);
+    const notif=pts>0
+      ?`🎉 Commande récupérée ! +${pts} pts crédités`
+      :`🎉 ${num?num+' — ':''}Bonne dégustation !`;
+    showRTNotif(notif);
+    // Rafraîchir le solde du portail si le client est connecté
+    if(pts>0&&currentPortalClient?.telephone===o.clientTel&&typeof renderPortal==='function'){
+      dbByTel(o.clientTel).then(c=>{if(c){currentPortalClient=c;renderPortal(c);}}).catch(()=>{});
+    }
+    setTimeout(()=>{setActiveOrder(null);updateCommandesTile();stopSuiviPolling();},3500);
   }
 }
 
