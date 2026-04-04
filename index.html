@@ -939,8 +939,6 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
   </div>
   <!-- Boutons sous la photo -->
   <div class="home-hero-actions">
-    <button class="home-landing-btn commander" onclick="commanderOuLogin()">🔥 Commander maintenant</button>
-    <div class="home-landing-divider">ou</div>
     <button class="home-landing-btn primary" onclick="go('page-qr')">Nouveau client 🔥</button>
     <button class="home-landing-btn secondary" onclick="go('page-client-login')">J'ai déjà un compte</button>
   </div>
@@ -1892,7 +1890,16 @@ function goBack(){
   }
 }
 
+const _AUTH_PAGES=['page-menu','page-fidel','page-parrainage','page-dashboard'];
 function go(p){
+  if(_AUTH_PAGES.includes(p)&&!currentPortalClient){
+    sessionStorage.setItem('kbb_post_login',p==='page-menu'?'cart':'');
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    document.getElementById('page-client-login').classList.add('active');
+    if(typeof initLoginPage==='function') initLoginPage();
+    showToast('Connectez-vous pour accéder à cette page 🔐');
+    return;
+  }
   if(pageHistory.length===0||pageHistory[pageHistory.length-1]!==p){
     pageHistory.push(p);
     if(pageHistory.length>15) pageHistory.shift();
@@ -2917,12 +2924,14 @@ async function checkPinRapide(){
   if(!pinRapideClient) return;
   if(pinRapideVal === pinRapideClient.pin_rapide){
     document.getElementById('pin-rapide-err').textContent = '';
+    // Rafraîchir clientData dans quick login pour fallback offline
+    try{ const ql=getQuickLogin(); if(ql){ const qd=JSON.parse(ql); saveQuickLogin({...qd, clientData:pinRapideClient}); } }catch(e){}
     renderPortal(pinRapideClient);
     _postLoginRedirect();
     // Rafraîchir depuis Supabase en arrière-plan
     try{
       const fresh = await dbByTel(pinRapideClient.tel||pinRapideClient.telephone);
-      if(fresh) renderPortal(fresh);
+      if(fresh){ renderPortal(fresh); try{ const ql=getQuickLogin(); if(ql){ const qd=JSON.parse(ql); saveQuickLogin({...qd, clientData:fresh}); } }catch(e){} }
     }catch(e){}
   } else {
     document.getElementById('pin-rapide-err').textContent = 'PIN incorrect';
@@ -3333,6 +3342,14 @@ async function clientLogin(){
   const token=genToken();
   setSessionCookie(token, c.tel||c.telephone, c.prenom, c.nom);
   try{ await dbUpdate(c.id,{session_token:token}); }catch(e){}
+
+  // Sauvegarder automatiquement la session locale pour reconnexion sans réseau
+  saveQuickLogin({
+    tel:c.tel||c.telephone, prenom:c.prenom, nom:c.nom,
+    mode: c.pin_rapide ? 'pin' : 'auto',
+    pin: c.pin_rapide||undefined,
+    clientData: c
+  });
 
   renderPortal(c);_postLoginRedirect();
   if(!c.pin_rapide) proposerPinRapide(c);
@@ -5087,7 +5104,7 @@ window.addEventListener('load', async function(){
         if(d && d.tel){
           // Mode PIN : afficher le clavier immédiatement
           if(d.mode === 'pin'){
-            pinRapideClient = {...d, telephone: d.tel};
+            pinRapideClient = {...d, telephone: d.tel, pin_rapide: d.pin};
             pinRapideVal = '';
             document.getElementById('pin-prenom').textContent = d.prenom||'';
             document.getElementById('pin-rapide-zone').style.display = 'block';
