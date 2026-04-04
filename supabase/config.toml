@@ -1,0 +1,16 @@
+# Configuration projet Supabase
+# Déployer l'Edge Function :
+#   supabase login
+#   supabase link --project-ref mwfezeuaohwbhubaaddm
+#   supabase secrets set STRIPE_SECRET_KEY=sk_live_...   ← ta NOUVELLE clé secrète régénérée
+#   supabase functions deploy create-checkout
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+
+[functions.create-checkout]
+verify_jwt = false

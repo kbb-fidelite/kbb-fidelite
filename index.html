@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -826,6 +827,22 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .kds-empty-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:.75rem;padding:3rem 1rem;}
 .kds-empty-ico{font-size:64px;}
 .kds-empty-txt{font-family:var(--font-d);font-size:22px;letter-spacing:1px;color:#555;}
+/* ══ STRIPE PAYMENT MODAL ══ */
+.stripe-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;align-items:flex-end;justify-content:center;}
+@media(min-width:440px){.stripe-overlay{align-items:center;}}
+.stripe-sheet{background:var(--coal2);border-radius:var(--radius) var(--radius) 0 0;padding:1.75rem 1.5rem 2rem;width:100%;max-width:420px;border-top:1px solid var(--border2);}
+@media(min-width:440px){.stripe-sheet{border-radius:var(--radius);border:1px solid var(--border2);}}
+.stripe-sheet-title{font-size:19px;font-weight:800;color:var(--text);margin-bottom:.3rem;}
+.stripe-sheet-sub{font-size:13px;color:var(--text3);margin-bottom:1.5rem;line-height:1.5;}
+.stripe-sheet-amount{font-family:var(--font-d);font-size:32px;color:var(--fire);margin-bottom:1.25rem;}
+.stripe-sheet-fee{font-size:12px;color:var(--text3);margin-top:-1rem;margin-bottom:1.25rem;}
+.stripe-pay-opts{display:flex;flex-direction:column;gap:.75rem;}
+.stripe-pay-btn{width:100%;padding:1.05rem 1rem;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;justify-content:center;transition:opacity .15s;}
+.stripe-pay-btn:active{opacity:.87;}
+.stripe-pay-btn.online{background:linear-gradient(130deg,#635BFF,#8B84FF);color:#fff;}
+.stripe-pay-btn.inplace{background:var(--coal3);border:1.5px solid var(--border2);color:var(--text);}
+.stripe-lvl-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(255,215,0,.2);color:#FFD700;margin-left:4px;}
+.stripe-fee-badge{font-size:11px;font-weight:700;color:var(--fire);background:rgba(255,107,43,.12);border:1px solid rgba(255,107,43,.2);border-radius:99px;padding:2px 9px;display:inline-block;margin-bottom:1.25rem;}
 /* ══ COMPTOIR ══ */
 .cpt-header{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;background:var(--coal2);border-bottom:3px solid var(--green);flex-shrink:0;}
 .cpt-title{font-family:var(--font-d);font-size:24px;letter-spacing:2px;color:var(--green);}
@@ -1438,6 +1455,20 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
   </div>
 </div>
 
+<!-- STRIPE PAYMENT MODAL -->
+<div id="stripe-overlay" class="stripe-overlay" style="display:none;" onclick="if(event.target===this)stripeModalClose()">
+  <div class="stripe-sheet">
+    <div class="stripe-sheet-title">💳 Comment souhaitez-vous payer ?</div>
+    <div class="stripe-sheet-sub" id="stripe-sheet-sub">Votre commande</div>
+    <div class="stripe-sheet-amount" id="stripe-sheet-amount">0,00€</div>
+    <div id="stripe-fee-zone"></div>
+    <div class="stripe-pay-opts">
+      <button class="stripe-pay-btn online" id="stripe-btn-online" onclick="stripePayOnline()">💳 Payer par carte</button>
+      <button class="stripe-pay-btn inplace" id="stripe-btn-inplace" style="display:none;" onclick="stripePayInPlace()">🪑 Payer sur place <span class="stripe-lvl-badge">👑 Or</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- EMPLOYEE -->
 <div class="page" id="page-employee">
   <div class="topbar">
@@ -1969,6 +2000,122 @@ const SUPPLEMENTS=[
 const SAUCES_LIST=['Mayonnaise','Ketchup','Algérienne','Barbecue','Brazil','Sauce blanche maison','Harissa','Samouraï','Biggy'];
 const SAUCES_FREE=2;
 const SAUCE_EXTRA_PRICE=0.30;
+
+/* ══ STRIPE ══ */
+// Clé publique uniquement — la clé secrète est dans Supabase Secrets (jamais ici)
+const STRIPE_PK='pk_test_51TH7ZMKrgv3kx9WYb1aX1Ek7Z18B2WfHRBNUhuXLfsYAMT4cspj3CXl8Ds1rQNh51fV76arnwFNhUD7F20WE5PiO00Ev22MwPL';
+
+function getStripeFee(levelKey){
+  // Bronze → 0,50€ · Argent → offert · Or → offert
+  return levelKey==='bronze'||!levelKey ? 0.50 : 0;
+}
+
+function stripeRequired(levelKey){
+  // Or peut choisir; Bronze et Argent doivent payer en ligne
+  return levelKey!=='or';
+}
+
+async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, label){
+  const base=window.location.origin+window.location.pathname.replace(/\/$/,'');
+  const successUrl=base+'/?stripe_success=1';
+  const cancelUrl=base+'/?stripe_cancel=1';
+  const r=await fetch(SURL+'/functions/v1/create-checkout',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+    body:JSON.stringify({orderId, amountCents, feeCents, clientLevel:levelKey,
+      clientTel:currentPortalClient?.telephone||currentPortalClient?.tel||null,
+      orderLabel:label, successUrl, cancelUrl})
+  });
+  const data=await r.json();
+  if(!r.ok||!data.url) throw new Error(data.error||'Erreur création session Stripe');
+  return data.url;
+}
+
+// État global pour la modal
+let _stripePendingCtx=null;
+
+function stripeModalOpen(orderId, total, fee, levelKey, label){
+  _stripePendingCtx={orderId, total, fee, levelKey, label};
+  const totalWithFee=total+fee;
+  document.getElementById('stripe-sheet-sub').textContent=label;
+  document.getElementById('stripe-sheet-amount').textContent=totalWithFee.toFixed(2).replace('.',',')+'€';
+  const feeZone=document.getElementById('stripe-fee-zone');
+  if(fee>0){
+    feeZone.innerHTML=`<div class="stripe-fee-badge">+${fee.toFixed(2).replace('.',',')}€ frais de service (offerts dès Argent)</div>`;
+  } else {
+    feeZone.innerHTML='';
+  }
+  // "Payer sur place" uniquement pour Or
+  document.getElementById('stripe-btn-inplace').style.display=levelKey==='or'?'':'none';
+  document.getElementById('stripe-overlay').style.display='flex';
+}
+
+function stripeModalClose(){
+  document.getElementById('stripe-overlay').style.display='none';
+  _stripePendingCtx=null;
+}
+
+async function stripePayOnline(){
+  const ctx=_stripePendingCtx;
+  if(!ctx) return;
+  const btn=document.getElementById('stripe-btn-online');
+  btn.disabled=true; btn.textContent='⏳ Redirection…';
+  try{
+    const amountCents=Math.round((ctx.total+ctx.fee)*100);
+    const feeCents=Math.round(ctx.fee*100);
+    const url=await callStripeEdgeFunction(ctx.orderId,amountCents,feeCents,ctx.levelKey,ctx.label);
+    window.location.href=url;
+  }catch(e){
+    btn.disabled=false; btn.textContent='💳 Payer par carte';
+    showToast('Erreur Stripe : '+e.message);
+    console.error('Stripe error:',e);
+  }
+}
+
+async function stripePayInPlace(){
+  // Or uniquement : finaliser la commande sans paiement en ligne
+  const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
+  if(!pending) return;
+  stripeModalClose();
+  localStorage.removeItem('kbb_stripe_pending');
+  // Mettre à jour le statut
+  if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
+    try{ await supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'en_attente'}); }
+    catch(e){ console.warn('stripePayInPlace patch:',e); }
+  }
+  const ao=pending.activeOrder;
+  if(ao){ setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
+  renderConfirmation(pending.orderNum, pending.label, pending.grouped, pending.total);
+  go('page-confirmation');
+}
+
+function handleStripeReturn(){
+  const p=new URLSearchParams(window.location.search);
+  if(p.get('stripe_success')==='1'){
+    history.replaceState(null,'',window.location.pathname);
+    const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
+    if(pending){
+      localStorage.removeItem('kbb_stripe_pending');
+      if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
+        supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'en_attente'}).catch(()=>{});
+      }
+      const ao=pending.activeOrder;
+      if(ao){ setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
+      renderConfirmation(pending.orderNum, pending.label, pending.grouped, pending.total);
+      go('page-confirmation');
+    }
+  } else if(p.get('stripe_cancel')==='1'){
+    history.replaceState(null,'',window.location.pathname);
+    const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
+    if(pending){
+      if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
+        supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'annule'}).catch(()=>{});
+      }
+      localStorage.removeItem('kbb_stripe_pending');
+    }
+    showToast('Paiement annulé — votre panier est intact 🛒');
+  }
+}
 
 let pendingIdx=null;
 let pendingTaille=null;
@@ -2517,22 +2664,33 @@ async function submitClientOrder(){
   const itemsText=JSON.stringify(itemsArr);
   const clientTel=currentPortalClient?.telephone||currentPortalClient?.tel||null;
   const pts_a_crediter=clientTel?computePoints(total):0;
+
+  // ── Niveau VIP et frais de service ──
+  const clientPts=Math.floor(parseFloat(currentPortalClient?.cagnotte||0));
+  const levelObj=currentPortalClient?getLevel(clientPts):null;
+  const levelKey=levelObj?levelObj.label.toLowerCase():'bronze'; // anonyme = bronze
+  const fee=getStripeFee(levelKey);
+
+  const label=orderMode==='sur_place'?'Sur place':orderMode==='reservation'?'Réservation — arrivée à '+selectedPickupTime:'Retrait à '+selectedPickupTime;
+
+  // ── Créer la commande en "pending_payment" ──
   const payload={
     type:orderMode,
     table_num:null,
     heure_retrait:(orderMode==='click_collect'||orderMode==='reservation')?selectedPickupTime:null,
     items:itemsText,
     montant:parseFloat(total.toFixed(2)),
-    statut:'en_attente',
+    statut:'pending_payment',
     created_at:new Date().toISOString(),
     client_telephone:clientTel,
     pts_a_crediter:pts_a_crediter||0
   };
   // Sauvegarde locale
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
-  localOrders.push({...payload,id:'local_'+Date.now()});
+  const localId='local_'+Date.now();
+  localOrders.push({...payload,id:localId});
   localStorage.setItem('kbb_client_orders',JSON.stringify(localOrders.slice(-100)));
-  // Supabase — capture returned id for tracking
+  // Supabase
   let supaId=null;
   try{
     if(supaOk()){
@@ -2540,33 +2698,29 @@ async function submitClientOrder(){
       if(res&&res[0]&&res[0].id) supaId=res[0].id;
     }
   }catch(e){ console.warn('Order save:',e); }
-  // Stocker la commande active pour le suivi
-  const activeOrder={
-    supaId,
-    statut:'en_attente',
-    type:orderMode,
-    tableNum:orderTableNum,
-    heure:selectedPickupTime,
-    items:itemsText,
-    montant:total.toFixed(2),
-    clientTel,
-    expectedPts:pts_a_crediter
-  };
-  // Générer le numéro de commande
-  const orderNum = supaId
-    ? '#KBB-' + String(supaId).padStart(3,'0')
-    : '#KBB-' + String(Date.now()).slice(-3);
-  activeOrder.orderNum = orderNum;
-  setActiveOrder(activeOrder);
-  updateCommandesTile();
-  // Label commande
-  const label=orderMode==='sur_place'?'Sur place':orderMode==='reservation'?'Réservation — arrivée à '+selectedPickupTime:'Retrait à '+selectedPickupTime;
-  // Afficher la page de confirmation
-  renderConfirmation(orderNum, label, grouped, total);
-  go('page-confirmation');
-  // Reset
-  cart=[];orderMode=null;orderTableNum='';selectedPickupTime='';
+  const orderId=supaId||localId;
+  const orderNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):'#KBB-'+String(Date.now()).slice(-3);
+
+  // ── Stocker contexte pour retour Stripe ou "sur place" ──
+  localStorage.setItem('kbb_stripe_pending',JSON.stringify({
+    orderId, orderNum, label, grouped, total, levelKey, fee, clientTel, pts_a_crediter,
+    activeOrder:{supaId,statut:'en_attente',type:orderMode,tableNum:orderTableNum,
+      heure:selectedPickupTime,items:itemsText,montant:total.toFixed(2),
+      clientTel,expectedPts:pts_a_crediter,orderNum}
+  }));
+
+  // Reset panier
+  cart=[]; orderMode=null; orderTableNum=''; selectedPickupTime='';
   updateCartBar();
+
+  // ── Routage paiement ──
+  if(stripeRequired(levelKey)){
+    // Bronze / Argent : Stripe obligatoire — afficher modal puis rediriger
+    stripeModalOpen(orderId, total, fee, levelKey, label);
+  } else {
+    // Or : choix entre carte et sur place
+    stripeModalOpen(orderId, total, fee, levelKey, label);
+  }
 }
 
 function renderConfirmation(orderNum, label, grouped, total){
@@ -4853,6 +5007,9 @@ function _doHideSplash(){
 }
 
 window.addEventListener('load', async function(){
+  // ── Retour depuis Stripe Checkout ──
+  handleStripeReturn();
+
   // Auto-login au démarrage
   async function tryAutoLogin(){
     // 1. kbb_quick_login en PRIORITÉ — lecture locale immédiate, sans attendre Supabase
