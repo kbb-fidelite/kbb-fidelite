@@ -35,17 +35,22 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .page.active{display:flex;}
 
 /* ══ HOME LANDING (non connecté) ══ */
-.home-landing{position:relative;flex:1;background-size:cover;background-position:center;display:flex;flex-direction:column;overflow:hidden;}
-.home-landing-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,rgba(0,0,0,.18) 45%,rgba(0,0,0,.80) 100%);}
-.home-landing-top{position:relative;z-index:1;padding:3.5rem 1.5rem 0;text-align:center;}
-.home-landing-logo{font-family:var(--font-d);font-size:52px;letter-spacing:4px;color:#fff;text-shadow:0 3px 24px rgba(0,0,0,.7);line-height:1;}
-.home-landing-fire{display:block;margin:0 auto .6rem;}
-.home-landing-sub{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-top:8px;}
-.home-landing-actions{position:relative;z-index:1;margin-top:auto;padding:0 1.5rem 3rem;display:flex;flex-direction:column;gap:12px;}
+.home-landing{position:relative;min-height:60vh;display:flex;flex-direction:column;overflow:hidden;background:#111;}
+.home-landing-bg{position:absolute;inset:0;background-image:url('https://mwfezeuaohwbhubaaddm.supabase.co/storage/v1/object/public/images/IMG_9021.PNG');background-size:cover;background-position:center;will-change:transform;animation:kenburns 8s ease-in-out infinite alternate;}
+@keyframes kenburns{from{transform:scale(1);}to{transform:scale(1.09);}}
+.home-landing-overlay{position:absolute;inset:0;background:rgba(0,0,0,.52);z-index:1;}
+.home-landing-top{position:relative;z-index:2;padding:3.5rem 1.5rem 0;text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.home-landing-logo{font-family:var(--font-d);font-size:54px;letter-spacing:4px;color:#fff;text-shadow:0 3px 28px rgba(0,0,0,.8);line-height:1;}
+.home-landing-fire{display:block;margin:0 auto .75rem;}
+.home-landing-sub{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.8);margin-top:10px;text-shadow:0 2px 8px rgba(0,0,0,.6);}
+.home-landing-actions{position:relative;z-index:2;padding:0 1.5rem 3rem;display:flex;flex-direction:column;gap:12px;}
 .home-landing-btn{width:100%;padding:1.05rem;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;border:none;letter-spacing:.3px;transition:opacity .15s;}
 .home-landing-btn:active{opacity:.85;}
-.home-landing-btn.primary{background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 6px 28px rgba(255,107,43,.4);}
-.home-landing-btn.secondary{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.35);backdrop-filter:blur(6px);}
+.home-landing-btn.primary{background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 6px 28px rgba(255,107,43,.45);}
+.home-landing-btn.commander{background:linear-gradient(130deg,#E8280A,#FF4422);color:#fff;font-size:17px;padding:1.15rem;box-shadow:0 8px 32px rgba(232,40,10,.45);letter-spacing:.5px;}
+.home-landing-btn.secondary{background:rgba(255,255,255,.13);color:#fff;border:1.5px solid rgba(255,255,255,.35);backdrop-filter:blur(6px);}
+.home-landing-divider{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.35);font-size:11px;letter-spacing:1px;}
+.home-landing-divider::before,.home-landing-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.2);}
 .home-emp-link{position:absolute;top:1rem;right:1rem;z-index:2;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;}
 .supa-status{display:none;}
 /* ══ DASHBOARD (connecté) ══ */
@@ -917,19 +922,25 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 <!-- HOME (non connecté) -->
 <div class="page active" id="page-home">
   <button class="home-emp-link" onclick="go('page-pin')" title="Espace employé">🔐</button>
-  <div class="home-landing" style="background-image:url('https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=900&q=80&fit=crop')">
+  <div class="home-landing">
+    <!-- Photo broche avec Ken Burns -->
+    <div class="home-landing-bg"></div>
     <div class="home-landing-overlay"></div>
+    <!-- Contenu centré sur la photo -->
     <div class="home-landing-top">
-      <svg class="home-landing-fire" width="48" height="60" viewBox="0 0 58 72" fill="none">
+      <svg class="home-landing-fire" width="44" height="56" viewBox="0 0 58 72" fill="none">
         <path d="M29 2C29 2 42 17 42 30C42 38 37 43 33 45C35 38 33 31 29 27C29 27 25 35 19 37C15 39 13 35 13 29C13 18 21 9 29 2Z" fill="#FF6B2B" opacity=".95"/>
         <path d="M29 18C29 18 38 28 38 39C38 51 34 59 26 63C22 59 18 53 18 43C18 35 23 27 29 18Z" fill="#FF9A6C" opacity=".75"/>
         <path d="M29 34C29 34 33 40 33 49C33 57 31 63 29 67C27 63 25 57 25 49C25 40 29 34 29 34Z" fill="#FFB830" opacity=".9"/>
       </svg>
       <div class="home-landing-logo">KBB À LA BRAISE</div>
-      <div class="home-landing-sub">Programme de fidélité</div>
+      <div class="home-landing-sub">Braisé artisanalement à Dole</div>
     </div>
+    <!-- Boutons en bas de la photo -->
     <div class="home-landing-actions">
-      <button class="home-landing-btn primary" onclick="go('page-qr')">S'inscrire</button>
+      <button class="home-landing-btn commander" onclick="go('page-menu')">🔥 Commander maintenant</button>
+      <div class="home-landing-divider">ou</div>
+      <button class="home-landing-btn primary" onclick="go('page-qr')">S'inscrire au programme fidélité</button>
       <button class="home-landing-btn secondary" onclick="go('page-client-login')">Se connecter</button>
     </div>
   </div>
