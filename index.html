@@ -2078,7 +2078,6 @@ async function stripePayInPlace(){
   if(!pending) return;
   stripeModalClose();
   localStorage.removeItem('kbb_stripe_pending');
-  // Mettre à jour le statut
   if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
     try{ await supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'en_attente'}); }
     catch(e){ console.warn('stripePayInPlace patch:',e); }
@@ -2087,6 +2086,7 @@ async function stripePayInPlace(){
   if(ao){ setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
   renderConfirmation(pending.orderNum, pending.label, pending.grouped, pending.total);
   go('page-confirmation');
+  setTimeout(()=>goToSuivi(), 2500);
 }
 
 function handleStripeReturn(){
@@ -2096,18 +2096,31 @@ function handleStripeReturn(){
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
     if(pending){
       localStorage.removeItem('kbb_stripe_pending');
+      // 1. Restaurer la session client avant tout
+      if(pending.clientData){
+        renderPortal(pending.clientData);
+        // Rafraîchir depuis Supabase en arrière-plan
+        const tel=pending.clientData.telephone||pending.clientData.tel;
+        if(tel) dbByTel(tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
+      }
+      // 2. Confirmer la commande en base
       if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
         supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'en_attente'}).catch(()=>{});
       }
+      // 3. Activer le suivi
       const ao=pending.activeOrder;
       if(ao){ setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
+      // 4. Afficher confirmation puis basculer sur le suivi
       renderConfirmation(pending.orderNum, pending.label, pending.grouped, pending.total);
       go('page-confirmation');
+      setTimeout(()=>goToSuivi(), 2500);
     }
   } else if(p.get('stripe_cancel')==='1'){
     history.replaceState(null,'',window.location.pathname);
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
     if(pending){
+      // Restaurer la session même en cas d'annulation
+      if(pending.clientData) renderPortal(pending.clientData);
       if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
         supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'annule'}).catch(()=>{});
       }
@@ -2704,6 +2717,7 @@ async function submitClientOrder(){
   // ── Stocker contexte pour retour Stripe ou "sur place" ──
   localStorage.setItem('kbb_stripe_pending',JSON.stringify({
     orderId, orderNum, label, grouped, total, levelKey, fee, clientTel, pts_a_crediter,
+    clientData: currentPortalClient||null,  // restaurer la session après retour Stripe
     activeOrder:{supaId,statut:'en_attente',type:orderMode,tableNum:orderTableNum,
       heure:selectedPickupTime,items:itemsText,montant:total.toFixed(2),
       clientTel,expectedPts:pts_a_crediter,orderNum}
@@ -2955,6 +2969,8 @@ async function checkQuickPin(){
   document.getElementById('quick-pin-err').textContent='';
   const c=await dbByTel(d.tel);
   if(!c){showToast('Compte introuvable');return;}
+  // Rafraîchir l'expiry de la session quick login
+  saveQuickLogin({...d});
   renderPortal(c);go('page-dashboard');
   showToast('✓ Connecté avec ton PIN 🔢');
 }
@@ -3320,6 +3336,17 @@ function animateCount(el, from, to, duration){
 let currentPortalClient=null;
 function renderPortal(c){
   currentPortalClient=c;
+  // Persister en local DB pour que l'auto-login fonctionne hors-ligne
+  try{
+    const tel=c.telephone||c.tel;
+    if(tel){
+      const ldb=lLoad();
+      const li=ldb.findIndex(x=>x.telephone===tel||x.tel===tel);
+      if(li>=0) ldb[li]={...ldb[li],...c,tel};
+      else ldb.push({...c,tel});
+      lSave(ldb);
+    }
+  }catch(e){}
   const rewards=getRewards();
   const pts=Math.floor(parseFloat(c.cagnotte)||0);
   const prevPts=parseInt(localStorage.getItem('kbb_prev_pts_'+(c.tel||c.telephone))||'0');
