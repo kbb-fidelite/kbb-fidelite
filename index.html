@@ -35,7 +35,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .page.active{display:flex;}
 
 /* ══ HOME LANDING (non connecté) ══ */
-.home-landing{position:relative;min-height:60vh;display:flex;flex-direction:column;overflow:hidden;background:#111;}
+.home-landing{position:relative;height:60vh;display:flex;flex-direction:column;overflow:hidden;}
 .home-landing-bg{position:absolute;inset:0;background-image:url('https://mwfezeuaohwbhubaaddm.supabase.co/storage/v1/object/public/images/IMG_9021.PNG');background-size:cover;background-position:center;will-change:transform;animation:kenburns 8s ease-in-out infinite alternate;}
 @keyframes kenburns{from{transform:scale(1);}to{transform:scale(1.09);}}
 .home-landing-overlay{position:absolute;inset:0;background:rgba(0,0,0,.52);z-index:1;}
@@ -43,14 +43,14 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .home-landing-logo{font-family:var(--font-d);font-size:54px;letter-spacing:4px;color:#fff;text-shadow:0 3px 28px rgba(0,0,0,.8);line-height:1;}
 .home-landing-fire{display:block;margin:0 auto .75rem;}
 .home-landing-sub{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.8);margin-top:10px;text-shadow:0 2px 8px rgba(0,0,0,.6);}
-.home-landing-actions{position:relative;z-index:2;padding:0 1.5rem 3rem;display:flex;flex-direction:column;gap:12px;}
+.home-hero-actions{padding:1.25rem 1.5rem 1.5rem;display:flex;flex-direction:column;gap:12px;background:var(--coal);}
 .home-landing-btn{width:100%;padding:1.05rem;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;border:none;letter-spacing:.3px;transition:opacity .15s;}
 .home-landing-btn:active{opacity:.85;}
 .home-landing-btn.primary{background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 6px 28px rgba(255,107,43,.45);}
 .home-landing-btn.commander{background:linear-gradient(130deg,#E8280A,#FF4422);color:#fff;font-size:17px;padding:1.15rem;box-shadow:0 8px 32px rgba(232,40,10,.45);letter-spacing:.5px;}
-.home-landing-btn.secondary{background:rgba(255,255,255,.13);color:#fff;border:1.5px solid rgba(255,255,255,.35);backdrop-filter:blur(6px);}
-.home-landing-divider{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.35);font-size:11px;letter-spacing:1px;}
-.home-landing-divider::before,.home-landing-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.2);}
+.home-landing-btn.secondary{background:rgba(255,255,255,.08);color:var(--text2);border:1.5px solid var(--border);}
+.home-landing-divider{display:flex;align-items:center;gap:10px;color:var(--text3);font-size:11px;letter-spacing:1px;}
+.home-landing-divider::before,.home-landing-divider::after{content:'';flex:1;height:1px;background:var(--border);}
 .home-emp-link{position:absolute;top:1rem;right:1rem;z-index:2;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;}
 .supa-status{display:none;}
 /* ══ DASHBOARD (connecté) ══ */
@@ -936,13 +936,13 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
       <div class="home-landing-logo">KBB À LA BRAISE</div>
       <div class="home-landing-sub">Braisé artisanalement à Dole</div>
     </div>
-    <!-- Boutons en bas de la photo -->
-    <div class="home-landing-actions">
-      <button class="home-landing-btn commander" onclick="go('page-menu')">🔥 Commander maintenant</button>
-      <div class="home-landing-divider">ou</div>
-      <button class="home-landing-btn primary" onclick="go('page-qr')">S'inscrire au programme fidélité</button>
-      <button class="home-landing-btn secondary" onclick="go('page-client-login')">Se connecter</button>
-    </div>
+  </div>
+  <!-- Boutons sous la photo -->
+  <div class="home-hero-actions">
+    <button class="home-landing-btn commander" onclick="commanderOuLogin()">🔥 Commander maintenant</button>
+    <div class="home-landing-divider">ou</div>
+    <button class="home-landing-btn primary" onclick="go('page-qr')">Nouveau client 🔥</button>
+    <button class="home-landing-btn secondary" onclick="go('page-client-login')">J'ai déjà un compte</button>
   </div>
   <div class="supa-status" id="supa-status"></div>
 </div>
@@ -2593,6 +2593,15 @@ function renderOrderOptions(){
   const section=document.getElementById('cart-order-options');
   if(!section) return;
   if(!cart.length){section.innerHTML='';return;}
+  if(!currentPortalClient){
+    section.innerHTML=`<div class="order-mode-section" style="text-align:center;padding:2rem 1rem;">
+      <div style="font-size:36px;margin-bottom:12px;">🔐</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">Connectez-vous pour commander</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:1.25rem;">Un compte fidélité est requis pour valider votre commande.</div>
+      <button class="order-submit-btn" onclick="commanderOuLogin()">🔥 Se connecter / Créer un compte</button>
+    </div>`;
+    return;
+  }
   const slots=getPickupTimeSlots();
   section.innerHTML=`
     <div class="order-mode-section">
@@ -2665,6 +2674,12 @@ function getPickupTimeSlots(){
 
 async function submitClientOrder(){
   if(!orderMode) return;
+  if(!currentPortalClient){
+    sessionStorage.setItem('kbb_post_login','cart');
+    go('page-client-login');
+    showToast('Connectez-vous pour commander 🔥');
+    return;
+  }
   if(orderMode==='click_collect'&&!selectedPickupTime){showToast('Choisissez une heure de retrait');return;}
   if(orderMode==='reservation'&&!selectedPickupTime){showToast("Choisissez votre heure d'arrivée");return;}
   const total=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
@@ -2903,7 +2918,7 @@ async function checkPinRapide(){
   if(pinRapideVal === pinRapideClient.pin_rapide){
     document.getElementById('pin-rapide-err').textContent = '';
     renderPortal(pinRapideClient);
-    go('page-dashboard');
+    _postLoginRedirect();
     // Rafraîchir depuis Supabase en arrière-plan
     try{
       const fresh = await dbByTel(pinRapideClient.tel||pinRapideClient.telephone);
@@ -2982,7 +2997,7 @@ async function checkQuickPin(){
   if(!c){showToast('Compte introuvable');return;}
   // Rafraîchir l'expiry de la session quick login
   saveQuickLogin({...d});
-  renderPortal(c);go('page-dashboard');
+  renderPortal(c);_postLoginRedirect();
   showToast('✓ Connecté avec ton PIN 🔢');
 }
 async function quickAutoLogin(){
@@ -3036,7 +3051,8 @@ function setupQuickLogin(mode){
   } else {
     saveQuickLogin({
       tel:quickLoginClient.tel||quickLoginClient.telephone,
-      prenom:quickLoginClient.prenom,nom:quickLoginClient.nom,mode:'auto'
+      prenom:quickLoginClient.prenom,nom:quickLoginClient.nom,mode:'auto',
+      clientData:quickLoginClient
     });
     showToast('✓ Connexion automatique activée ⚡');
   }
@@ -3290,6 +3306,19 @@ function getSessionCookie(){
   return null;
 }
 
+function commanderOuLogin(){
+  if(currentPortalClient){ go('page-menu'); return; }
+  sessionStorage.setItem('kbb_post_login','cart');
+  go('page-client-login');
+  showToast('Connectez-vous pour commander 🔥');
+}
+
+function _postLoginRedirect(){
+  const dest=sessionStorage.getItem('kbb_post_login');
+  if(dest==='cart'){ sessionStorage.removeItem('kbb_post_login'); go('page-menu'); }
+  else go('page-dashboard');
+}
+
 async function clientLogin(){
   const tel=document.getElementById('login-tel').value.replace(/\s/g,'');
   const code=document.getElementById('login-code').value.trim();
@@ -3305,7 +3334,7 @@ async function clientLogin(){
   setSessionCookie(token, c.tel||c.telephone, c.prenom, c.nom);
   try{ await dbUpdate(c.id,{session_token:token}); }catch(e){}
 
-  renderPortal(c);go('page-dashboard');
+  renderPortal(c);_postLoginRedirect();
   if(!c.pin_rapide) proposerPinRapide(c);
 }
 
@@ -5082,6 +5111,8 @@ window.addEventListener('load', async function(){
             // Pas encore en local → attendre Supabase
             const fresh = await Promise.race([dbByTel(d.tel), new Promise(r=>setTimeout(()=>r(null),5000))]);
             if(fresh){ renderPortal(fresh); go('page-dashboard'); return true; }
+            // Fallback : utiliser les données sauvegardées si réseau indisponible
+            if(d.clientData){ renderPortal(d.clientData); go('page-dashboard'); return true; }
           }
           // Fallback : pré-remplir le numéro
           go('page-client-login');
