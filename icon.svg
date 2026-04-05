@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A0800"/>
+      <stop offset="100%" stop-color="#0d0500"/>
+    </linearGradient>
+    <linearGradient id="flameL" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#FFAA00"/>
+      <stop offset="40%" stop-color="#FF5500"/>
+      <stop offset="100%" stop-color="#CC1100"/>
+    </linearGradient>
+    <linearGradient id="flameC" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#FFD000"/>
+      <stop offset="35%" stop-color="#FF6B1A"/>
+      <stop offset="100%" stop-color="#BB0800"/>
+    </linearGradient>
+    <linearGradient id="flameR" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#FF9900"/>
+      <stop offset="45%" stop-color="#FF4400"/>
+      <stop offset="100%" stop-color="#CC1100"/>
+    </linearGradient>
+    <linearGradient id="meatGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8A840"/>
+      <stop offset="100%" stop-color="#C07020"/>
+    </linearGradient>
+    <linearGradient id="skewerGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6B4F10"/>
+      <stop offset="50%" stop-color="#9B7020"/>
+      <stop offset="100%" stop-color="#6B4F10"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textGlow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="emberGlow">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="90" ry="90" fill="url(#bgGrad)"/>
+
+  <!-- KBB text -->
+  <text
+    x="256" y="155"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="172"
+    font-weight="bold"
+    fill="#FF6B1A"
+    filter="url(#textGlow)"
+    letter-spacing="4"
+  >KBB</text>
+
+  <!-- Decorative line under KBB -->
+  <rect x="110" y="168" width="292" height="2" rx="1" fill="#FF6B1A" opacity="0.5"/>
+
+  <!-- À LA BRAISE subtitle -->
+  <text
+    x="256" y="203"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="22"
+    font-weight="700"
+    letter-spacing="8"
+    fill="#CC5500"
+  >À LA BRAISE</text>
+
+  <!-- Kebab skewer (vertical stick) -->
+  <rect x="250" y="218" width="12" height="168" rx="6" fill="url(#skewerGrad)"/>
+
+  <!-- Skewer tip (pointy top) -->
+  <polygon points="256,212 248,225 264,225" fill="#9B7020"/>
+
+  <!-- Meat layer 1 (top) -->
+  <ellipse cx="256" cy="242" rx="46" ry="16" fill="#D4943C"/>
+  <ellipse cx="256" cy="238" rx="46" ry="12" fill="#E8A840"/>
+  <rect x="210" y="238" width="92" height="16" fill="#D4943C" rx="2"/>
+  <ellipse cx="256" cy="254" rx="46" ry="10" fill="#C07020"/>
+
+  <!-- Meat layer 2 -->
+  <ellipse cx="256" cy="278" rx="52" ry="17" fill="#CC8030"/>
+  <ellipse cx="256" cy="274" rx="52" ry="13" fill="#E09840"/>
+  <rect x="204" y="274" width="104" height="17" fill="#CC8030" rx="2"/>
+  <ellipse cx="256" cy="291" rx="52" ry="11" fill="#B06820"/>
+
+  <!-- Meat layer 3 -->
+  <ellipse cx="256" cy="316" rx="48" ry="16" fill="#D4943C"/>
+  <ellipse cx="256" cy="312" rx="48" ry="12" fill="#E8A840"/>
+  <rect x="208" y="312" width="96" height="16" fill="#D4943C" rx="2"/>
+  <ellipse cx="256" cy="328" rx="48" ry="10" fill="#C07020"/>
+
+  <!-- Meat layer 4 (bottom) -->
+  <ellipse cx="256" cy="350" rx="42" ry="14" fill="#CC8030"/>
+  <ellipse cx="256" cy="346" rx="42" ry="11" fill="#E09840"/>
+  <rect x="214" y="346" width="84" height="14" fill="#CC8030" rx="2"/>
+  <ellipse cx="256" cy="360" rx="42" ry="9" fill="#B06820"/>
+
+  <!-- Flames — left -->
+  <path d="M165,478
+    C162,460 158,440 163,418
+    C168,400 172,410 175,395
+    C179,410 177,425 182,408
+    C187,390 190,405 188,425
+    C186,445 180,462 175,478 Z"
+    fill="url(#flameL)" opacity="0.92"/>
+
+  <!-- Flames — center left -->
+  <path d="M210,482
+    C206,460 200,435 208,408
+    C213,390 218,405 222,385
+    C227,405 225,422 232,400
+    C238,380 242,398 240,422
+    C238,446 228,466 220,482 Z"
+    fill="url(#flameC)" opacity="0.95"/>
+
+  <!-- Flames — center (tallest) -->
+  <path d="M245,486
+    C240,458 234,428 244,398
+    C250,378 256,395 260,372
+    C265,394 263,415 272,390
+    C280,368 285,388 282,415
+    C279,440 268,464 256,486 Z"
+    fill="url(#flameC)"/>
+
+  <!-- Flames — center right -->
+  <path d="M280,482
+    C276,462 272,442 278,418
+    C283,400 288,415 292,395
+    C297,415 294,432 300,410
+    C305,390 308,408 306,430
+    C304,452 294,468 286,482 Z"
+    fill="url(#flameL)" opacity="0.95"/>
+
+  <!-- Flames — right -->
+  <path d="M320,478
+    C317,460 314,440 320,418
+    C325,400 328,412 332,395
+    C336,412 334,428 338,410
+    C342,393 345,408 343,428
+    C341,448 334,465 326,478 Z"
+    fill="url(#flameR)" opacity="0.90"/>
+
+  <!-- Flame glow overlay -->
+  <ellipse cx="256" cy="465" rx="80" ry="22" fill="#FF5500" opacity="0.15"/>
+  <ellipse cx="256" cy="468" rx="55" ry="14" fill="#FF7700" opacity="0.12"/>
+
+  <!-- Embers / Braises -->
+  <circle cx="192" cy="488" r="5" fill="#FF2200" filter="url(#emberGlow)" opacity="0.9"/>
+  <circle cx="215" cy="494" r="3.5" fill="#FF5500" filter="url(#emberGlow)" opacity="0.85"/>
+  <circle cx="238" cy="498" r="5.5" fill="#FF1100" filter="url(#emberGlow)" opacity="0.95"/>
+  <circle cx="256" cy="500" r="4" fill="#FF3300" filter="url(#emberGlow)" opacity="0.9"/>
+  <circle cx="274" cy="497" r="5" fill="#FF2200" filter="url(#emberGlow)" opacity="0.9"/>
+  <circle cx="296" cy="493" r="3.5" fill="#FF4400" filter="url(#emberGlow)" opacity="0.85"/>
+  <circle cx="318" cy="487" r="4.5" fill="#FF1100" filter="url(#emberGlow)" opacity="0.9"/>
+  <circle cx="175" cy="495" r="3" fill="#FF6600" filter="url(#emberGlow)" opacity="0.75"/>
+  <circle cx="336" cy="492" r="3" fill="#FF5500" filter="url(#emberGlow)" opacity="0.75"/>
+
+  <!-- Small floating embers -->
+  <circle cx="205" cy="474" r="2" fill="#FF4400" opacity="0.7"/>
+  <circle cx="310" cy="470" r="2" fill="#FF5500" opacity="0.65"/>
+  <circle cx="228" cy="480" r="1.5" fill="#FF6600" opacity="0.6"/>
+  <circle cx="284" cy="478" r="1.5" fill="#FF3300" opacity="0.6"/>
+</svg>

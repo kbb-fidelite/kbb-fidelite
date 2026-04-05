@@ -1,9 +1,14 @@
-const VERSION = 'kbb-v61';
+const VERSION = 'kbb-v62';
 const CACHE = VERSION;
 
 const ASSETS = [
   './',
-  './index.html'
+  './index.html',
+  './manifest.json',
+  './icon-192x192.png',
+  './icon-512x512.png',
+  './apple-touch-icon.png',
+  './favicon.ico'
 ];
 
 self.addEventListener('install', e => {
