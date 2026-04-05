@@ -4723,36 +4723,160 @@ function renderFilleulStatus(el, c){
 
 /* ══ DASHBOARD PARRAINAGE ══ */
 /* ══ DASHBOARD ══ */
-function renderParrainageDashboard(clients){
-  const stats=getParrainStats(clients);
-  const ldb=lLoad();
-  const total=stats.reduce((s,x)=>s+x.filleuls,0);
-  const valides=stats.reduce((s,x)=>s+x.valides,0);
-  const attente=stats.reduce((s,x)=>s+x.attente,0);
-  const suspects=stats.filter(x=>x.filleuls>0&&x.valides/x.filleuls<0.3);
-  const mois=getParrainageMonth();
+let _parrainageCache=[];
+
+async function parrainAnnulerPts(id){
+  if(!confirm('Annuler les points de ce parrainage ?')) return;
+  const p=(_parrainageCache||[]).find(x=>String(x.id)===String(id));
+  if(!p){showToast('Parrainage introuvable');return;}
+  try{
+    await dbUpdateParrainage(id,{status:'annule'});
+    if(p.pts_filleul_verse&&p.filleul_id){
+      const rows=await supaReq('clients?id=eq.'+p.filleul_id).catch(()=>[]);
+      const f=rows&&rows[0];
+      if(f) await dbUpdate(f.id,{cagnotte:Math.max(0,(parseFloat(f.cagnotte)||0)-20)});
+    }
+    if(p.pts_parrain_verse&&p.parrain_id){
+      const rows=await supaReq('clients?id=eq.'+p.parrain_id).catch(()=>[]);
+      const par=rows&&rows[0];
+      if(par) await dbUpdate(par.id,{cagnotte:Math.max(0,(parseFloat(par.cagnotte)||0)-(p.pts_parrain||15))});
+    }
+    showToast('Points annulés');loadDashboard();
+  }catch(e){showToast('Erreur: '+e.message);}
+}
+
+async function parrainBloquerClient(clientId){
+  if(!confirm('Bloquer ce client ?')) return;
+  try{
+    await dbUpdate(clientId,{bloque:true});
+    const ldb=lLoad();const li=ldb.findIndex(x=>String(x.id)===String(clientId));
+    if(li>=0){ldb[li].bloque=true;lSave(ldb);}
+    showToast('Client bloqué');loadDashboard();
+  }catch(e){showToast('Erreur: '+e.message);}
+}
+
+function parrainMarquerVerifie(id){
+  try{
+    const v=JSON.parse(localStorage.getItem('kbb_pv')||'[]');
+    if(!v.includes(String(id))){v.push(String(id));localStorage.setItem('kbb_pv',JSON.stringify(v));}
+    showToast('Marqué comme vérifié ✓');loadDashboard();
+  }catch(e){}
+}
+
+function renderParrainageSection(parrainages,clients,cmdByClient){
+  _parrainageCache=parrainages;
+  const moisKey=getParrainageMonth();
+  const monthStr=new Date().toISOString().slice(0,7);
+  const verified=new Set(JSON.parse(localStorage.getItem('kbb_pv')||'[]'));
+  const clientById={};const clientByTel={};
+  clients.forEach(c=>{
+    clientById[String(c.id)]=c;
+    const t=c.tel||c.telephone;if(t) clientByTel[t]=c;
+  });
+  // Monthly stats
+  const pMois=parrainages.filter(p=>p.mois===moisKey||(p.date_inscription&&p.date_inscription.startsWith(monthStr)));
+  const pValides=parrainages.filter(p=>p.status==='valide');
+  const pMoisValides=pMois.filter(p=>p.status==='valide');
+  const ptsFilleuls=pValides.filter(p=>p.pts_filleul_verse).length*20;
+  const ptsParrains=pValides.filter(p=>p.pts_parrain_verse).length*15;
+  const ptsDist=ptsFilleuls+ptsParrains;
+  const convRate=parrainages.length>0?Math.round(pValides.length/parrainages.length*100):0;
+  // Top 5 parrains
+  const parrainCount={};
+  parrainages.forEach(p=>{if(!p.parrain_tel)return;parrainCount[p.parrain_tel]=(parrainCount[p.parrain_tel]||0)+1;});
+  const top5=Object.entries(parrainCount).sort((a,b)=>b[1]-a[1]).slice(0,5)
+    .map(([tel,n])=>{const c=clientByTel[tel];return{tel,n,nom:c?(c.prenom+' '+c.nom):tel};});
+  const maxTop=Math.max(1,top5[0]?.n||1);
+  // Weekly chart (last 7 days)
+  const dayNames=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const days=Array.from({length:7},(_,i)=>{
+    const d=new Date(Date.now()-(6-i)*24*60*60*1000);
+    return{label:dayNames[d.getDay()],dateStr:d.toISOString().slice(0,10),count:0};
+  });
+  parrainages.forEach(p=>{
+    if(!p.date_inscription)return;
+    const day=days.find(d=>d.dateStr===p.date_inscription.slice(0,10));
+    if(day) day.count++;
+  });
+  const maxDay=Math.max(1,...days.map(d=>d.count));
+  // Fraud detection
+  const sevenDaysAgo=new Date(Date.now()-7*24*60*60*1000);
+  const recentByParrain={};
+  parrainages.forEach(p=>{
+    if(!p.date_inscription)return;
+    if(new Date(p.date_inscription)>sevenDaysAgo)
+      recentByParrain[p.parrain_tel]=(recentByParrain[p.parrain_tel]||0)+1;
+  });
+  const fraudAlerts=[];
+  parrainages.forEach(p=>{
+    if(verified.has(String(p.id))||p.status==='annule') return;
+    const filleul=clientById[String(p.filleul_id)];
+    const filleulTel=filleul?.tel||filleul?.telephone||'';
+    const flags=[];
+    if(filleulTel&&filleulTel===p.parrain_tel)
+      flags.push({label:'Téléphone en double',color:'var(--fire)',bg:'rgba(255,107,43,.12)'});
+    if((recentByParrain[p.parrain_tel]||0)>10)
+      flags.push({label:'Volume suspect (>10/7j)',color:'var(--fire)',bg:'rgba(255,107,43,.12)'});
+    if(p.status==='en_attente'&&p.date_inscription&&(Date.now()-new Date(p.date_inscription))/(864e5)>7)
+      flags.push({label:'Filleul inactif',color:'var(--gold)',bg:'rgba(255,184,48,.1)'});
+    if(p.status==='valide'&&p.filleul_id){
+      const cmds=cmdByClient[String(p.filleul_id)]||[];
+      if(cmds.length===1&&Math.abs(parseFloat(cmds[0].montant||0)-8)<=0.6)
+        flags.push({label:'Commande seuil uniquement',color:'var(--gold)',bg:'rgba(255,184,48,.1)'});
+    }
+    if(flags.length) fraudAlerts.push({p,filleul,flags});
+  });
+  // Build HTML
   let h=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
-    <div class="dash-card"><div class="dash-val">${total}</div><div class="dash-lbl">Parrainages ce mois</div></div>
-    <div class="dash-card"><div class="dash-val" style="color:var(--green)">${valides}</div><div class="dash-lbl">Validés</div></div>
-    <div class="dash-card"><div class="dash-val" style="color:var(--gold)">${attente}</div><div class="dash-lbl">En attente</div></div>
-    <div class="dash-card"><div class="dash-val" style="color:${suspects.length>0?'var(--fire)':'var(--green)'}">${suspects.length}</div><div class="dash-lbl">Suspects</div></div>
+    <div class="dash-card"><div class="dash-val">${pMois.length}</div><div class="dash-lbl">Ce mois</div></div>
+    <div class="dash-card"><div class="dash-val green">${pMoisValides.length}</div><div class="dash-lbl">Validés</div></div>
+    <div class="dash-card"><div class="dash-val gold">${ptsDist}</div><div class="dash-lbl">Pts distribués</div></div>
+    <div class="dash-card"><div class="dash-val" style="color:${convRate>=50?'var(--green)':convRate>=25?'var(--gold)':'var(--fire)'}">${convRate}%</div><div class="dash-lbl">Taux conversion</div></div>
   </div>`;
-  if(!stats.length){h+='<div class="empty"><p>Aucun parrainage pour le moment</p></div>';}
-  else{
-    h+='<div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:.5rem;">Détail par parrain</div>';
-    stats.sort((a,b)=>b.filleuls-a.filleuls).forEach(s=>{
-      const taux=s.filleuls>0?Math.round(s.valides/s.filleuls*100):0;
-      const suspect=taux<30&&s.filleuls>=2;
-      const pc=ldb.find(x=>(x.tel===s.tel||x.telephone===s.tel));
-      const nom=pc?(pc.prenom+' '+pc.nom):s.tel;
-      const compteur=pc&&pc.parrain_mois_count?pc.parrain_mois_count[mois]||0:0;
-      h+=`<div style="background:${suspect?'rgba(255,107,43,.07)':'var(--coal3)'};border:1px solid ${suspect?'rgba(255,107,43,.2)':'var(--border)'};border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:7px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <span style="font-weight:700;font-size:13px;">${nom}</span>
-          <span style="font-size:11px;background:${suspect?'rgba(255,107,43,.15)':'rgba(76,175,116,.12)'};color:${suspect?'var(--fire3)':'var(--green)'};border-radius:99px;padding:3px 8px;">${suspect?'⚠ Suspect':'✓ OK'}</span>
+  // Weekly chart
+  h+=`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Activité 7 jours</div>
+  <div style="display:flex;align-items:flex-end;gap:3px;height:52px;margin-bottom:.9rem;">`;
+  days.forEach(d=>{
+    const pct=d.count>0?Math.max(14,Math.round(d.count/maxDay*100)):0;
+    h+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+      <div style="font-size:10px;color:var(--text3);">${d.count||''}</div>
+      <div style="width:100%;background:${d.count>0?'linear-gradient(180deg,var(--fire),var(--gold))':'var(--coal4)'};border-radius:3px 3px 0 0;height:${d.count>0?pct*0.34:4}px;"></div>
+      <div style="font-size:9px;color:var(--text3);">${d.label}</div>
+    </div>`;
+  });
+  h+='</div>';
+  // Top 5 parrains
+  if(top5.length){
+    h+=`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem;">Top parrains</div>`;
+    top5.forEach((item,i)=>{
+      h+=`<div style="margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+          <span style="color:var(--text);font-weight:600;">${['🥇','🥈','🥉','4.','5.'][i]} ${item.nom}</span>
+          <span style="color:var(--text3);">${item.n} filleul${item.n>1?'s':''}</span>
         </div>
-        <div style="font-size:12px;color:var(--text3);">${s.filleuls} filleul${s.filleuls>1?'s':''} · ${s.valides} validé${s.valides>1?'s':''} · ${compteur}/5 ce mois · taux ${taux}%</div>
-        ${suspect?'<div style="font-size:11px;color:var(--fire3);margin-top:4px;">Taux de conversion faible — surveiller</div>':''}
+        <div class="heure-bar-bg"><div class="heure-bar-fill" style="width:${Math.round(item.n/maxTop*100)}%"></div></div>
+      </div>`;
+    });
+  }
+  if(!parrainages.length) h+='<div class="empty"><p>Aucun parrainage pour le moment</p></div>';
+  // Fraud alerts
+  if(fraudAlerts.length){
+    h+=`<div class="dash-section" style="color:var(--fire);margin-top:.5rem;">⚠ Alertes fraude (${fraudAlerts.length})</div>`;
+    fraudAlerts.slice(0,20).forEach(({p,filleul,flags})=>{
+      const nom=filleul?(filleul.prenom+' '+filleul.nom):(p.filleul_prenom+' '+p.filleul_nom);
+      const parrainC=clientByTel[p.parrain_tel];
+      const parrainNom=parrainC?(parrainC.prenom+' '+parrainC.nom):(p.parrain_tel||'—');
+      h+=`<div style="background:rgba(255,107,43,.06);border:1px solid rgba(255,107,43,.22);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:8px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${nom}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Parrain: ${parrainNom}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+          ${flags.map(f=>`<span style="font-size:10px;font-weight:700;background:${f.bg};color:${f.color};border-radius:99px;padding:2px 8px;">${f.label}</span>`).join('')}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${p.status==='valide'?`<button onclick="parrainAnnulerPts('${p.id}')" style="font-size:11px;padding:4px 10px;border-radius:99px;border:1px solid rgba(255,107,43,.4);background:rgba(255,107,43,.08);color:var(--fire3);cursor:pointer;font-family:var(--font);">Annuler pts</button>`:''}
+          <button onclick="parrainBloquerClient('${p.filleul_id}')" style="font-size:11px;padding:4px 10px;border-radius:99px;border:1px solid rgba(255,107,43,.4);background:rgba(255,107,43,.08);color:var(--fire3);cursor:pointer;font-family:var(--font);">Bloquer client</button>
+          <button onclick="parrainMarquerVerifie('${p.id}')" style="font-size:11px;padding:4px 10px;border-radius:99px;border:1px solid var(--border2);background:var(--coal4);color:var(--text2);cursor:pointer;font-family:var(--font);">Marquer OK</button>
+        </div>
       </div>`;
     });
   }
@@ -4773,6 +4897,21 @@ async function loadDashboard(){
     if(supaOk()){
       try{ commandes=await supaReq('commandes?select=*&order=created_at.desc'); }catch(e){}
     }
+
+    // Get parrainages from Supabase
+    let parrainages=[];
+    if(supaOk()){
+      try{ parrainages=await supaReq('parrainages?select=*&order=date_inscription.desc'); }catch(e){}
+    }
+
+    // Index commandes by client_id for fraud detection
+    const cmdByClient={};
+    commandes.forEach(x=>{
+      const cid=String(x.client_id||'');
+      if(!cid)return;
+      if(!cmdByClient[cid])cmdByClient[cid]=[];
+      cmdByClient[cid].push(x);
+    });
 
     // CA du jour
     const cmdToday=commandes.filter(x=>x.created_at&&x.created_at.startsWith(todayStr));
@@ -4848,6 +4987,10 @@ async function loadDashboard(){
           <div class="dash-lbl">Actifs 7 jours</div>
         </div>
         <div class="dash-card">
+          <div class="dash-val" style="color:var(--gold)">${clients.filter(x=>{const j=joursDepuisDerniereVisite(x);return j>=30&&j<45;}).length}</div>
+          <div class="dash-lbl">Inactifs 30-44j</div>
+        </div>
+        <div class="dash-card">
           <div class="dash-val" style="color:var(--fire)">${clients.filter(x=>joursDepuisDerniereVisite(x)>=45).length}</div>
           <div class="dash-lbl">Inactifs 45j+</div>
         </div>
@@ -4859,9 +5002,13 @@ async function loadDashboard(){
           <div class="dash-val">${clients.filter(x=>x.parrain_tel&&x.parrain_status==='en_attente_commande').length}</div>
           <div class="dash-lbl">Filleuls en attente</div>
         </div>
+        <div class="dash-card">
+          <div class="dash-val" style="color:var(--fire)">${(()=>{const tot=clients.reduce((s,x)=>s+parseFloat(x.cagnotte||0),0);return Math.round(tot/100*8.5)+'€';})()}</div>
+          <div class="dash-lbl">Coût cagnottes estimé</div>
+        </div>
       </div>
       <div class="dash-section">🤝 Parrainage</div>
-      ${renderParrainageDashboard(clients)}
+      ${renderParrainageSection(parrainages,clients,cmdByClient)}
       <div style="text-align:center;margin-top:1rem;">
         <button onclick="loadDashboard()" style="padding:.5rem 1rem;background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer;">↻ Actualiser</button>
       </div>`;
