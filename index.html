@@ -865,6 +865,40 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .cpt-btn{width:100%;padding:1.1rem;background:linear-gradient(130deg,var(--green),#2E8B57);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 5px 20px rgba(76,175,116,.28);transition:opacity .15s,transform .1s;}
 .cpt-btn:active{opacity:.85;transform:scale(.99);}
 
+/* ══ MENTIONS LÉGALES / POLITIQUE RGPD ══ */
+.legal-page{padding:1.5rem 1.25rem 3rem;overflow-y:auto;flex:1;}
+.legal-h1{font-family:var(--font-d);font-size:26px;letter-spacing:1px;color:var(--text);margin-bottom:.25rem;}
+.legal-date{font-size:12px;color:var(--text3);margin-bottom:1.75rem;}
+.legal-section{margin-bottom:1.5rem;}
+.legal-h2{font-size:15px;font-weight:800;color:var(--fire);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem;}
+.legal-p{font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:.5rem;}
+.legal-p strong{color:var(--text);}
+.legal-p a{color:var(--fire);text-decoration:none;}
+.legal-divider{border:none;border-top:1px solid var(--border);margin:1.5rem 0;}
+/* Bandeau RGPD */
+.rgpd-banner{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--coal3);border-top:1px solid var(--border2);padding:1rem 1.25rem;z-index:9990;display:flex;flex-direction:column;gap:.65rem;}
+.rgpd-banner-txt{font-size:12px;color:var(--text2);line-height:1.6;}
+.rgpd-banner-txt a{color:var(--fire);text-decoration:none;font-weight:600;}
+.rgpd-banner-btns{display:flex;gap:.625rem;}
+.rgpd-banner-ok{flex:1;padding:.65rem;background:var(--fire);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;}
+.rgpd-banner-more{padding:.65rem 1rem;background:var(--coal4);color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;}
+/* Boutons RGPD dans le portail client */
+.rgpd-actions{display:flex;flex-direction:column;gap:.625rem;margin:1.25rem 0;}
+.rgpd-btn{width:100%;padding:.8rem 1rem;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;border:1.5px solid var(--border2);background:var(--coal3);color:var(--text);}
+.rgpd-btn.danger{border-color:rgba(226,75,74,.35);color:#FF7070;background:rgba(226,75,74,.08);}
+/* Section comptabilité dashboard patron */
+.compta-period{display:flex;gap:.625rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem;}
+.compta-period input[type=date]{background:var(--coal3);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-xs);padding:.45rem .75rem;font-family:var(--font);font-size:13px;flex:1;min-width:120px;color-scheme:dark;}
+.compta-period button{padding:.45rem 1rem;background:var(--fire);color:#fff;border:none;border-radius:var(--radius-xs);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;}
+.compta-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem;}
+.compta-box{background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.875rem;text-align:center;}
+.compta-box-val{font-family:var(--font-d);font-size:22px;color:var(--text);letter-spacing:.5px;}
+.compta-box-lbl{font-size:11px;color:var(--text3);margin-top:.2rem;text-transform:uppercase;letter-spacing:.3px;}
+.compta-box-val.ht{color:var(--gold);}
+.compta-box-val.tva{color:var(--text2);}
+.compta-box-val.ttc{color:var(--fire);}
+.compta-export-btn{width:100%;padding:.85rem;background:var(--coal3);border:1.5px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:.75rem;}
+.compta-export-btn:active{opacity:.8;}
 /* ══ KIOSQUE — plein écran tablette ══ */
 body.kiosk{background:#000;}
 body.kiosk #root{max-width:100vw;width:100vw;}
@@ -977,6 +1011,10 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
     <button class="home-landing-btn secondary" onclick="go('page-client-login')">J'ai déjà un compte</button>
   </div>
   <div class="supa-status" id="supa-status"></div>
+  <div style="text-align:center;padding:.75rem .5rem 1.25rem;display:flex;justify-content:center;gap:1.5rem;">
+    <button onclick="go('page-mentions-legales')" style="background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-decoration:underline;">Mentions légales</button>
+    <button onclick="go('page-politique-confidentialite')" style="background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-decoration:underline;">Confidentialité</button>
+  </div>
 </div>
 
 <!-- DASHBOARD (connecté) -->
@@ -1304,6 +1342,14 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
     </button>
     <div class="hist-lbl">Historique</div>
     <div class="hist-list" id="portal-hist"></div>
+    <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.25rem;">
+      <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">Mes données &amp; confidentialité</div>
+      <div class="rgpd-actions">
+        <button class="rgpd-btn" onclick="exportMyData()"><span style="font-size:18px">📥</span><div><div>Télécharger mes données</div><div style="font-size:11px;font-weight:400;color:var(--text3);margin-top:1px">Export JSON de mon profil</div></div></button>
+        <button class="rgpd-btn" onclick="go('page-politique-confidentialite')"><span style="font-size:18px">🔒</span><div><div>Politique de confidentialité</div><div style="font-size:11px;font-weight:400;color:var(--text3);margin-top:1px">RGPD — Vos droits</div></div></button>
+        <button class="rgpd-btn danger" onclick="deleteMyAccount()"><span style="font-size:18px">🗑️</span><div><div>Supprimer mon compte</div><div style="font-size:11px;font-weight:400;opacity:.7;margin-top:1px">Suppression définitive de vos données</div></div></button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1480,6 +1526,101 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
     </div>
     <div class="cpt-pts-results" id="cpt-pts-results">
       <div style="text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px;">Recherchez un client par nom ou numéro de téléphone</div>
+    </div>
+  </div>
+</div>
+
+<!-- MENTIONS LÉGALES -->
+<div class="page" id="page-mentions-legales">
+  <div class="topbar"><button class="tbback" onclick="goBack()">←</button><div class="tbtitle">Mentions légales</div></div>
+  <div class="legal-page">
+    <div class="legal-h1">Mentions légales</div>
+    <div class="legal-date">Dernière mise à jour : avril 2025</div>
+    <div class="legal-section">
+      <div class="legal-h2">Éditeur de l'application</div>
+      <p class="legal-p"><strong>SAS ST2Z</strong><br>SIRET : 98736246400016<br>5 rue François Xavier Bichat<br>39100 Dole, France<br>Tél. : <a href="tel:0981502757">09 81 50 27 57</a><br>Email : <a href="mailto:St2z39100@gmail.com">St2z39100@gmail.com</a></p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Hébergement</div>
+      <p class="legal-p"><strong>GitHub Pages</strong><br>GitHub Inc.<br>88 Colin P Kelly Jr St<br>San Francisco, CA 94107, USA<br><a href="https://pages.github.com" target="_blank" rel="noopener">pages.github.com</a></p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Base de données</div>
+      <p class="legal-p"><strong>Supabase</strong> (Supabase Inc.) — stockage des données clients et commandes. Les données sont hébergées en Europe (région Frankfurt).</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Paiement en ligne</div>
+      <p class="legal-p"><strong>Stripe</strong> (Stripe Inc.) — traitement sécurisé des paiements par carte bancaire. KBB à la braise ne stocke aucune donnée bancaire. Les transactions sont chiffrées et conformes PCI-DSS.</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Propriété intellectuelle</div>
+      <p class="legal-p">L'ensemble du contenu de cette application (textes, visuels, logo, code) est la propriété exclusive de SAS ST2Z. Toute reproduction est interdite sans autorisation écrite préalable.</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Données personnelles</div>
+      <p class="legal-p">Le traitement des données personnelles est régi par notre <button onclick="go('page-politique-confidentialite')" style="background:none;border:none;color:var(--fire);font-size:13px;font-weight:600;cursor:pointer;padding:0;">politique de confidentialité</button> conformément au RGPD.</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Droit applicable</div>
+      <p class="legal-p">Les présentes mentions légales sont régies par le droit français. En cas de litige, les tribunaux de Besançon sont seuls compétents.</p>
+    </div>
+  </div>
+</div>
+
+<!-- POLITIQUE DE CONFIDENTIALITÉ -->
+<div class="page" id="page-politique-confidentialite">
+  <div class="topbar"><button class="tbback" onclick="goBack()">←</button><div class="tbtitle">Confidentialité</div></div>
+  <div class="legal-page">
+    <div class="legal-h1">Politique de confidentialité</div>
+    <div class="legal-date">Dernière mise à jour : avril 2025 — Conforme RGPD</div>
+    <div class="legal-section">
+      <div class="legal-h2">Responsable du traitement</div>
+      <p class="legal-p"><strong>SAS ST2Z</strong> — KBB à la braise<br>5 rue François Xavier Bichat, 39100 Dole<br>Contact DPO : <a href="mailto:St2z39100@gmail.com">St2z39100@gmail.com</a></p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Données collectées</div>
+      <p class="legal-p">Dans le cadre du programme de fidélité, nous collectons :</p>
+      <p class="legal-p">• <strong>Prénom et nom</strong> — identification du compte<br>• <strong>Numéro de téléphone</strong> — identifiant unique du compte<br>• <strong>Date de naissance</strong> (facultative) — cadeau d'anniversaire<br>• <strong>Historique des commandes</strong> — suivi fidélité et comptabilité<br>• <strong>Points fidélité et niveau</strong> — programme de récompenses<br>• <strong>Données de parrainage</strong> — gestion des parrainages</p>
+      <p class="legal-p">Nous ne collectons pas : données bancaires, localisation GPS, cookies de tracking tiers.</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Finalités du traitement</div>
+      <p class="legal-p">• <strong>Gestion du programme de fidélité</strong> — cumul et échange de points<br>• <strong>Gestion des commandes</strong> — suivi, préparation, livraison<br>• <strong>Programme de parrainage</strong> — attribution des points parrain/filleul<br>• <strong>Obligations comptables légales</strong> — conservation des transactions 10 ans (article L123-22 du Code de commerce)</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Durée de conservation</div>
+      <p class="legal-p">• <strong>Données clients (fidélité)</strong> : 3 ans après la dernière commande<br>• <strong>Données comptables (transactions)</strong> : 10 ans minimum (obligation légale)<br>• <strong>Données de paiement</strong> : non stockées — gérées exclusivement par Stripe</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Vos droits</div>
+      <p class="legal-p">Conformément au RGPD (articles 15 à 22), vous disposez des droits suivants :</p>
+      <p class="legal-p">• <strong>Droit d'accès</strong> — obtenir une copie de vos données<br>• <strong>Droit de rectification</strong> — corriger vos informations<br>• <strong>Droit à l'effacement</strong> — supprimer votre compte (hors données comptables légales)<br>• <strong>Droit à la portabilité</strong> — exporter vos données en JSON<br>• <strong>Droit d'opposition</strong> — vous opposer à certains traitements</p>
+      <p class="legal-p">Pour exercer vos droits : <a href="mailto:St2z39100@gmail.com">St2z39100@gmail.com</a><br>Réponse sous 30 jours. Vous pouvez également saisir la <a href="https://www.cnil.fr" target="_blank" rel="noopener">CNIL</a>.</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Exercer vos droits dans l'app</div>
+      <p class="legal-p">Depuis votre espace client, vous pouvez directement télécharger vos données (export JSON) ou supprimer votre compte. Connectez-vous puis accédez à « Mes données & confidentialité ».</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Sécurité</div>
+      <p class="legal-p">Les données sont stockées sur <strong>Supabase</strong> (région Europe) avec chiffrement en transit (TLS) et au repos. Les accès sont protégés par des politiques RLS (Row Level Security). Aucun mot de passe n'est stocké en clair.</p>
+    </div>
+    <hr class="legal-divider">
+    <div class="legal-section">
+      <div class="legal-h2">Sous-traitants</div>
+      <p class="legal-p">• <strong>Supabase Inc.</strong> — base de données (EU)<br>• <strong>Stripe Inc.</strong> — paiement en ligne (PCI-DSS)<br>• <strong>GitHub Inc.</strong> — hébergement de l'application</p>
     </div>
   </div>
 </div>
@@ -2171,6 +2312,8 @@ function handleStripeReturn(){
       if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
         supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'en_attente'}).catch(()=>{});
       }
+      // 2b. Enregistrer la transaction comptable
+      insertTransaction({orderId:pending.orderId, items:pending.label||null, montantTTC:pending.total, moyenPaiement:'carte', refStripe:null}).catch(()=>{});
       // 3. Activer le suivi
       const ao=pending.activeOrder;
       if(ao){ setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
@@ -4713,7 +4856,9 @@ async function validateOrder(){
     await dbUpdate(c.id,{points:c.passages,cagnotte:c.cagnotte});
     try{
       const cmdPayload={client_id: String(c.id), montant: Number(amount), points_gagnes: Number(pts)};
-      await supaReq('commandes','POST',cmdPayload);
+      const cmdRes=await supaReq('commandes','POST',cmdPayload);
+      const newCmdId=cmdRes&&cmdRes[0]&&cmdRes[0].id?cmdRes[0].id:null;
+      insertTransaction({orderId:newCmdId, items:null, montantTTC:Number(amount), moyenPaiement:'sur_place', refStripe:null}).catch(()=>{});
     }catch(e){ console.error('Erreur save commande:',e.message); }
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===c.id||x.telephone===c.telephone||x.tel===c.tel);
@@ -5118,6 +5263,15 @@ async function loadDashboard(){
       </div>
       <div class="dash-section">🤝 Parrainage</div>
       ${renderParrainageSection(parrainages,clients,cmdByClient)}
+      <div class="dash-section">💼 Comptabilité</div>
+      <div id="compta-content">
+        <div class="compta-period">
+          <input type="date" id="compta-from" value="${new Date().toISOString().slice(0,7)+'-01'}" />
+          <input type="date" id="compta-to" value="${new Date().toISOString().slice(0,10)}" />
+          <button onclick="loadComptaSection(document.getElementById('compta-from').value,document.getElementById('compta-to').value)">Filtrer</button>
+        </div>
+        <div id="compta-results" style="margin-top:.5rem;"></div>
+      </div>
       <div class="dash-section">📟 Tablettes kiosque</div>
       <div style="display:flex;flex-direction:column;gap:.75rem;padding:.25rem 0 .5rem;">
         <a href="${location.origin+location.pathname}?mode=kiosque#cuisine" style="display:flex;align-items:center;gap:.85rem;padding:1rem 1.1rem;background:rgba(226,75,74,.1);border:1.5px solid rgba(226,75,74,.3);border-radius:var(--radius-sm);text-decoration:none;color:var(--text);" onclick="event.preventDefault();window.open(this.href,'_blank')">
@@ -5133,9 +5287,166 @@ async function loadDashboard(){
       <div style="text-align:center;margin-top:1rem;">
         <button onclick="loadDashboard()" style="padding:.5rem 1rem;background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer;">↻ Actualiser</button>
       </div>`;
+    // Charger la section comptabilité (ne peut pas être dans le template literal)
+    const now=new Date();
+    const fromDefault=now.toISOString().slice(0,7)+'-01';
+    const toDefault=now.toISOString().slice(0,10);
+    loadComptaSection(fromDefault,toDefault);
   }catch(e){
     el.innerHTML='<div class="empty"><div class="big">❌</div><p>Erreur: '+e.message+'</p></div>';
   }
+}
+
+/* ══ RGPD — CONSENTEMENT ══ */
+function rgpdBannerCheck(){
+  if(!localStorage.getItem('kbb_rgpd_consent')){
+    const b=document.getElementById('rgpd-banner');
+    if(b) b.style.display='';
+  }
+}
+function rgpdConsent(){
+  localStorage.setItem('kbb_rgpd_consent','1');
+  const b=document.getElementById('rgpd-banner');
+  if(b) b.style.display='none';
+}
+
+/* ══ RGPD — EXPORT & SUPPRESSION ══ */
+async function exportMyData(){
+  const sess=getSession();
+  if(!sess){ showToast('Connectez-vous pour exporter vos données'); return; }
+  const c=sess.clientData;
+  let fresh=c;
+  try{ if(supaOk()&&c.id){ const r=await supaReq('clients?id=eq.'+encodeURIComponent(c.id)); if(r&&r[0]) fresh=r[0]; } }catch(e){}
+  let commandes=[];
+  try{ if(supaOk()&&c.id){ const r=await supaReq('commandes?client_id=eq.'+encodeURIComponent(c.id)+'&order=created_at.desc'); if(r) commandes=r; } }catch(e){}
+  const exportData={
+    export_date: new Date().toISOString(),
+    responsable: 'SAS ST2Z — KBB à la braise',
+    client: {
+      id: fresh.id,
+      prenom: fresh.prenom,
+      nom: fresh.nom,
+      telephone: fresh.telephone||fresh.tel,
+      date_naissance: fresh.date_naissance||null,
+      date_inscription: fresh.created_at||null,
+      cagnotte: fresh.cagnotte,
+      passages: fresh.passages||fresh.points,
+      niveau: fresh.niveau||'bronze',
+      derniere_visite: fresh.derniere_visite||null
+    },
+    commandes: commandes.map(x=>({id:x.id,date:x.created_at,montant:x.montant,points_gagnes:x.points_gagnes,statut:x.statut}))
+  };
+  const blob=new Blob([JSON.stringify(exportData,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='kbb-mes-donnees.json'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Export téléchargé 📥');
+}
+
+async function deleteMyAccount(){
+  const sess=getSession();
+  if(!sess){ showToast('Connectez-vous pour supprimer votre compte'); return; }
+  const c=sess.clientData;
+  const prenom=c.prenom||'';
+  const confirmed=confirm(`Supprimer définitivement le compte de ${prenom} ?\n\nCette action est irréversible. Vos points et historique seront effacés.\n\nNote : les données comptables (transactions) sont conservées 10 ans par obligation légale.`);
+  if(!confirmed) return;
+  try{
+    if(supaOk()&&c.id){
+      await supaReq('parrainages?or=(parrain_id.eq.'+encodeURIComponent(c.id)+',filleul_id.eq.'+encodeURIComponent(c.id)+')','DELETE');
+      await supaReq('clients?id=eq.'+encodeURIComponent(c.id),'DELETE');
+    }
+    // Purger localStorage
+    localStorage.removeItem('kbb_session');
+    localStorage.removeItem('kbb_quick_login');
+    localStorage.removeItem('kbb_post_login');
+    const ldb=lLoad().filter(x=>String(x.id)!==String(c.id));
+    lSave(ldb);
+    showToast('Compte supprimé. À bientôt !');
+    setTimeout(()=>{ location.reload(); },1500);
+  }catch(e){
+    showToast('Erreur : '+e.message);
+  }
+}
+
+/* ══ TRANSACTIONS COMPTABLES ══ */
+async function insertTransaction({orderId, items, montantTTC, moyenPaiement, refStripe}){
+  if(!supaOk()) return;
+  const ttc=parseFloat(montantTTC)||0;
+  if(ttc<=0) return;
+  const ht=Math.round(ttc/1.10*100)/100;
+  const tva=Math.round((ttc-ht)*100)/100;
+  const numeroCommande=orderId?'#KBB-'+String(orderId).padStart(3,'0'):null;
+  try{
+    await supaReq('transactions','POST',{
+      date_heure: new Date().toISOString(),
+      numero_commande: numeroCommande,
+      articles: items||null,
+      montant_ht: ht,
+      tva: tva,
+      montant_ttc: ttc,
+      moyen_paiement: moyenPaiement||'inconnu',
+      ref_stripe: refStripe||null,
+      statut: 'valide'
+    });
+  }catch(e){ console.warn('Transaction insert:',e); }
+}
+
+/* ══ COMPTABILITÉ — DASHBOARD PATRON ══ */
+async function loadComptaSection(from, to){
+  const el=document.getElementById('compta-results');
+  if(!el) return;
+  el.innerHTML='<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px;">⏳ Chargement…</div>';
+  try{
+    let q='transactions?select=*&order=date_heure.asc';
+    if(from) q+='&date_heure=gte.'+from+'T00:00:00Z';
+    if(to)   q+='&date_heure=lte.'+to+'T23:59:59Z';
+    const rows=await supaReq(q)||[];
+    const totalHT=rows.reduce((s,x)=>s+parseFloat(x.montant_ht||0),0);
+    const totalTVA=rows.reduce((s,x)=>s+parseFloat(x.tva||0),0);
+    const totalTTC=rows.reduce((s,x)=>s+parseFloat(x.montant_ttc||0),0);
+    el.innerHTML=`
+      <div class="compta-summary">
+        <div class="compta-box"><div class="compta-box-val ht">${totalHT.toFixed(2)}€</div><div class="compta-box-lbl">Total HT</div></div>
+        <div class="compta-box"><div class="compta-box-val tva">${totalTVA.toFixed(2)}€</div><div class="compta-box-lbl">TVA 10%</div></div>
+        <div class="compta-box"><div class="compta-box-val ttc">${totalTTC.toFixed(2)}€</div><div class="compta-box-lbl">Total TTC</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:.75rem;text-align:center;">${rows.length} transaction${rows.length>1?'s':''} sur la période</div>
+      <button class="compta-export-btn" onclick="exportComptaCSV('${from||''}','${to||''}')">📊 Exporter CSV (Excel/Comptable)</button>`;
+  }catch(e){
+    el.innerHTML='<div style="color:var(--red);font-size:13px;padding:.5rem;">Erreur : '+e.message+'</div>';
+  }
+}
+
+async function exportComptaCSV(from, to){
+  if(!supaOk()){ showToast('Non connecté à Supabase'); return; }
+  let q='transactions?select=*&order=date_heure.asc';
+  if(from) q+='&date_heure=gte.'+from+'T00:00:00Z';
+  if(to)   q+='&date_heure=lte.'+to+'T23:59:59Z';
+  let rows=[];
+  try{ rows=await supaReq(q)||[]; }catch(e){ showToast('Erreur export: '+e.message); return; }
+  const bom='\uFEFF';
+  const sep=';';
+  const header=['Date','Heure','Numéro commande','Articles','HT (€)','TVA 10% (€)','TTC (€)','Moyen de paiement','Référence Stripe','Statut'].join(sep);
+  const lines=rows.map(r=>{
+    const dt=new Date(r.date_heure);
+    const date=dt.toLocaleDateString('fr-FR');
+    const heure=dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const arts=r.articles?JSON.stringify(r.articles).replace(/;/g,' ').replace(/"/g,"'"):'';
+    return [date,heure,r.numero_commande||'',arts,
+      String(r.montant_ht).replace('.',','),
+      String(r.tva).replace('.',','),
+      String(r.montant_ttc).replace('.',','),
+      r.moyen_paiement||'',r.ref_stripe||'',r.statut||''].join(sep);
+  });
+  const csv=bom+header+'\n'+lines.join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const fname='kbb-transactions-'+(from||'debut')+'-'+(to||'fin')+'.csv';
+  a.href=url; a.download=fname; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Export téléchargé 📊');
 }
 
 /* ══ OVERLAY ══ */
@@ -5501,6 +5812,8 @@ window.addEventListener('load', async function(){
     try{ await tryAutoLogin(); }catch(e){}
     clearTimeout(safetyTimer);
     hideSplash();
+    // Afficher le bandeau RGPD si pas encore accepté (hors mode kiosque)
+    if(!window._kioskMode) rgpdBannerCheck();
   }, 300);
 });
 </script>
@@ -5526,6 +5839,14 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<!-- Bandeau consentement RGPD -->
+<div class="rgpd-banner" id="rgpd-banner" style="display:none;">
+  <div class="rgpd-banner-txt">En utilisant KBB à la braise, vous acceptez notre <button onclick="go('page-politique-confidentialite')" style="background:none;border:none;color:var(--fire);font-size:12px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline;">politique de confidentialité</button>. Vos données sont utilisées uniquement pour la gestion de votre fidélité.</div>
+  <div class="rgpd-banner-btns">
+    <button class="rgpd-banner-more" onclick="go('page-politique-confidentialite')">En savoir plus</button>
+    <button class="rgpd-banner-ok" onclick="rgpdConsent()">J'accepte</button>
+  </div>
+</div>
 <!-- Kiosk overlays (portrait warning + fullscreen enter) -->
 <div class="kiosk-portrait-warn" id="kiosk-portrait-warn">
   <div class="kiosk-portrait-warn-ico">🔄</div>
