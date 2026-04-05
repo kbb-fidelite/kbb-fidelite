@@ -3706,6 +3706,14 @@ function pk(k){if(pinVal.length>=4)return;pinVal+=k;udots();if(pinVal.length===4
 function pdel(){pinVal=pinVal.slice(0,-1);udots();document.getElementById('pin-err').textContent='';}
 function udots(){for(let i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('on',i<pinVal.length);}
 
+function _checkPinLocal(attempt, errEl){
+  if(attempt===PIN_PATRON){empRole='patron';if(errEl)errEl.textContent='';go('page-employee');}
+  else if(attempt===PIN){empRole='employe';if(errEl)errEl.textContent='';go('page-employee');}
+  else if(attempt===PIN_CUISINE){if(errEl)errEl.textContent='';go('page-kds');startKds();}
+  else if(attempt===PIN_COMPTOIR){if(errEl)errEl.textContent='';go('page-comptoir');startComptoir();}
+  else if(errEl) errEl.textContent='Code incorrect';
+}
+
 async function checkPin(){
   const attempt=pinVal; pinVal=''; udots();
   const errEl=document.getElementById('pin-err');
@@ -3716,31 +3724,45 @@ async function checkPin(){
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
       body:JSON.stringify({pin:attempt})
     });
-    const data=await r.json();
-    if(!r.ok){
-      if(r.status===429){
-        errEl.textContent=`Trop de tentatives — réessayez dans ${data.remaining_minutes||15} min`;
-      } else {
-        const left=data.remaining>0?` (${data.remaining} essai${data.remaining>1?'s':''} restant${data.remaining>1?'s':''})` :'';
-        errEl.textContent='Code incorrect'+left;
-      }
+
+    // Erreur serveur (5xx) ou fonction non configurée → fallback local
+    if(r.status>=500){
+      console.warn('verify-pin erreur serveur ('+r.status+') — fallback local');
+      _checkPinLocal(attempt, errEl);
       return;
     }
+
+    const data=await r.json();
+
+    if(r.status===429){
+      errEl.textContent=`Trop de tentatives — réessayez dans ${data.remaining_minutes||15} min`;
+      return;
+    }
+    if(r.status===401){
+      // Mauvais PIN — confirmé côté serveur
+      const left=data.remaining>0?` (${data.remaining} essai${data.remaining>1?'s':''} restant${data.remaining>1?'s':''})` :'';
+      errEl.textContent='Code incorrect'+left;
+      return;
+    }
+    if(!r.ok){
+      // Autre erreur inattendue → fallback local
+      console.warn('verify-pin réponse inattendue ('+r.status+') — fallback local');
+      _checkPinLocal(attempt, errEl);
+      return;
+    }
+
+    // ✅ Succès — stocker le token employé (8h) et naviguer
     errEl.textContent='';
-    // Stocker le token employé (8h)
     localStorage.setItem('kbb_emp_token',JSON.stringify({token:data.token,role:data.role,exp:data.exp}));
     if(data.role==='patron'){empRole='patron';go('page-employee');}
     else if(data.role==='employe'){empRole='employe';go('page-employee');}
     else if(data.role==='cuisine'){go('page-kds');startKds();}
     else if(data.role==='comptoir'){go('page-comptoir');startComptoir();}
+
   }catch(e){
-    // Fallback hors-ligne : vérification locale (à supprimer après déploiement verify-pin)
-    console.warn('verify-pin indisponible, fallback local');
-    if(attempt===PIN_PATRON){empRole='patron';go('page-employee');}
-    else if(attempt===PIN){empRole='employe';go('page-employee');}
-    else if(attempt===PIN_CUISINE){go('page-kds');startKds();}
-    else if(attempt===PIN_COMPTOIR){go('page-comptoir');startComptoir();}
-    else errEl.textContent='Code incorrect (mode hors-ligne)';
+    // Erreur réseau (hors-ligne) → fallback local
+    console.warn('verify-pin réseau indisponible — fallback local:', e.message);
+    _checkPinLocal(attempt, errEl);
   }
 }
 
