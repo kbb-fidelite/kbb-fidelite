@@ -2037,12 +2037,22 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
   const base=window.location.origin+window.location.pathname.replace(/\/$/,'');
   const successUrl=base+'/?stripe_success=1';
   const cancelUrl=base+'/?stripe_cancel=1';
+  // Récupérer les articles depuis le contexte de commande sauvegardé
+  let items=[];
+  try{
+    const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
+    if(pending?.activeOrder?.items) items=JSON.parse(pending.activeOrder.items);
+  }catch(e){}
   const r=await fetch(SURL+'/functions/v1/create-checkout',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
-    body:JSON.stringify({orderId, amountCents, feeCents, clientLevel:levelKey,
+    body:JSON.stringify({
+      orderId, items,
+      amountCents,   // envoyé pour vérification anti-fraude côté serveur
+      clientLevel:levelKey,
       clientTel:currentPortalClient?.telephone||currentPortalClient?.tel||null,
-      orderLabel:label, successUrl, cancelUrl})
+      orderLabel:label, successUrl, cancelUrl
+    })
   });
   const data=await r.json();
   if(!r.ok||!data.url) throw new Error(data.error||'Erreur création session Stripe');
@@ -2884,6 +2894,17 @@ async function registerClient(){
 let pinRapideVal = '';
 let pinRapideClient = null;
 
+/* ── Anti brute-force PIN client ── */
+const _CP_LOCK='kbb_cpin_lock', _CP_COUNT='kbb_cpin_count';
+function _cpIsLocked(){ try{ const d=JSON.parse(localStorage.getItem(_CP_LOCK)||'null'); if(d&&d.until>Date.now()) return d.until; }catch(e){} return 0; }
+function _cpRecordFail(){
+  const cnt=(parseInt(localStorage.getItem(_CP_COUNT)||'0'))+1;
+  localStorage.setItem(_CP_COUNT,String(cnt));
+  if(cnt>=3){ const u=Date.now()+5*60*1000; localStorage.setItem(_CP_LOCK,JSON.stringify({until:u})); localStorage.removeItem(_CP_COUNT); return u; }
+  return 0;
+}
+function _cpClearLock(){ localStorage.removeItem(_CP_LOCK); localStorage.removeItem(_CP_COUNT); }
+
 function afficherPinRapide(c){
   pinRapideClient = c;
   pinRapideVal = '';
@@ -2901,6 +2922,8 @@ function resetPinRapide(){
 }
 
 function ppk(k){
+  const lock=_cpIsLocked();
+  if(lock){ const mins=Math.ceil((lock-Date.now())/60000); document.getElementById('pin-rapide-err').textContent=`Trop de tentatives — réessayez dans ${mins} min`; return; }
   if(pinRapideVal.length >= 4) return;
   pinRapideVal += k;
   updatePinDots();
@@ -2923,6 +2946,7 @@ function updatePinDots(){
 async function checkPinRapide(){
   if(!pinRapideClient) return;
   if(pinRapideVal === pinRapideClient.pin_rapide){
+    _cpClearLock();
     document.getElementById('pin-rapide-err').textContent = '';
     saveSession(pinRapideClient);
     renderPortal(pinRapideClient);
@@ -2933,9 +2957,15 @@ async function checkPinRapide(){
       if(fresh){ saveSession(fresh); renderPortal(fresh); }
     }catch(e){}
   } else {
-    document.getElementById('pin-rapide-err').textContent = 'PIN incorrect';
     pinRapideVal = '';
     updatePinDots();
+    const locked=_cpRecordFail();
+    if(locked){
+      document.getElementById('pin-rapide-err').textContent = 'Trop de tentatives — réessayez dans 5 min';
+    } else {
+      const remaining=3-(parseInt(localStorage.getItem(_CP_COUNT)||'0'));
+      document.getElementById('pin-rapide-err').textContent = `PIN incorrect (${Math.max(0,remaining)} essai${remaining>1?'s':''} restant${remaining>1?'s':''})`;
+    }
   }
 }
 
@@ -3671,16 +3701,47 @@ async function renderParrainagePage(client){
   setTimeout(()=>{const f=document.getElementById('parr-fill');if(f)f.style.width=(nbCeMois/5*100)+'%';},100);
 }
 
-/* ══ PIN ══ */
+/* ══ PIN EMPLOYÉ ══ */
 function pk(k){if(pinVal.length>=4)return;pinVal+=k;udots();if(pinVal.length===4)checkPin();}
 function pdel(){pinVal=pinVal.slice(0,-1);udots();document.getElementById('pin-err').textContent='';}
 function udots(){for(let i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('on',i<pinVal.length);}
-function checkPin(){
-  if(pinVal===PIN_PATRON){empRole='patron';pinVal='';udots();go('page-employee');}
-  else if(pinVal===PIN){empRole='employe';pinVal='';udots();go('page-employee');}
-  else if(pinVal===PIN_CUISINE){pinVal='';udots();go('page-kds');startKds();}
-  else if(pinVal===PIN_COMPTOIR){pinVal='';udots();go('page-comptoir');startComptoir();}
-  else{document.getElementById('pin-err').textContent='Code incorrect';pinVal='';udots();}
+
+async function checkPin(){
+  const attempt=pinVal; pinVal=''; udots();
+  const errEl=document.getElementById('pin-err');
+  errEl.textContent='⏳ Vérification…';
+  try{
+    const r=await fetch(SURL+'/functions/v1/verify-pin',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+      body:JSON.stringify({pin:attempt})
+    });
+    const data=await r.json();
+    if(!r.ok){
+      if(r.status===429){
+        errEl.textContent=`Trop de tentatives — réessayez dans ${data.remaining_minutes||15} min`;
+      } else {
+        const left=data.remaining>0?` (${data.remaining} essai${data.remaining>1?'s':''} restant${data.remaining>1?'s':''})` :'';
+        errEl.textContent='Code incorrect'+left;
+      }
+      return;
+    }
+    errEl.textContent='';
+    // Stocker le token employé (8h)
+    localStorage.setItem('kbb_emp_token',JSON.stringify({token:data.token,role:data.role,exp:data.exp}));
+    if(data.role==='patron'){empRole='patron';go('page-employee');}
+    else if(data.role==='employe'){empRole='employe';go('page-employee');}
+    else if(data.role==='cuisine'){go('page-kds');startKds();}
+    else if(data.role==='comptoir'){go('page-comptoir');startComptoir();}
+  }catch(e){
+    // Fallback hors-ligne : vérification locale (à supprimer après déploiement verify-pin)
+    console.warn('verify-pin indisponible, fallback local');
+    if(attempt===PIN_PATRON){empRole='patron';go('page-employee');}
+    else if(attempt===PIN){empRole='employe';go('page-employee');}
+    else if(attempt===PIN_CUISINE){go('page-kds');startKds();}
+    else if(attempt===PIN_COMPTOIR){go('page-comptoir');startComptoir();}
+    else errEl.textContent='Code incorrect (mode hors-ligne)';
+  }
 }
 
 /* ══ ITEMS PARSER (KDS + Comptoir) ══ */
