@@ -1890,10 +1890,10 @@ function goBack(){
   }
 }
 
-const _AUTH_PAGES=['page-menu','page-fidel','page-parrainage','page-dashboard'];
+const _AUTH_PAGES=['page-menu','page-fidel','page-parrainage'];
 function go(p){
   if(_AUTH_PAGES.includes(p)&&!currentPortalClient){
-    sessionStorage.setItem('kbb_post_login',p==='page-menu'?'cart':'');
+    localStorage.setItem('kbb_post_login',p==='page-menu'?'cart':'');
     document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
     document.getElementById('page-client-login').classList.add('active');
     if(typeof initLoginPage==='function') initLoginPage();
@@ -2682,7 +2682,7 @@ function getPickupTimeSlots(){
 async function submitClientOrder(){
   if(!orderMode) return;
   if(!currentPortalClient){
-    sessionStorage.setItem('kbb_post_login','cart');
+    localStorage.setItem('kbb_post_login','cart');
     go('page-client-login');
     showToast('Connectez-vous pour commander 🔥');
     return;
@@ -2924,14 +2924,13 @@ async function checkPinRapide(){
   if(!pinRapideClient) return;
   if(pinRapideVal === pinRapideClient.pin_rapide){
     document.getElementById('pin-rapide-err').textContent = '';
-    // Rafraîchir clientData dans quick login pour fallback offline
-    try{ const ql=getQuickLogin(); if(ql){ const qd=JSON.parse(ql); saveQuickLogin({...qd, clientData:pinRapideClient}); } }catch(e){}
+    saveSession(pinRapideClient);
     renderPortal(pinRapideClient);
     _postLoginRedirect();
     // Rafraîchir depuis Supabase en arrière-plan
     try{
       const fresh = await dbByTel(pinRapideClient.tel||pinRapideClient.telephone);
-      if(fresh){ renderPortal(fresh); try{ const ql=getQuickLogin(); if(ql){ const qd=JSON.parse(ql); saveQuickLogin({...qd, clientData:fresh}); } }catch(e){} }
+      if(fresh){ saveSession(fresh); renderPortal(fresh); }
     }catch(e){}
   } else {
     document.getElementById('pin-rapide-err').textContent = 'PIN incorrect';
@@ -3004,8 +3003,8 @@ async function checkQuickPin(){
   document.getElementById('quick-pin-err').textContent='';
   const c=await dbByTel(d.tel);
   if(!c){showToast('Compte introuvable');return;}
-  // Rafraîchir l'expiry de la session quick login
-  saveQuickLogin({...d});
+  saveSession(c);
+  saveQuickLogin({...d, clientData:c});
   renderPortal(c);_postLoginRedirect();
   showToast('✓ Connecté avec ton PIN 🔢');
 }
@@ -3027,15 +3026,12 @@ function dismissQuickChoice(){
 function saveQuickLogin(data){
   const str=JSON.stringify(data);
   localStorage.setItem('kbb_quick_login',str);
-  sessionStorage.setItem('kbb_quick_login',str);
   const exp=new Date();exp.setFullYear(exp.getFullYear()+1);
   document.cookie='kbb_ql='+encodeURIComponent(str)+';expires='+exp.toUTCString()+';path=/;SameSite=Lax';
 }
 function getQuickLogin(){
   try{
-    let s=localStorage.getItem('kbb_quick_login');
-    if(s) return s;
-    s=sessionStorage.getItem('kbb_quick_login');
+    const s=localStorage.getItem('kbb_quick_login');
     if(s) return s;
     const m=document.cookie.match(/kbb_ql=([^;]+)/);
     if(m) return decodeURIComponent(m[1]);
@@ -3048,21 +3044,17 @@ function setupQuickLogin(mode){
   if(mode==='pin'){
     const pin=prompt('Choisissez un code PIN à 4 chiffres :');
     if(!pin||pin.length!==4||!/^\d{4}$/.test(pin)){showToast('PIN invalide — 4 chiffres requis');return;}
-    saveQuickLogin({
-      tel:quickLoginClient.tel||quickLoginClient.telephone,
-      prenom:quickLoginClient.prenom,nom:quickLoginClient.nom,mode:'pin',pin
-    });
+    const tel=quickLoginClient.tel||quickLoginClient.telephone;
+    saveQuickLogin({tel,prenom:quickLoginClient.prenom,nom:quickLoginClient.nom,mode:'pin',pin,clientData:quickLoginClient});
+    // Supprimer kbb_session pour forcer le clavier PIN au prochain lancement
+    clearSession();
     // Sauvegarder aussi dans Supabase
     if(quickLoginClient.id) dbUpdate(quickLoginClient.id,{pin_rapide:pin}).catch(()=>{});
     const ldb=lLoad();const li=ldb.findIndex(x=>x.id===quickLoginClient.id);
     if(li>=0){ldb[li].pin_rapide=pin;lSave(ldb);}
     showToast('✓ PIN activé ! Connexion rapide disponible 🔢');
   } else {
-    saveQuickLogin({
-      tel:quickLoginClient.tel||quickLoginClient.telephone,
-      prenom:quickLoginClient.prenom,nom:quickLoginClient.nom,mode:'auto',
-      clientData:quickLoginClient
-    });
+    // Mode auto : kbb_session suffit, pas besoin de kbb_quick_login supplémentaire
     showToast('✓ Connexion automatique activée ⚡');
   }
 }
@@ -3293,38 +3285,43 @@ function genToken(){
   return Math.random().toString(36).substr(2)+Date.now().toString(36);
 }
 
-function setSessionCookie(token, tel, prenom, nom){
-  const exp=new Date();
-  exp.setFullYear(exp.getFullYear()+1);
-  const data=encodeURIComponent(JSON.stringify({token,tel,prenom,nom}));
-  document.cookie='kbb_session='+data+';expires='+exp.toUTCString()+';path=/;SameSite=Lax';
-  localStorage.setItem('kbb_session', JSON.stringify({token,tel,prenom,nom}));
+// Sauvegarde la session complète dans localStorage — reconnexion sans réseau
+function saveSession(c){
+  const data={
+    tel:c.tel||c.telephone, prenom:c.prenom, nom:c.nom,
+    connecte:true, clientData:c
+  };
+  localStorage.setItem('kbb_session', JSON.stringify(data));
+  // Backup cookie 1 an
+  const exp=new Date(); exp.setFullYear(exp.getFullYear()+1);
+  document.cookie='kbb_session='+encodeURIComponent(JSON.stringify(data))+';expires='+exp.toUTCString()+';path=/;SameSite=Lax';
 }
 
-function getSessionCookie(){
-  // Essayer localStorage d abord
-  const ls = localStorage.getItem('kbb_session');
-  if(ls) try{ return JSON.parse(ls); }catch(e){}
-  // Puis cookie
-  const m=document.cookie.match(/kbb_session=([^;]+)/);
-  if(m) try{
-    const d=JSON.parse(decodeURIComponent(m[1]));
-    localStorage.setItem('kbb_session', JSON.stringify(d));
-    return d;
+function getSession(){
+  try{
+    const s=localStorage.getItem('kbb_session');
+    if(s){ const d=JSON.parse(s); if(d&&d.connecte&&d.clientData) return d; }
+    const m=document.cookie.match(/kbb_session=([^;]+)/);
+    if(m){ const d=JSON.parse(decodeURIComponent(m[1])); if(d&&d.connecte&&d.clientData){ localStorage.setItem('kbb_session',JSON.stringify(d)); return d; } }
   }catch(e){}
   return null;
 }
 
+function clearSession(){
+  localStorage.removeItem('kbb_session');
+  document.cookie='kbb_session=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
+}
+
 function commanderOuLogin(){
   if(currentPortalClient){ go('page-menu'); return; }
-  sessionStorage.setItem('kbb_post_login','cart');
+  localStorage.setItem('kbb_post_login','cart');
   go('page-client-login');
   showToast('Connectez-vous pour commander 🔥');
 }
 
 function _postLoginRedirect(){
-  const dest=sessionStorage.getItem('kbb_post_login');
-  if(dest==='cart'){ sessionStorage.removeItem('kbb_post_login'); go('page-menu'); }
+  const dest=localStorage.getItem('kbb_post_login');
+  if(dest==='cart'){ localStorage.removeItem('kbb_post_login'); go('page-menu'); }
   else go('page-dashboard');
 }
 
@@ -3338,18 +3335,15 @@ async function clientLogin(){
   const storedCode=c.code_secret||'';
   if(storedCode && storedCode!==code){showToast('Code secret incorrect');return;}
 
-  // Créer token de session et le stocker dans Supabase + cookie
-  const token=genToken();
-  setSessionCookie(token, c.tel||c.telephone, c.prenom, c.nom);
-  try{ await dbUpdate(c.id,{session_token:token}); }catch(e){}
-
-  // Sauvegarder automatiquement la session locale pour reconnexion sans réseau
-  saveQuickLogin({
-    tel:c.tel||c.telephone, prenom:c.prenom, nom:c.nom,
-    mode: c.pin_rapide ? 'pin' : 'auto',
-    pin: c.pin_rapide||undefined,
-    clientData: c
-  });
+  // Persister la session locale (reconnexion sans réseau)
+  saveSession(c);
+  // Si PIN configuré, sauvegarder aussi kbb_quick_login en mode pin
+  if(c.pin_rapide){
+    saveQuickLogin({tel:c.tel||c.telephone,prenom:c.prenom,nom:c.nom,mode:'pin',pin:c.pin_rapide,clientData:c});
+  } else {
+    // Supprimer un éventuel ancien quick login pin pour éviter confusion
+    localStorage.removeItem('kbb_quick_login');
+  }
 
   renderPortal(c);_postLoginRedirect();
   if(!c.pin_rapide) proposerPinRapide(c);
@@ -5094,70 +5088,38 @@ window.addEventListener('load', async function(){
   // ── Retour depuis Stripe Checkout ──
   handleStripeReturn();
 
-  // Auto-login au démarrage
+  // Auto-login au démarrage — 3 cas distincts
   async function tryAutoLogin(){
-    // 1. kbb_quick_login en PRIORITÉ — lecture locale immédiate, sans attendre Supabase
-    const saved = getQuickLogin();
-    if(saved){
-      try{
-        const d = JSON.parse(saved);
-        if(d && d.tel){
-          // Mode PIN : afficher le clavier immédiatement
-          if(d.mode === 'pin'){
-            pinRapideClient = {...d, telephone: d.tel, pin_rapide: d.pin};
-            pinRapideVal = '';
-            document.getElementById('pin-prenom').textContent = d.prenom||'';
-            document.getElementById('pin-rapide-zone').style.display = 'block';
-            document.getElementById('normal-login-zone').style.display = 'none';
-            go('page-client-login');
-            // Sync Supabase en arrière-plan
-            dbByTel(d.tel).then(fresh=>{ if(fresh){ const ldb=lLoad();const li=ldb.findIndex(x=>x.tel===d.tel||x.telephone===d.tel);if(li>=0){ldb[li]={...ldb[li],...fresh};lSave(ldb);} }}).catch(()=>{});
-            return true;
-          }
-          // Mode auto/remember : connecter depuis localStorage immédiatement
-          if(d.mode === 'auto' || d.mode === 'remember'){
-            const localDb = lLoad();
-            const c = localDb.find(x=>x.telephone===d.tel||x.tel===d.tel);
-            if(c){
-              renderPortal(c);
-              go('page-dashboard');
-              // Sync Supabase en arrière-plan pour rafraîchir les points
-              dbByTel(d.tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
-              return true;
-            }
-            // Pas encore en local → attendre Supabase
-            const fresh = await Promise.race([dbByTel(d.tel), new Promise(r=>setTimeout(()=>r(null),5000))]);
-            if(fresh){ renderPortal(fresh); go('page-dashboard'); return true; }
-            // Fallback : utiliser les données sauvegardées si réseau indisponible
-            if(d.clientData){ renderPortal(d.clientData); go('page-dashboard'); return true; }
-          }
-          // Fallback : pré-remplir le numéro
-          go('page-client-login');
-          setTimeout(()=>{ const el=document.getElementById('login-tel'); if(el) el.value=d.tel; }, 150);
-          return true;
-        }
-      }catch(e){ console.warn('Quick login error:', e); }
+
+    // ── CAS 1 : session complète dans localStorage → dashboard immédiat, zéro réseau ──
+    const sess = getSession();
+    if(sess){
+      renderPortal(sess.clientData);
+      go('page-dashboard');
+      // Sync Supabase en arrière-plan pour rafraîchir les points
+      const tel = sess.clientData.tel||sess.clientData.telephone;
+      if(tel) dbByTel(tel).then(fresh=>{ if(fresh){ saveSession(fresh); renderPortal(fresh); } }).catch(()=>{});
+      return true;
     }
 
-    // 2. Fallback : vérifier le token de session Supabase
-    const session = getSessionCookie();
-    if(session && session.token && session.tel){
+    // ── CAS 2 : PIN sauvegardé → afficher uniquement le clavier PIN ──
+    const ql = localStorage.getItem('kbb_quick_login');
+    if(ql){
       try{
-        const clients = await Promise.race([
-          supaReq('clients?telephone=eq.'+encodeURIComponent(session.tel)+'&select=*'),
-          new Promise(r=>setTimeout(()=>r(null),3000))
-        ]);
-        if(clients && clients[0] && clients[0].session_token === session.token){
-          const c = clients[0];
-          const localDb = lLoad();
-          const lc = localDb.find(x=>x.telephone===c.telephone||x.tel===c.telephone);
-          const full = {...c, tel:c.telephone||c.tel, passages:c.points||0, cagnotte:parseFloat(c.cagnotte)||0, history:lc?lc.history:[]};
-          renderPortal(full);
-          go('page-dashboard');
+        const d = JSON.parse(ql);
+        if(d && d.tel && d.mode === 'pin'){
+          pinRapideClient = {...d, telephone: d.tel, pin_rapide: d.pin};
+          pinRapideVal = '';
+          document.getElementById('pin-prenom').textContent = d.prenom||'';
+          document.getElementById('pin-rapide-zone').style.display = 'block';
+          document.getElementById('normal-login-zone').style.display = 'none';
+          go('page-client-login');
           return true;
         }
-      }catch(e){ console.warn('Session check error:', e); }
+      }catch(e){ console.warn('PIN login error:', e); }
     }
+
+    // ── CAS 3 : aucune session → page d'accueil (défaut) ──
     return false;
   }
 
