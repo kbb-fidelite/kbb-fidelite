@@ -864,6 +864,35 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .cpt-items{font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:1.25rem;text-align:left;}
 .cpt-btn{width:100%;padding:1.1rem;background:linear-gradient(130deg,var(--green),#2E8B57);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 5px 20px rgba(76,175,116,.28);transition:opacity .15s,transform .1s;}
 .cpt-btn:active{opacity:.85;transform:scale(.99);}
+
+/* ══ KIOSQUE — plein écran tablette ══ */
+body.kiosk{background:#000;}
+body.kiosk #root{max-width:100vw;width:100vw;}
+body.kiosk .page.active{width:100vw;height:100vh;min-height:100vh;max-width:100vw;overflow:hidden;}
+/* Grille 3 cols toujours en kiosque, 4 cols sur grand écran */
+body.kiosk .kds-grid{grid-template-columns:repeat(3,1fr);}
+@media(min-width:1200px){body.kiosk .kds-grid{grid-template-columns:repeat(4,1fr);}}
+/* Boutons plus grands */
+body.kiosk .kds-btn{min-height:64px;font-size:17px;}
+body.kiosk .cpt-btn{min-height:64px;font-size:18px;}
+/* Polices légèrement grossies */
+body.kiosk .kds-item-name{font-size:16px;}
+body.kiosk .kds-item-pain,body.kiosk .kds-item-removed,body.kiosk .kds-item-sauce,body.kiosk .kds-item-suppl{font-size:14px;}
+body.kiosk .cpt-num{font-size:72px;}
+/* Bouton plein écran dans le header */
+.kiosk-fs-btn{background:none;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.55);padding:.32rem .75rem;border-radius:6px;font-size:17px;cursor:pointer;line-height:1;flex-shrink:0;transition:opacity .15s;}
+.kiosk-fs-btn:active{opacity:.6;}
+/* Avertissement mode portrait */
+.kiosk-portrait-warn{display:none;position:fixed;inset:0;background:#0d0500;z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;}
+body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
+.kiosk-portrait-warn-ico{font-size:72px;}
+.kiosk-portrait-warn-txt{font-family:var(--font-d);font-size:28px;letter-spacing:2px;color:var(--fire);text-align:center;}
+.kiosk-portrait-warn-sub{font-size:15px;color:var(--text2);text-align:center;}
+/* Overlay d'entrée plein écran (fallback si autoFullscreen refusé) */
+.kiosk-enter-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99998;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;}
+.kiosk-enter-overlay.visible{display:flex;}
+.kiosk-enter-btn{padding:1.1rem 2.5rem;background:var(--fire);color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:20px;font-weight:800;cursor:pointer;letter-spacing:.5px;}
+.kiosk-enter-txt{font-size:16px;color:var(--text2);text-align:center;}
 </style>
 </head>
 <body>
@@ -1420,6 +1449,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
   <div class="kds-header">
     <div class="kds-title">🔥 CUISINE</div>
     <div class="kds-clock" id="kds-clock"></div>
+    <button class="kiosk-fs-btn" id="kds-fs-btn" onclick="kioskToggleFullscreen()" title="Plein écran" style="display:none">⛶</button>
     <button class="kds-exit" onclick="exitKds()">✕ Quitter</button>
   </div>
   <div id="kds-body" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
@@ -1432,6 +1462,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
   <div class="cpt-header">
     <div class="cpt-title">🍽️ COMPTOIR</div>
     <div class="kds-clock" id="cpt-clock"></div>
+    <button class="kiosk-fs-btn" id="cpt-fs-btn" onclick="kioskToggleFullscreen()" title="Plein écran" style="display:none">⛶</button>
     <button class="kds-exit" onclick="exitComptoir()">✕ Quitter</button>
   </div>
   <div class="cpt-tabs">
@@ -3806,10 +3837,82 @@ function parseItemsKDS(itemsStr){
   }
 }
 
+/* ══ KIOSQUE ══ */
+let _wakeLock=null,_kioskActive=false;
+
+async function kioskWakeLockStart(){
+  if(!('wakeLock' in navigator)) return;
+  try{ _wakeLock=await navigator.wakeLock.request('screen'); }catch(e){ console.warn('WakeLock:',e); }
+}
+function kioskWakeLockStop(){
+  if(_wakeLock){ _wakeLock.release().catch(()=>{}); _wakeLock=null; }
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&_kioskActive&&!_wakeLock) kioskWakeLockStart();
+});
+
+function kioskEnterFullscreen(){
+  const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  if(req) req.call(el).catch(()=>{});
+  document.getElementById('kiosk-enter-overlay').classList.remove('visible');
+}
+function kioskExitFullscreen(){
+  const ex=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen;
+  if(ex) ex.call(document).catch(()=>{});
+}
+function kioskToggleFullscreen(){
+  const isFull=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  if(isFull) kioskExitFullscreen(); else kioskEnterFullscreen();
+}
+function _kioskUpdateFsBtn(){
+  const isFull=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  ['kds-fs-btn','cpt-fs-btn'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b&&_kioskActive){ b.style.display=''; b.textContent=isFull?'⊡':'⛶'; }
+  });
+}
+document.addEventListener('fullscreenchange',_kioskUpdateFsBtn);
+document.addEventListener('webkitfullscreenchange',_kioskUpdateFsBtn);
+
+function kioskCheckPortrait(){
+  if(!_kioskActive) return;
+  const isPortrait=window.innerHeight>window.innerWidth;
+  document.body.classList.toggle('kiosk-portrait',isPortrait);
+}
+window.addEventListener('resize',kioskCheckPortrait);
+window.addEventListener('orientationchange',kioskCheckPortrait);
+
+async function kioskInit(){
+  _kioskActive=true;
+  kioskCheckPortrait();
+  await kioskWakeLockStart();
+  // Tenter plein écran auto
+  try{
+    await document.documentElement.requestFullscreen();
+  }catch(e){
+    // Refusé : afficher le bouton overlay
+    document.getElementById('kiosk-enter-overlay').classList.add('visible');
+  }
+  _kioskUpdateFsBtn();
+}
+function kioskDestroy(){
+  _kioskActive=false;
+  document.body.classList.remove('kiosk-portrait');
+  kioskWakeLockStop();
+  kioskExitFullscreen();
+  document.getElementById('kiosk-enter-overlay').classList.remove('visible');
+  ['kds-fs-btn','cpt-fs-btn'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b) b.style.display='none';
+  });
+}
+
 /* ══ KDS ══ */
 let _kdsRtInterval=null,_kdsClockInterval=null;
 
 function startKds(){
+  if(window._kioskMode) kioskInit();
   loadKDS();
   _kdsClockInterval=setInterval(()=>{
     const el=document.getElementById('kds-clock');
@@ -3831,6 +3934,7 @@ function exitKds(){
   clearInterval(_kdsRtInterval);clearInterval(_kdsClockInterval);
   _kdsRtInterval=null;_kdsClockInterval=null;
   rtOff('kds-orders');
+  if(window._kioskMode) kioskDestroy();
   go('page-home');
 }
 
@@ -3904,6 +4008,7 @@ async function kdsUpdateStatus(id,status,btn){
 let _cptRtInterval=null,_cptClockInterval=null;
 
 function startComptoir(){
+  if(window._kioskMode) kioskInit();
   loadComptoir();
   _cptClockInterval=setInterval(()=>{
     const el=document.getElementById('cpt-clock');
@@ -3925,6 +4030,7 @@ function exitComptoir(){
   clearInterval(_cptRtInterval);clearInterval(_cptClockInterval);
   _cptRtInterval=null;_cptClockInterval=null;
   rtOff('cpt-orders');
+  if(window._kioskMode) kioskDestroy();
   go('page-home');
 }
 
@@ -5012,6 +5118,18 @@ async function loadDashboard(){
       </div>
       <div class="dash-section">🤝 Parrainage</div>
       ${renderParrainageSection(parrainages,clients,cmdByClient)}
+      <div class="dash-section">📟 Tablettes kiosque</div>
+      <div style="display:flex;flex-direction:column;gap:.75rem;padding:.25rem 0 .5rem;">
+        <a href="${location.origin+location.pathname}?mode=kiosque#cuisine" style="display:flex;align-items:center;gap:.85rem;padding:1rem 1.1rem;background:rgba(226,75,74,.1);border:1.5px solid rgba(226,75,74,.3);border-radius:var(--radius-sm);text-decoration:none;color:var(--text);" onclick="event.preventDefault();window.open(this.href,'_blank')">
+          <span style="font-size:26px">🔥</span>
+          <div><div style="font-weight:800;font-size:15px">Écran Cuisine</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Ouvre en mode kiosque plein écran paysage</div></div>
+        </a>
+        <a href="${location.origin+location.pathname}?mode=kiosque#comptoir" style="display:flex;align-items:center;gap:.85rem;padding:1rem 1.1rem;background:rgba(76,175,116,.1);border:1.5px solid rgba(76,175,116,.3);border-radius:var(--radius-sm);text-decoration:none;color:var(--text);" onclick="event.preventDefault();window.open(this.href,'_blank')">
+          <span style="font-size:26px">🍽️</span>
+          <div><div style="font-weight:800;font-size:15px">Écran Comptoir</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Ouvre en mode kiosque plein écran paysage</div></div>
+        </a>
+        <div style="font-size:11px;color:var(--text3);text-align:center;padding:.25rem 0">Sur la tablette : ouvrir le lien → installer la PWA → lancer depuis l\'écran d\'accueil</div>
+      </div>
       <div style="text-align:center;margin-top:1rem;">
         <button onclick="loadDashboard()" style="padding:.5rem 1rem;background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer;">↻ Actualiser</button>
       </div>`;
@@ -5320,11 +5438,30 @@ function _doHideSplash(){
 }
 
 window.addEventListener('load', async function(){
+  // ── Détection mode kiosque ──
+  const _urlParams=new URLSearchParams(location.search);
+  if(_urlParams.get('mode')==='kiosque'){
+    window._kioskMode=true;
+    document.body.classList.add('kiosk');
+    // Pointer vers le manifest kiosque (fullscreen + landscape)
+    const mlink=document.querySelector('link[rel="manifest"]');
+    if(mlink) mlink.href='manifest-kiosque.json';
+    // Détecter la cible (cuisine ou comptoir) via l'ancre
+    const _hash=location.hash;
+    window._kioskTarget=_hash==='#comptoir'?'comptoir':'cuisine';
+  }
+
   // ── Retour depuis Stripe Checkout ──
   handleStripeReturn();
 
   // Auto-login au démarrage — 3 cas distincts
   async function tryAutoLogin(){
+
+    // ── CAS 0 : mode kiosque → aller directement à l'écran cuisine ou comptoir ──
+    if(window._kioskMode){
+      go('page-pin');
+      return true;
+    }
 
     // ── CAS 1 : session complète dans localStorage → dashboard immédiat, zéro réseau ──
     const sess = getSession();
@@ -5389,6 +5526,18 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<!-- Kiosk overlays (portrait warning + fullscreen enter) -->
+<div class="kiosk-portrait-warn" id="kiosk-portrait-warn">
+  <div class="kiosk-portrait-warn-ico">🔄</div>
+  <div class="kiosk-portrait-warn-txt">Tournez la tablette</div>
+  <div class="kiosk-portrait-warn-sub">Cet écran fonctionne en mode paysage</div>
+</div>
+<div class="kiosk-enter-overlay" id="kiosk-enter-overlay">
+  <div class="kiosk-portrait-warn-ico">🔥</div>
+  <div class="kiosk-portrait-warn-txt" style="color:#fff">KBB Kiosque</div>
+  <button class="kiosk-enter-btn" onclick="kioskEnterFullscreen()">Passer en plein écran</button>
+  <div class="kiosk-enter-txt">Appuyez pour lancer le mode kiosque</div>
+</div>
 </div>
 </body>
 </html>

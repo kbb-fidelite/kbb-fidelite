@@ -1,4 +1,4 @@
-const VERSION = 'kbb-v64';
+const VERSION = 'kbb-v65';
 const CACHE = VERSION;
 
 // Fichiers critiques — l'app ne fonctionne pas sans eux
@@ -10,6 +10,7 @@ const ASSETS_CRITICAL = [
 // Fichiers optionnels — mis en cache si disponibles (pas de 404 bloquant)
 const ASSETS_OPTIONAL = [
   './manifest.json',
+  './manifest-kiosque.json',
   './icon-192x192.png',
   './icon-512x512.png',
   './apple-touch-icon.png',
