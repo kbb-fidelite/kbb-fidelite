@@ -1,9 +1,14 @@
-const VERSION = 'kbb-v62';
+const VERSION = 'kbb-v63';
 const CACHE = VERSION;
 
-const ASSETS = [
+// Fichiers critiques — l'app ne fonctionne pas sans eux
+const ASSETS_CRITICAL = [
   './',
-  './index.html',
+  './index.html'
+];
+
+// Fichiers optionnels — mis en cache si disponibles (pas de 404 bloquant)
+const ASSETS_OPTIONAL = [
   './manifest.json',
   './icon-192x192.png',
   './icon-512x512.png',
@@ -13,7 +18,14 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE).then(async cache => {
+      // Critiques : doit réussir
+      await cache.addAll(ASSETS_CRITICAL);
+      // Optionnels : on ignore les erreurs individuelles
+      await Promise.allSettled(
+        ASSETS_OPTIONAL.map(url => cache.add(url).catch(() => null))
+      );
+    })
   );
   self.skipWaiting();
 });
