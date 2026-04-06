@@ -2339,88 +2339,115 @@ async function stripePayInPlace(){
   if(!pending) return;
   stripeModalClose();
   localStorage.removeItem('kbb_stripe_pending');
-  if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
-    try{ await supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'en_attente'}); }
-    catch(e){ console.warn('stripePayInPlace patch:',e); }
+  const ao=pending.activeOrder||{};
+  // Créer la commande directement en_attente (même logique que handleStripeReturn)
+  let supaId=null;
+  if(supaOk()){
+    const orderPayload={
+      type:ao.type||'sur_place',
+      items:ao.items||'[]',
+      montant:parseFloat(ao.montant||pending.total||0),
+      statut:'en_attente',
+      created_at:new Date().toISOString(),
+      client_telephone:ao.clientTel||null,
+      heure_retrait:ao.heure||null
+    };
+    if(pending.reward_id){ orderPayload.reward_id=pending.reward_id; orderPayload.reward_pts=pending.reward_pts||0; }
+    try{
+      const res=await supaReq('commandes','POST',orderPayload);
+      if(res&&res[0]&&res[0].id) supaId=res[0].id;
+    }catch(e){
+      try{
+        const res2=await supaReq('commandes','POST',{items:orderPayload.items,montant:orderPayload.montant,statut:'en_attente',created_at:orderPayload.created_at});
+        if(res2&&res2[0]&&res2[0].id) supaId=res2[0].id;
+      }catch(e2){ console.warn('stripePayInPlace INSERT:',e2); }
+    }
+    if(supaId&&pending.reward_id&&pending.reward_client_id){
+      validateRewardServerSide(supaId,pending.reward_client_id,pending.reward_id).catch(()=>{});
+    }
+    insertTransaction({orderId:supaId||pending.orderId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'sur_place',refStripe:null}).catch(()=>{});
+    createFactureFromPending({...pending,orderId:supaId||pending.orderId}).catch(()=>{});
   }
-  // Valider la récompense côté serveur
-  if(pending.reward_id&&pending.reward_client_id){
-    validateRewardServerSide(pending.orderId,pending.reward_client_id,pending.reward_id).catch(()=>{});
-  }
-  const ao=pending.activeOrder;
-  if(ao){ setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
-  renderConfirmation(pending.orderNum, pending.label, pending.grouped, pending.total);
+  const realNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):pending.orderNum;
+  setActiveOrder({...ao,supaId:supaId||null,statut:'en_attente',orderNum:realNum}); updateCommandesTile();
+  renderConfirmation(realNum, pending.label, pending.grouped, pending.total);
   go('page-confirmation');
   setTimeout(()=>goToSuivi(), 2500);
 }
 
-function handleStripeReturn(){
+async function handleStripeReturn(){
   const p=new URLSearchParams(window.location.search);
   if(p.get('stripe_success')==='1'){
     history.replaceState(null,'',window.location.pathname);
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
     if(pending){
       localStorage.removeItem('kbb_stripe_pending');
-      // 1. Restaurer la session client avant tout
+      // 1. Restaurer la session client
       if(pending.clientData){
         renderPortal(pending.clientData);
-        // Rafraîchir depuis Supabase en arrière-plan
         const tel=pending.clientData.telephone||pending.clientData.tel;
         if(tel) dbByTel(tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
       }
-      // 2. Confirmer la commande en base
-      if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
-        supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'en_attente'}).catch(()=>{});
-        // 2b. Transaction + facture
-        insertTransaction({orderId:pending.orderId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:null}).catch(()=>{});
-        createFactureFromPending(pending).catch(()=>{});
-        if(pending.reward_id&&pending.reward_client_id){
-          validateRewardServerSide(pending.orderId,pending.reward_client_id,pending.reward_id).catch(()=>{});
-        }
-      } else if(supaOk()){
-        // Le pré-enregistrement a échoué (ex. colonne manquante) — on crée la commande maintenant
-        const ao=pending.activeOrder||{};
-        const recoverPayload={
+      const ao=pending.activeOrder||{};
+      // 2. Activer le suivi avec données provisoires
+      setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile();
+      // 3. Afficher confirmation immédiatement
+      renderConfirmation(pending.orderNum, pending.label, pending.grouped, pending.total);
+      go('page-confirmation');
+      setTimeout(()=>goToSuivi(), 2500);
+      // 4. Créer la commande en base avec statut en_attente (après paiement confirmé)
+      if(supaOk()){
+        const orderPayload={
           type:ao.type||'sur_place',
-          table_num:null,
-          heure_retrait:ao.heure||null,
           items:ao.items||'[]',
           montant:parseFloat(ao.montant||pending.total||0),
           statut:'en_attente',
           created_at:new Date().toISOString(),
-          client_telephone:ao.clientTel||null
+          client_telephone:ao.clientTel||null,
+          heure_retrait:ao.heure||null
         };
-        if(pending.reward_id){ recoverPayload.reward_id=pending.reward_id; recoverPayload.reward_pts=pending.reward_pts||0; }
-        supaReq('commandes','POST',recoverPayload).then(res=>{
-          const newId=res&&res[0]&&res[0].id?res[0].id:null;
-          insertTransaction({orderId:newId||pending.orderId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:null}).catch(()=>{});
-          createFactureFromPending({...pending,orderId:newId||pending.orderId}).catch(()=>{});
-          if(newId&&pending.reward_id&&pending.reward_client_id){
-            validateRewardServerSide(newId,pending.reward_client_id,pending.reward_id).catch(()=>{});
+        if(pending.reward_id){ orderPayload.reward_id=pending.reward_id; orderPayload.reward_pts=pending.reward_pts||0; }
+        let supaId=null;
+        try{
+          const res=await supaReq('commandes','POST',orderPayload);
+          if(res&&res[0]&&res[0].id) supaId=res[0].id;
+        }catch(e){
+          console.warn('Commande INSERT (full):', e.message);
+          // Fallback : payload minimal avec seulement les colonnes obligatoires
+          try{
+            const res2=await supaReq('commandes','POST',{
+              items:orderPayload.items,
+              montant:orderPayload.montant,
+              statut:'en_attente',
+              created_at:orderPayload.created_at
+            });
+            if(res2&&res2[0]&&res2[0].id) supaId=res2[0].id;
+          }catch(e2){ console.error('Commande INSERT (minimal) failed:', e2.message); }
+        }
+        const effectiveId=supaId||pending.orderId;
+        if(supaId){
+          // Mettre à jour le numéro de commande affiché
+          const realNum='#KBB-'+String(supaId).padStart(3,'0');
+          const numEl=document.getElementById('conf-num');
+          if(numEl) numEl.textContent=realNum;
+          setActiveOrder({...ao,supaId,statut:'en_attente',orderNum:realNum});
+          updateCommandesTile();
+          if(pending.reward_id&&pending.reward_client_id){
+            validateRewardServerSide(supaId,pending.reward_client_id,pending.reward_id).catch(()=>{});
           }
-        }).catch(()=>{
-          // Même si la récupération échoue, on enregistre la transaction
-          insertTransaction({orderId:pending.orderId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:null}).catch(()=>{});
-          createFactureFromPending(pending).catch(()=>{});
-        });
+        }
+        insertTransaction({orderId:effectiveId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:null}).catch(()=>{});
+        createFactureFromPending({...pending,orderId:effectiveId}).catch(()=>{});
+      } else {
+        insertTransaction({orderId:pending.orderId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:null}).catch(()=>{});
+        createFactureFromPending(pending).catch(()=>{});
       }
-      // 3. Activer le suivi
-      const ao=pending.activeOrder;
-      if(ao){ setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
-      // 4. Afficher confirmation puis basculer sur le suivi
-      renderConfirmation(pending.orderNum, pending.label, pending.grouped, pending.total);
-      go('page-confirmation');
-      setTimeout(()=>goToSuivi(), 2500);
     }
   } else if(p.get('stripe_cancel')==='1'){
     history.replaceState(null,'',window.location.pathname);
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
     if(pending){
-      // Restaurer la session même en cas d'annulation
       if(pending.clientData) renderPortal(pending.clientData);
-      if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
-        supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'annule'}).catch(()=>{});
-      }
       localStorage.removeItem('kbb_stripe_pending');
     }
     showToast('Paiement annulé — votre panier est intact 🛒');
@@ -3013,48 +3040,26 @@ async function _doSubmitOrder(selectedReward){
   if(!ctx) return;
   const {total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,levelKey,fee,label}=ctx;
 
-  // ── Créer la commande en "pending_payment" ──
-  // reward_id/reward_pts ajoutés seulement si une récompense est sélectionnée
-  // (évite un 400 Supabase si les colonnes n'existent pas encore dans commandes)
-  const payload={
-    type:orderMode,
-    table_num:null,
-    heure_retrait:(orderMode==='click_collect'||orderMode==='reservation')?selectedPickupTime:null,
-    items:itemsText,
-    montant:parseFloat(total.toFixed(2)),
-    statut:'pending_payment',
-    created_at:new Date().toISOString(),
-    client_telephone:clientTel
-  };
-  if(selectedReward?.id){
-    payload.reward_id=selectedReward.id;
-    payload.reward_pts=selectedReward.points_requis||0;
-  }
-  // Sauvegarde locale
-  const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
+  // ── Pas d'INSERT Supabase avant paiement ──
+  // La commande est créée en "en_attente" après confirmation Stripe dans handleStripeReturn.
+  // Cela évite tout problème de colonne manquante ou de statut invalide.
   const localId='local_'+Date.now();
-  localOrders.push({...payload,id:localId});
-  localStorage.setItem('kbb_client_orders',JSON.stringify(localOrders.slice(-100)));
-  // Supabase
-  let supaId=null;
-  try{
-    if(supaOk()){
-      const res=await supaReq('commandes','POST',payload);
-      if(res&&res[0]&&res[0].id) supaId=res[0].id;
-    }
-  }catch(e){ console.warn('Order save:',e); }
-  const orderId=supaId||localId;
-  const orderNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):'#KBB-'+String(Date.now()).slice(-3);
+  const orderNum='#KBB-???';
 
-  // ── Stocker contexte pour retour Stripe ou "sur place" ──
+  // Sauvegarde locale (historique client)
+  const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
+  localOrders.push({id:localId,type:orderMode,items:itemsText,montant:total,statut:'en_attente',created_at:new Date().toISOString(),client_telephone:clientTel});
+  localStorage.setItem('kbb_client_orders',JSON.stringify(localOrders.slice(-100)));
+
+  // ── Stocker le contexte complet pour handleStripeReturn ──
   localStorage.setItem('kbb_stripe_pending',JSON.stringify({
-    orderId, orderNum, label, grouped, total, levelKey, fee, clientTel, pts_a_crediter,
+    orderId: localId, orderNum, label, grouped, total, levelKey, fee, clientTel, pts_a_crediter,
     reward_id: selectedReward?.id||null,
     reward_pts: selectedReward?.points_requis||0,
     reward_nom: selectedReward?.nom||null,
     reward_client_id: currentPortalClient?.id||null,
     clientData: currentPortalClient||null,
-    activeOrder:{supaId,statut:'en_attente',type:orderMode,tableNum:orderTableNum,
+    activeOrder:{supaId:null,statut:'en_attente',type:orderMode,tableNum:orderTableNum,
       heure:selectedPickupTime,items:itemsText,montant:total.toFixed(2),
       clientTel,expectedPts:pts_a_crediter,orderNum}
   }));
@@ -3064,7 +3069,7 @@ async function _doSubmitOrder(selectedReward){
   updateCartBar();
 
   // ── Routage paiement ──
-  stripeModalOpen(orderId, total, fee, levelKey, label);
+  stripeModalOpen(localId, total, fee, levelKey, label);
 }
 
 function renderConfirmation(orderNum, label, grouped, total){
