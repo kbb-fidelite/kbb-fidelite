@@ -5051,7 +5051,7 @@ function renderParrainageSection(parrainages,clients,cmdByClient){
   const ptsFilleuls=pValides.filter(p=>p.pts_filleul_verse).length*20;
   const ptsParrains=pValides.filter(p=>p.pts_parrain_verse).length*15;
   const ptsDist=ptsFilleuls+ptsParrains;
-  const convRate=parrainages.length>0?Math.round(pValides.length/parrainages.length*100):0;
+  const convRate=pMois.length>0?Math.round(pMoisValides.length/pMois.length*100):0;
   // Top 5 parrains
   const parrainCount={};
   parrainages.forEach(p=>{if(!p.parrain_tel)return;parrainCount[p.parrain_tel]=(parrainCount[p.parrain_tel]||0)+1;});
@@ -5088,6 +5088,8 @@ function renderParrainageSection(parrainages,clients,cmdByClient){
       flags.push({label:'Téléphone en double',color:'var(--fire)',bg:'rgba(255,107,43,.12)'});
     if((recentByParrain[p.parrain_tel]||0)>10)
       flags.push({label:'Volume suspect (>10/7j)',color:'var(--fire)',bg:'rgba(255,107,43,.12)'});
+    if(p.parrain_ip&&p.filleul_ip&&p.parrain_ip===p.filleul_ip)
+      flags.push({label:'Même appareil détecté',color:'#E07B00',bg:'rgba(224,123,0,.1)'});
     if(p.status==='en_attente'&&p.date_inscription&&(Date.now()-new Date(p.date_inscription))/(864e5)>7)
       flags.push({label:'Filleul inactif',color:'var(--gold)',bg:'rgba(255,184,48,.1)'});
     if(p.status==='valide'&&p.filleul_id){
@@ -5209,6 +5211,31 @@ async function loadDashboard(){
     const maxH=Math.max(1,...Object.values(heures));
     const topHeures=Object.entries(heures).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
+    // Peak hour by day of week
+    const dayHourMap={};
+    commandes.forEach(x=>{
+      if(!x.created_at)return;
+      const d=new Date(x.created_at);
+      const day=d.getDay();const h=d.getHours();
+      if(!dayHourMap[day])dayHourMap[day]={};
+      dayHourMap[day][h]=(dayHourMap[day][h]||0)+1;
+    });
+    const DAY_FR=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+    const peakByDay=[1,2,3,4,5,6,0].map(d=>{
+      const hrs=dayHourMap[d]||{};
+      const top=Object.entries(hrs).sort((a,b)=>b[1]-a[1])[0];
+      return{day:DAY_FR[d],hour:top?parseInt(top[0]):null,count:top?top[1]:0};
+    });
+
+    // Fidélité — points distribués vs échangés
+    const ptsMoisDistrib=Math.round(cmdMois.reduce((s,x)=>s+parseFloat(x.points_gagnes||0),0));
+    const ptsTotalDistrib=Math.round(commandes.reduce((s,x)=>s+parseFloat(x.points_gagnes||0),0));
+    const ptsBalance=Math.round(clients.reduce((s,x)=>s+parseFloat(x.cagnotte||0),0));
+    const ptsEchangesTot=Math.max(0,ptsTotalDistrib-ptsBalance);
+    const rewardCostEst=Math.round(ptsEchangesTot/100*7.5);
+    const inactifs30=clients.filter(x=>joursDepuisDerniereVisite(x)>=30)
+      .sort((a,b)=>parseFloat(b.cagnotte||0)-parseFloat(a.cagnotte||0));
+
     const rankClass=i=>i===0?'gold':i===1?'silver':i===2?'bronze':'';
     const rankIcon=i=>i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
 
@@ -5277,6 +5304,49 @@ async function loadDashboard(){
           <div class="dash-val" style="color:var(--fire)">${(()=>{const tot=clients.reduce((s,x)=>s+parseFloat(x.cagnotte||0),0);return Math.round(tot/100*8.5)+'€';})()}</div>
           <div class="dash-lbl">Coût cagnottes estimé</div>
         </div>
+      </div>
+      <div class="dash-section">🎯 Programme fidélité</div>
+      <div class="dash-grid" style="margin-bottom:.75rem;">
+        <div class="dash-card">
+          <div class="dash-val gold">${ptsMoisDistrib}</div>
+          <div class="dash-lbl">Pts distribués ce mois</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-val" style="color:var(--fire)">${ptsEchangesTot}</div>
+          <div class="dash-lbl">Pts échangés (total)</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-val green">${ptsBalance}</div>
+          <div class="dash-lbl">Solde total clients</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-val" style="color:var(--fire)">${rewardCostEst}€</div>
+          <div class="dash-lbl">Coût réel récompenses</div>
+        </div>
+      </div>
+      ${inactifs30.length?(()=>{
+        let ih='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Clients inactifs 30j+ à relancer ('+inactifs30.length+')</div>';
+        ih+='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:.75rem;">';
+        inactifs30.slice(0,8).forEach(x=>{
+          const j=joursDepuisDerniereVisite(x);
+          const col=j>=45?'var(--fire)':'var(--gold)';
+          ih+='<div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem .75rem;background:var(--coal4);border-radius:var(--radius-sm);font-size:12px;">'
+            +'<span style="font-weight:600;color:var(--text)">'+x.prenom+' '+x.nom+'</span>'
+            +'<span style="color:var(--text3);">'+(x.tel||x.telephone||'')+'</span>'
+            +'<span style="color:'+col+';font-weight:700;">'+j+'j</span>'
+            +'<span style="color:var(--gold);font-size:11px;">'+Math.floor(parseFloat(x.cagnotte||0))+' pts</span>'
+            +'</div>';
+        });
+        if(inactifs30.length>8) ih+='<div style="font-size:11px;color:var(--text3);text-align:center;padding:.25rem 0;">+'+(inactifs30.length-8)+' autres clients inactifs</div>';
+        ih+='</div>';
+        return ih;
+      })():''}
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Pic horaire par jour de la semaine</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem;">
+      ${(()=>{return peakByDay.map(({day,hour,count})=>hour!==null
+        ?'<div style="display:flex;align-items:center;gap:.6rem;font-size:12px;"><span style="width:28px;font-weight:700;color:var(--text3);">'+day+'</span><span style="color:var(--text);font-weight:600;">'+hour+'h00 – '+(hour+1)+'h00</span><span style="color:var(--text3);">('+count+' cmd'+(count>1?'s':'')+')</span></div>'
+        :'<div style="display:flex;align-items:center;gap:.6rem;font-size:12px;"><span style="width:28px;font-weight:700;color:var(--text3);">'+day+'</span><span style="color:var(--text3);">—</span></div>'
+      ).join('');})()}
       </div>
       <div class="dash-section">🤝 Parrainage</div>
       ${renderParrainageSection(parrainages,clients,cmdByClient)}
