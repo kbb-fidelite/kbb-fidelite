@@ -2371,13 +2371,38 @@ function handleStripeReturn(){
       // 2. Confirmer la commande en base
       if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
         supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'en_attente'}).catch(()=>{});
-      }
-      // 2b. Enregistrer la transaction comptable + créer la facture
-      insertTransaction({orderId:pending.orderId, items:pending.label||null, montantTTC:pending.total, moyenPaiement:'carte', refStripe:null}).catch(()=>{});
-      createFactureFromPending(pending).catch(()=>{});
-      // 2c. Valider et déduire les points de la récompense côté serveur
-      if(pending.reward_id&&pending.reward_client_id){
-        validateRewardServerSide(pending.orderId,pending.reward_client_id,pending.reward_id).catch(()=>{});
+        // 2b. Transaction + facture
+        insertTransaction({orderId:pending.orderId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:null}).catch(()=>{});
+        createFactureFromPending(pending).catch(()=>{});
+        if(pending.reward_id&&pending.reward_client_id){
+          validateRewardServerSide(pending.orderId,pending.reward_client_id,pending.reward_id).catch(()=>{});
+        }
+      } else if(supaOk()){
+        // Le pré-enregistrement a échoué (ex. colonne manquante) — on crée la commande maintenant
+        const ao=pending.activeOrder||{};
+        const recoverPayload={
+          type:ao.type||'sur_place',
+          table_num:null,
+          heure_retrait:ao.heure||null,
+          items:ao.items||'[]',
+          montant:parseFloat(ao.montant||pending.total||0),
+          statut:'en_attente',
+          created_at:new Date().toISOString(),
+          client_telephone:ao.clientTel||null
+        };
+        if(pending.reward_id){ recoverPayload.reward_id=pending.reward_id; recoverPayload.reward_pts=pending.reward_pts||0; }
+        supaReq('commandes','POST',recoverPayload).then(res=>{
+          const newId=res&&res[0]&&res[0].id?res[0].id:null;
+          insertTransaction({orderId:newId||pending.orderId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:null}).catch(()=>{});
+          createFactureFromPending({...pending,orderId:newId||pending.orderId}).catch(()=>{});
+          if(newId&&pending.reward_id&&pending.reward_client_id){
+            validateRewardServerSide(newId,pending.reward_client_id,pending.reward_id).catch(()=>{});
+          }
+        }).catch(()=>{
+          // Même si la récupération échoue, on enregistre la transaction
+          insertTransaction({orderId:pending.orderId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:null}).catch(()=>{});
+          createFactureFromPending(pending).catch(()=>{});
+        });
       }
       // 3. Activer le suivi
       const ao=pending.activeOrder;
@@ -2999,8 +3024,7 @@ async function _doSubmitOrder(selectedReward){
     montant:parseFloat(total.toFixed(2)),
     statut:'pending_payment',
     created_at:new Date().toISOString(),
-    client_telephone:clientTel,
-    pts_a_crediter:pts_a_crediter||0
+    client_telephone:clientTel
   };
   if(selectedReward?.id){
     payload.reward_id=selectedReward.id;
