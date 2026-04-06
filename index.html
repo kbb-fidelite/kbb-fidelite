@@ -2014,6 +2014,16 @@ async function dbByTel(tel){
   }catch(e){ console.warn('dbByTel error',e); return null; }
   return lLoad().find(c=>c.telephone===tel||c.tel===tel)||null;
 }
+// Rafraîchit le solde du client connecté depuis Supabase (fire-and-forget)
+function refreshClientSolde(){
+  if(!currentPortalClient||!supaOk()) return;
+  const tel=currentPortalClient.telephone||currentPortalClient.tel;
+  if(!tel) return;
+  dbByTel(tel).then(fresh=>{
+    if(fresh){currentPortalClient=fresh;renderPortal(fresh);}
+  }).catch(()=>{});
+}
+
 async function dbCreate(client){
   if(supaOk()){
     // Let Supabase auto-generate the id
@@ -2140,7 +2150,7 @@ function go(p){
   if(p==='page-employee'){refreshEmp();loadSettingsUI();}
   if(p==='page-supa-config'){document.getElementById('supa-url').value=SURL;document.getElementById('supa-key').value=SKEY;}
   if(p==='page-client-login'){initLoginPage();}
-  if(p==='page-dashboard') updateCommandesTile();
+  if(p==='page-dashboard'){updateCommandesTile();refreshClientSolde();}
   if(p!=='page-suivi'&&p!=='page-confirmation') stopSuiviPolling();
 }
 
@@ -4143,6 +4153,7 @@ function kioskWakeLockStop(){
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'&&_kioskActive&&!_wakeLock) kioskWakeLockStart();
+  if(document.visibilityState==='visible') refreshClientSolde();
 });
 
 function kioskEnterFullscreen(){
@@ -6408,19 +6419,9 @@ function _handleSuiviStatusChange(newStatut){
     const num=o.orderNum||'';
     const pts=o.expectedPts||0;
     renderSuivi();
-    if(pts>0){
-      // Calculer le nouveau solde localement sans attendre un fetch
-      const ancienSolde=Math.floor(parseFloat(currentPortalClient?.cagnotte)||0);
-      const nouveauSolde=ancienSolde+pts;
-      showRTNotif(`🎉 Commande récupérée ! +${pts} pts crédités — vous avez maintenant ${nouveauSolde} pts`);
-      // Mettre à jour l'affichage du portail si le client est sur cet écran
-      if(currentPortalClient&&(currentPortalClient.telephone===o.clientTel||currentPortalClient.tel===o.clientTel)){
-        currentPortalClient.cagnotte=nouveauSolde;
-        if(typeof renderPortal==='function') renderPortal(currentPortalClient);
-      }
-    } else {
-      showRTNotif(`🎉 ${num?num+' — ':''}Bonne dégustation !`);
-    }
+    showRTNotif(pts>0?`🎉 Commande récupérée ! +${pts} pts crédités`:`🎉 ${num?num+' — ':''}Bonne dégustation !`);
+    // Toujours rafraîchir le solde depuis Supabase pour avoir le vrai solde après déduction récompense
+    refreshClientSolde();
     setTimeout(()=>{setActiveOrder(null);updateCommandesTile();stopSuiviPolling();},3500);
   }
 }
