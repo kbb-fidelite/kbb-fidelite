@@ -2361,7 +2361,7 @@ async function stripePayInPlace(){
       if(res&&res[0]&&res[0].id) supaId=res[0].id;
     }catch(e){
       try{
-        const res2=await supaReq('commandes','POST',{items:orderPayload.items,montant:orderPayload.montant,statut:'en_attente',created_at:orderPayload.created_at,reward_nom:orderPayload.reward_nom||null,reward_pts:orderPayload.reward_pts||0});
+        const res2=await supaReq('commandes','POST',{items:orderPayload.items,montant:orderPayload.montant,statut:'en_attente',created_at:orderPayload.created_at});
         if(res2&&res2[0]&&res2[0].id) supaId=res2[0].id;
       }catch(e2){ console.warn('stripePayInPlace INSERT:',e2); }
     }
@@ -2427,9 +2427,7 @@ async function handleStripeReturn(){
               items:orderPayload.items,
               montant:orderPayload.montant,
               statut:'en_attente',
-              created_at:orderPayload.created_at,
-              reward_nom:orderPayload.reward_nom||null,
-              reward_pts:orderPayload.reward_pts||0
+              created_at:orderPayload.created_at
             });
             if(res2&&res2[0]&&res2[0].id) supaId=res2[0].id;
           }catch(e2){ console.error('Commande INSERT (minimal) failed:', e2.message); }
