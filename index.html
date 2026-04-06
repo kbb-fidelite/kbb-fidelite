@@ -2469,6 +2469,7 @@ let sheetIdx=null, sheetTaille='M', sheetMenuUpgrade=false;
 let sheetPain=null; // 'pain' | 'galette' | null — requis pour les kebabs
 let sheetRemovedIngredients=[];
 let sheetSauces=[];
+let sheetSansSauce=false; // true si le client choisit explicitement "Sans sauce"
 
 function calcSheetPrice(){
   const m=MENU_DATA[sheetIdx];
@@ -2500,6 +2501,7 @@ function openProductSheet(idx){
   selectedSupplements=[];
   sheetRemovedIngredients=[];
   sheetSauces=[];
+  sheetSansSauce=false;
   pendingIdx=idx;
 
   const top=document.getElementById('prod-sheet-top');
@@ -2574,19 +2576,28 @@ function renderProdSheetBody(){
   if(isCusto){
     const n=sheetSauces.length;
     const extra=Math.max(0,n-SAUCES_FREE);
-    const counterTxt=n===0
-      ?`Choisissez jusqu'à ${SAUCES_FREE} sauces gratuites`
-      :n<=SAUCES_FREE
-        ?`✓ ${n} sauce${n>1?'s':''} — ${SAUCES_FREE-n} gratuite${SAUCES_FREE-n>1?'s':''} restante${SAUCES_FREE-n>1?'s':''}`
-        :`✓ ${SAUCES_FREE} gratuites <span class="s-extra">+ ${extra} sauce${extra>1?'s':''} supplémentaire${extra>1?'s':''} : +${(extra*SAUCE_EXTRA_PRICE).toFixed(2).replace('.',',')}€</span>`;
-    html+=`<div class="ps-section-title">② Choisir les sauces</div>
+    let counterTxt;
+    if(sheetSansSauce){
+      counterTxt=`<span style="color:var(--text3);">🚫 Sans sauce sélectionné</span>`;
+    } else if(n===0){
+      counterTxt=`<span style="color:#FF7043;font-weight:700;">⚠️ Choisissez au moins une sauce (ou Sans sauce)</span>`;
+    } else if(n<=SAUCES_FREE){
+      counterTxt=`✓ ${n} sauce${n>1?'s':''} — ${SAUCES_FREE-n} gratuite${SAUCES_FREE-n>1?'s':''} restante${SAUCES_FREE-n>1?'s':''}`;
+    } else {
+      counterTxt=`✓ ${SAUCES_FREE} gratuites <span class="s-extra">+ ${extra} sauce${extra>1?'s':''} supplémentaire${extra>1?'s':''} : +${(extra*SAUCE_EXTRA_PRICE).toFixed(2).replace('.',',')}€</span>`;
+    }
+    html+=`<div class="ps-section-title">② Choisir les sauces <span style="font-size:11px;color:#FF7043;font-weight:600;">(obligatoire)</span></div>
     <div class="ps-sauce-grid">`;
     html+=SAUCES_LIST.map(s=>{
       const sel=sheetSauces.includes(s);
-      return `<div class="ps-sauce-chip${sel?' sel':''}" onclick="toggleSheetSauce('${s.replace(/'/g,"\\'")}')">
+      const disabled=sheetSansSauce;
+      return `<div class="ps-sauce-chip${sel?' sel':''}${disabled?' disabled':''}" onclick="${disabled?'':'toggleSheetSauce(\''+s.replace(/'/g,"\\'")+'\')'}" style="${disabled?'opacity:.35;pointer-events:none;':''}">
         ${sel?'🥫 ':''} ${s}
       </div>`;
     }).join('');
+    html+=`<div class="ps-sauce-chip${sheetSansSauce?' sel':''}" onclick="toggleSheetSansSauce()" style="border-color:${sheetSansSauce?'#FF7043':'var(--border)'};background:${sheetSansSauce?'rgba(255,112,67,.15)':'var(--coal3)'};">
+      🚫 Sans sauce
+    </div>`;
     html+=`</div><div class="ps-sauce-counter">${counterTxt}</div>`;
   }
 
@@ -2628,8 +2639,10 @@ function renderProdSheetBody(){
     }
     if(sheetSauces.length){
       html+=`<div class="ps-sum-line s-sauce">🥫 ${sheetSauces.join(', ')}</div>`;
+    } else if(sheetSansSauce){
+      html+=`<div class="ps-sum-line" style="color:var(--text3);">🚫 Sans sauce</div>`;
     } else {
-      html+=`<div class="ps-sum-line" style="color:var(--text3);">🥫 Aucune sauce choisie</div>`;
+      html+=`<div class="ps-sum-line" style="color:#FF7043;font-weight:600;">⚠️ Aucune sauce — requis</div>`;
     }
     selectedSupplements.forEach(sid=>{
       const s=SUPPLEMENTS.find(x=>x.id===sid);
@@ -2641,8 +2654,10 @@ function renderProdSheetBody(){
   }
 
   const needsPain=m.cat==='kebabs'&&!sheetPain;
-  html+=`<button class="prod-add-btn" onclick="confirmProdSheet()"${needsPain?' disabled':''}>
-    <span>${needsPain?'👆 Choisissez pain ou galette':'Ajouter au panier'}</span>
+  const needsSauce=isCusto&&!sheetSauces.length&&!sheetSansSauce;
+  const isBlocked=needsPain||needsSauce;
+  html+=`<button class="prod-add-btn" onclick="confirmProdSheet()"${isBlocked?' disabled':''}>
+    <span>${needsPain?'👆 Choisissez pain ou galette':needsSauce?'🥫 Veuillez choisir au moins une sauce':'Ajouter au panier'}</span>
     <span class="prod-add-price">${price.toFixed(2).replace('.',',')}€</span>
   </button>`;
 
@@ -2652,6 +2667,7 @@ function renderProdSheetBody(){
 function setSheetTaille(t){ sheetTaille=t; renderProdSheetBody(); }
 function setSheetPain(p){ sheetPain=p; renderProdSheetBody(); }
 function toggleSheetMenu(){ sheetMenuUpgrade=!sheetMenuUpgrade; renderProdSheetBody(); }
+function toggleSheetSansSauce(){ sheetSansSauce=!sheetSansSauce; if(sheetSansSauce) sheetSauces=[]; renderProdSheetBody(); }
 function toggleSheetSuppl(id){
   const i=selectedSupplements.indexOf(id);
   if(i>=0) selectedSupplements.splice(i,1); else selectedSupplements.push(id);
@@ -2661,12 +2677,14 @@ function toggleSheetSuppl(id){
 function confirmProdSheet(){
   const m=MENU_DATA[sheetIdx];
   if(m.cat==='kebabs'&&!sheetPain){ showToast('Choisissez pain ou galette 👆'); return; }
+  const isCusto=m.cat==='kebabs'||m.cat==='tacos'||m.cat==='salades';
+  if(isCusto&&!sheetSauces.length&&!sheetSansSauce){ showToast('🥫 Veuillez choisir au moins une sauce'); return; }
   closeProdSheet();
   const suppls=selectedSupplements.map(sid=>{
     const s=SUPPLEMENTS.find(x=>x.id===sid);
     return s?{name:s.name,price:s.price}:null;
   }).filter(Boolean);
-  finalAddToCart(sheetIdx, sheetTaille, sheetMenuUpgrade, [...sheetRemovedIngredients], [...sheetSauces], suppls, sheetPain);
+  finalAddToCart(sheetIdx, sheetTaille, sheetMenuUpgrade, [...sheetRemovedIngredients], [...sheetSauces], suppls, sheetPain, sheetSansSauce);
 }
 
 function closeProdSheet(){
@@ -2741,7 +2759,7 @@ function closeSupplements(){
   finalAddToCart(pendingIdx, pendingTaille, false);
 }
 
-function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain){
+function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain, sansSauce){
   const m=MENU_DATA[idx];
   let price=m.price;
   let name=m.name;
@@ -2755,7 +2773,8 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain)
   cart.push({
     idx, price:parseFloat(price.toFixed(2)), name, taille:taille||null,
     pain:pain||null, removed:removed||[], sauces:sauces||[], suppls:suppls||[],
-    menu:menuUpgrade||false, icon:m.icon||'🍴', cat:m.cat
+    menu:menuUpgrade||false, icon:m.icon||'🍴', cat:m.cat,
+    sansSauce:sansSauce||false
   });
 
   updateCartBar();
@@ -2828,6 +2847,7 @@ function renderCart(){
       if(item.pain) parts.push(`<span class="c-pain">${item.pain==='galette'?'🫓 Galette':'🍞 Pain'}</span>`);
       if(item.removed?.length) parts.push(item.removed.map(r=>`<span class="c-removed">❌ Sans ${r}</span>`).join(' '));
       if(item.sauces?.length) parts.push(`<span class="c-sauce">🥫 ${item.sauces.join(', ')}</span>`);
+      else if(item.sansSauce) parts.push(`<span class="c-sauce" style="color:var(--text3);">🚫 Sans sauce</span>`);
       if(item.suppls?.length) parts.push(item.suppls.map(s=>`<span class="c-suppl">➕ ${s.name}</span>`).join(' '));
       if(item.menu) parts.push(`<span class="c-suppl">🍟 Menu</span>`);
       if(parts.length) customHtml=`<div class="cart-item-custom">${parts.join('<br>')}</div>`;
@@ -2863,7 +2883,8 @@ function renderCart(){
   // Menu upgrade upsell
   const menuSupplIdx=MENU_DATA.findIndex(m=>m.name==='Supplément Menu');
   const hasKebabTacos=cart.some(c=>{const i=typeof c==='number'?c:(c.idx>=0?c.idx:-1);return i>=0&&['kebabs','tacos','salades'].includes(MENU_DATA[i].cat);});
-  const hasMenu=cart.some(c=>{const i=typeof c==='number'?c:(c.idx>=0?c.idx:-1);return i>=0&&MENU_DATA[i].name==='Supplément Menu';});
+  // hasMenu: soit un item avec menu:true (choisi dans la fiche produit), soit un supplément menu séparé
+  const hasMenu=cart.some(c=>typeof c==='object'&&c.menu)||cart.some(c=>{const i=typeof c==='number'?c:(c.idx>=0?c.idx:-1);return i>=0&&MENU_DATA[i].name==='Supplément Menu';});
   let menuUpsellEl=document.getElementById('cart-menu-upsell');
   if(hasKebabTacos&&!hasMenu&&menuSupplIdx>=0){
     if(!menuUpsellEl){menuUpsellEl=document.createElement('div');menuUpsellEl.id='cart-menu-upsell';}
@@ -3012,7 +3033,8 @@ async function submitClientOrder(){
     }
     return {name:ci.name,icon:ci.icon||'🍴',cat:ci.cat||'',price:ci.price,
             pain:ci.pain||null,removed:ci.removed||[],sauces:ci.sauces||[],
-            suppls:(ci.suppls||[]).map(s=>s.name),menu:ci.menu||false,taille:ci.taille||null};
+            suppls:(ci.suppls||[]).map(s=>s.name),menu:ci.menu||false,taille:ci.taille||null,
+            sansSauce:ci.sansSauce||false};
   });
   const itemsText=JSON.stringify(itemsArr);
   const clientTel=currentPortalClient?.telephone||currentPortalClient?.tel||null;
@@ -4093,10 +4115,12 @@ function parseItemsKDS(itemsStr){
         it.removed.forEach(r=>lines.push(`<div class="kds-item-removed">❌ Sans ${r}</div>`));
       if(it.sauces&&it.sauces.length)
         it.sauces.forEach(s=>lines.push(`<div class="kds-item-sauce">🥫 ${s}</div>`));
+      else if(it.sansSauce)
+        lines.push(`<div class="kds-item-sauce" style="color:#FF7043;font-weight:700;">🚫 SANS SAUCE</div>`);
       if(it.suppls&&it.suppls.length)
         it.suppls.forEach(s=>lines.push(`<div class="kds-item-suppl">➕ ${s}</div>`));
       if(it.menu) lines.push(`<div class="kds-item-suppl">➕ Menu frites + boisson</div>`);
-      if(!it.removed?.length&&!it.sauces?.length&&!it.suppls?.length&&!it.menu)
+      if(!it.removed?.length&&!it.sauces?.length&&!it.sansSauce&&!it.suppls?.length&&!it.menu)
         lines.push(`<div class="kds-item-default">✅ Tout par défaut</div>`);
       return `<div class="kds-item-wrap">${lines.join('')}</div>`;
     }).join('');
