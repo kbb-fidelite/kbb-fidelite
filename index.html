@@ -2987,6 +2987,8 @@ async function _doSubmitOrder(selectedReward){
   const {total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,levelKey,fee,label}=ctx;
 
   // ── Créer la commande en "pending_payment" ──
+  // reward_id/reward_pts ajoutés seulement si une récompense est sélectionnée
+  // (évite un 400 Supabase si les colonnes n'existent pas encore dans commandes)
   const payload={
     type:orderMode,
     table_num:null,
@@ -2996,10 +2998,12 @@ async function _doSubmitOrder(selectedReward){
     statut:'pending_payment',
     created_at:new Date().toISOString(),
     client_telephone:clientTel,
-    pts_a_crediter:pts_a_crediter||0,
-    reward_id:selectedReward?.id||null,
-    reward_pts:selectedReward?.points_requis||0
+    pts_a_crediter:pts_a_crediter||0
   };
+  if(selectedReward?.id){
+    payload.reward_id=selectedReward.id;
+    payload.reward_pts=selectedReward.points_requis||0;
+  }
   // Sauvegarde locale
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
   const localId='local_'+Date.now();
