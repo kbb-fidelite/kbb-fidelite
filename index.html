@@ -5305,10 +5305,7 @@ async function loadDashboard(){
         <button onclick="loadDashboard()" style="padding:.5rem 1rem;background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer;">↻ Actualiser</button>
       </div>`;
     // Charger la section comptabilité (ne peut pas être dans le template literal)
-    const now=new Date();
-    const fromDefault=now.toISOString().slice(0,7)+'-01';
-    const toDefault=now.toISOString().slice(0,10);
-    loadComptaSection(fromDefault,toDefault);
+    loadComptaSection(now.toISOString().slice(0,7)+'-01', now.toISOString().slice(0,10));
   }catch(e){
     el.innerHTML='<div class="empty"><div class="big">❌</div><p>Erreur: '+e.message+'</p></div>';
   }
