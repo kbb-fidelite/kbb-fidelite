@@ -884,7 +884,9 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .cpt-num{font-family:var(--font-d);font-size:62px;letter-spacing:5px;color:var(--fire);line-height:1;text-shadow:0 0 40px rgba(255,107,43,.25);}
 .cpt-type{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin:.45rem 0 .3rem;}
 .cpt-time-badge{display:inline-block;font-size:13px;font-weight:700;color:var(--gold);background:rgba(255,184,48,.12);border:1px solid rgba(255,184,48,.25);border-radius:99px;padding:3px 14px;margin-bottom:.75rem;}
-.cpt-items{font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:1.25rem;text-align:left;}
+.cpt-items{font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:.75rem;text-align:left;}
+.cpt-reward-badge{display:flex;align-items:center;gap:6px;background:rgba(255,184,48,.14);border:1.5px solid rgba(255,184,48,.45);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--gold);margin-bottom:.65rem;text-align:left;}
+.cpt-total{font-size:14px;font-weight:700;color:var(--text);background:var(--coal4);border-radius:6px;padding:5px 10px;margin-bottom:.85rem;text-align:left;}
 .cpt-btn{width:100%;padding:1.1rem;background:linear-gradient(130deg,var(--green),#2E8B57);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 5px 20px rgba(76,175,116,.28);transition:opacity .15s,transform .1s;}
 .cpt-btn:active{opacity:.85;transform:scale(.99);}
 
@@ -4028,6 +4030,18 @@ async function checkPin(){
 }
 
 /* ══ ITEMS PARSER (KDS + Comptoir) ══ */
+// Version comptoir : même que parseItemsKDS + article offert fidélité en bas si reward_nom fourni
+function parseItemsKDSComptoir(itemsStr, rewardNom){
+  let html=parseItemsKDS(itemsStr);
+  if(rewardNom){
+    html+=`<div class="kds-item-wrap" style="border:1.5px dashed rgba(255,184,48,.5);border-radius:6px;margin-top:6px;background:rgba(255,184,48,.06);">`
+      +`<span class="kds-item-badge" style="background:rgba(255,184,48,.2);color:var(--gold);border:none;">🎁 OFFERT</span>`
+      +`<div class="kds-item-name" style="color:var(--gold);font-weight:700;">${rewardNom} — <em>Inclure dans la commande</em></div>`
+      +'</div>';
+  }
+  return html;
+}
+
 function parseItemsKDS(itemsStr){
   const catBadgeMap={
     'kebabs':'<span class="kds-item-badge b-kebab">🥙 KEBAB</span>',
@@ -4273,6 +4287,8 @@ async function loadComptoir(){
     el.innerHTML='<div class="kds-empty-wrap"><div class="kds-empty-ico">🍽️</div><div class="kds-empty-txt">Aucune commande prête</div><div style="font-size:13px;color:var(--text3);margin-top:.35rem">En attente de nouvelles commandes…</div></div>';
     return;
   }
+  // S'assurer que le cache des récompenses est chargé pour les noms
+  if(!_recompensesCache) loadRecompenses().catch(()=>{});
   el.innerHTML='<div class="cpt-grid">'+orders.map(o=>{
     const orderNum=o.id?'#KBB-'+String(o.id).padStart(3,'0'):'—';
     const isSP=o.type==='sur_place'||o.type==='table';
@@ -4280,12 +4296,25 @@ async function loadComptoir(){
     const isCnC=o.type==='click_collect';
     const typeLabel=isSP?'Sur place':isResa?'Réservation':'Click & Collect';
     const timeBadge=(isResa||isCnC)&&o.heure_retrait?`<div class="cpt-time-badge">⏰ ${o.heure_retrait}</div>`:'';
-    const itemsHtml=parseItemsKDS(o.items);
+    // Badge récompense fidélité
+    let rewardBadge='';
+    if(o.reward_id){
+      const rname=(_recompensesCache||[]).find(r=>String(r.id)===String(o.reward_id))?.nom||'Récompense';
+      rewardBadge=`<div class="cpt-reward-badge">🎁 Offert fidélité : ${rname}</div>`;
+    }
+    // Articles complets (avec options)
+    const itemsHtml=parseItemsKDSComptoir(o.items, o.reward_id?
+      (_recompensesCache||[]).find(r=>String(r.id)===String(o.reward_id))?.nom||null : null);
+    // Total payé
+    const totalStr=o.montant?parseFloat(o.montant).toFixed(2).replace('.',',')+' €':'—';
+    const payMode=isSP?'sur place':'carte';
     return `<div class="cpt-card">
       <div class="cpt-num">${orderNum}</div>
       <div class="cpt-type">${typeLabel}</div>
       ${timeBadge}
-      <div class="cpt-items">${itemsHtml||o.items||''}</div>
+      ${rewardBadge}
+      <div class="cpt-items">${itemsHtml}</div>
+      <div class="cpt-total">💶 ${totalStr} &nbsp;·&nbsp; ${payMode}</div>
       <button class="cpt-btn" onclick="cptRemis('${o.id}')">✅ Remis au client</button>
     </div>`;
   }).join('')+'</div>';
@@ -4313,9 +4342,17 @@ async function crediterPointsCommande(orderId){
     // 6. Niveau avant
     const ancienSolde=Math.floor(parseFloat(client.cagnotte)||0);
     const ancienNiveau=getLevel(ancienSolde).label;
-    // 7. Mettre à jour le client
+    // 6b. Déduire les pts de récompense si l'Edge Function validate-reward ne l'a pas encore fait
+    //     (fallback de sécurité : reward_valide=false = pas encore déduit)
+    let soldeBase=ancienSolde;
+    const rewardPts=parseInt(o.reward_pts||0);
+    if(o.reward_id&&rewardPts>0&&!o.reward_valide){
+      soldeBase=Math.max(0,ancienSolde-rewardPts);
+      console.log('[Points] Déduction récompense fallback: -'+rewardPts+' pts ('+ancienSolde+' → '+soldeBase+')');
+    }
+    // 7. Mettre à jour le client : solde après récompense + points gagnés
     const c={...client};
-    c.cagnotte=ancienSolde+pts;
+    c.cagnotte=soldeBase+pts;
     c.passages=(c.passages||0)+pass;
     await dbUpdate(c.id,{cagnotte:c.cagnotte,points:c.passages});
     // 8. Marquer la commande comme créditée
