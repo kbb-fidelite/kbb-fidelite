@@ -2480,6 +2480,7 @@ let sheetPain=null; // 'pain' | 'galette' | null — requis pour les kebabs
 let sheetRemovedIngredients=[];
 let sheetSauces=[];
 let sheetSansSauce=false; // true si le client choisit explicitement "Sans sauce"
+let _pendingMenuCtx=null; // contexte stocké entre le sheet et le popup menu
 
 function calcSheetPrice(){
   const m=MENU_DATA[sheetIdx];
@@ -2622,22 +2623,9 @@ function renderProdSheetBody(){
       </div>`).join('');
   }
 
-  /* ── Menu upgrade ── */
-  if(isCusto){
-    html+=`<div class="ps-section-title">④ Menu ?</div>
-    <div class="prod-menu-toggle ${sheetMenuUpgrade?'sel':''}" onclick="toggleSheetMenu()">
-      <div class="prod-menu-check">${sheetMenuUpgrade?'✓':''}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:14px;font-weight:700;color:var(--text);">🍟 Ajouter frites + boisson</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Boisson 33cl au choix</div>
-      </div>
-      <div style="font-family:var(--font-d);font-size:18px;color:var(--fire);flex-shrink:0;">+3,50€</div>
-    </div>`;
-  }
-
   /* ── Récapitulatif ── */
   if(isCusto){
-    const hasCustom=sheetRemovedIngredients.length||sheetSauces.length||selectedSupplements.length||sheetMenuUpgrade||sheetPain==='galette';
+    const hasCustom=sheetRemovedIngredients.length||sheetSauces.length||selectedSupplements.length||sheetPain==='galette';
     html+=`<div class="ps-summary">
       <div class="ps-summary-ttl">📋 Récapitulatif</div>
       <div class="ps-sum-line">${m.icon} <strong>${m.name}</strong>${sheetTaille&&sheetTaille!=='M'?' ('+sheetTaille+')':''}</div>`;
@@ -2658,7 +2646,6 @@ function renderProdSheetBody(){
       const s=SUPPLEMENTS.find(x=>x.id===sid);
       if(s) html+=`<div class="ps-sum-line s-suppl">➕ ${s.name} (+${s.price.toFixed(2).replace('.',',')}€)</div>`;
     });
-    if(sheetMenuUpgrade) html+=`<div class="ps-sum-line s-suppl">➕ Menu frites + boisson (+3,50€)</div>`;
     if(!hasCustom) html+=`<div class="ps-sum-line s-ok">✅ Tout par défaut</div>`;
     html+=`</div>`;
   }
@@ -2666,8 +2653,9 @@ function renderProdSheetBody(){
   const needsPain=m.cat==='kebabs'&&!sheetPain;
   const needsSauce=isCusto&&!sheetSauces.length&&!sheetSansSauce;
   const isBlocked=needsPain||needsSauce;
+  const btnLabel=needsPain?'👆 Choisissez pain ou galette':needsSauce?'🥫 Veuillez choisir au moins une sauce':isCusto?'Continuer →':'Ajouter au panier';
   html+=`<button class="prod-add-btn" onclick="confirmProdSheet()"${isBlocked?' disabled':''}>
-    <span>${needsPain?'👆 Choisissez pain ou galette':needsSauce?'🥫 Veuillez choisir au moins une sauce':'Ajouter au panier'}</span>
+    <span>${btnLabel}</span>
     <span class="prod-add-price">${price.toFixed(2).replace('.',',')}€</span>
   </button>`;
 
@@ -2689,12 +2677,19 @@ function confirmProdSheet(){
   if(m.cat==='kebabs'&&!sheetPain){ showToast('Choisissez pain ou galette 👆'); return; }
   const isCusto=m.cat==='kebabs'||m.cat==='tacos'||m.cat==='salades';
   if(isCusto&&!sheetSauces.length&&!sheetSansSauce){ showToast('🥫 Veuillez choisir au moins une sauce'); return; }
-  closeProdSheet();
   const suppls=selectedSupplements.map(sid=>{
     const s=SUPPLEMENTS.find(x=>x.id===sid);
     return s?{name:s.name,price:s.price}:null;
   }).filter(Boolean);
-  finalAddToCart(sheetIdx, sheetTaille, sheetMenuUpgrade, [...sheetRemovedIngredients], [...sheetSauces], suppls, sheetPain, sheetSansSauce);
+  _pendingMenuCtx={idx:sheetIdx,taille:sheetTaille,removed:[...sheetRemovedIngredients],sauces:[...sheetSauces],suppls,pain:sheetPain,sansSauce:sheetSansSauce};
+  closeProdSheet();
+  if(isCusto){
+    // Proposer le menu une seule fois via popup
+    document.getElementById('overlay-menu').classList.add('show');
+  } else {
+    finalAddToCart(_pendingMenuCtx.idx,_pendingMenuCtx.taille,false,_pendingMenuCtx.removed,_pendingMenuCtx.sauces,_pendingMenuCtx.suppls,_pendingMenuCtx.pain,_pendingMenuCtx.sansSauce);
+    _pendingMenuCtx=null;
+  }
 }
 
 function closeProdSheet(){
@@ -2715,15 +2710,14 @@ function chooseTaille(taille){
 
 function acceptMenu(){
   document.getElementById('overlay-menu').classList.remove('show');
-  // Ajouter supplément menu
-  const menuIdx=MENU_DATA.findIndex(m=>m.name==='Supplément Menu');
-  if(menuIdx>=0) cart.push(menuIdx);
-  ouvrirSupplements();
+  const ctx=_pendingMenuCtx; _pendingMenuCtx=null;
+  if(ctx) finalAddToCart(ctx.idx,ctx.taille,true,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce);
 }
 
 function closeUpsellMenu(){
   document.getElementById('overlay-menu').classList.remove('show');
-  ouvrirSupplements();
+  const ctx=_pendingMenuCtx; _pendingMenuCtx=null;
+  if(ctx) finalAddToCart(ctx.idx,ctx.taille,false,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce);
 }
 
 function closeUpsellTaille(){
@@ -2880,56 +2874,19 @@ function renderCart(){
     </div>`;
   }).join('');
 
+  // Nettoyer les anciens éléments d'upsell s'ils existaient
+  const _oldUpsell=document.getElementById('cart-menu-upsell');if(_oldUpsell)_oldUpsell.remove();
+  const _oldSuggest=document.getElementById('cart-suggestions');if(_oldSuggest)_oldSuggest.remove();
+
   totalSection.innerHTML=`
     <div class="cart-total-box">
       <div>
         <div class="cart-total-lbl">Total</div>
         <div class="cart-pts-info">🔥 +${pts} points fidélité</div>
-        ${(()=>{const rewards=getRewards();const nextR=rewards.find(r=>r.pts>pts);if(!nextR)return'';const manque=nextR.pts-pts;const euros=(manque).toFixed(2).replace('.',',');return manque>0?`<div class="cart-upsell-hint">💡 Ajoutez <strong>${euros}€</strong> pour atteindre <strong>${nextR.pts} pts</strong> et débloquer <strong>${nextR.icon} ${nextR.name}</strong> !</div>`:'';})()}
       </div>
       <div class="cart-total-val">${total.toFixed(2).replace('.',',')}€</div>
     </div>
     <div class="cart-recap" id="cart-recap"><strong>Récapitulatif à dicter au téléphone :</strong>\n${Object.entries(grouped).map(([k,{item,qty}])=>{const p=typeof item==='object'?item.price:MENU_DATA[item].price;const n=typeof item==='object'?item.name:MENU_DATA[item].name;return `${qty}x ${n} (${(p*qty).toFixed(2).replace('.',',')}€)`;}).join('\n')}\n\n<strong>Total : ${total.toFixed(2).replace('.',',')}€</strong></div>`;
-  // Menu upgrade upsell
-  const menuSupplIdx=MENU_DATA.findIndex(m=>m.name==='Supplément Menu');
-  const hasKebabTacos=cart.some(c=>{const i=typeof c==='number'?c:(c.idx>=0?c.idx:-1);return i>=0&&['kebabs','tacos','salades'].includes(MENU_DATA[i].cat);});
-  // hasMenu: soit un item avec menu:true (choisi dans la fiche produit), soit un supplément menu séparé
-  const hasMenu=cart.some(c=>typeof c==='object'&&c.menu)||cart.some(c=>{const i=typeof c==='number'?c:(c.idx>=0?c.idx:-1);return i>=0&&MENU_DATA[i].name==='Supplément Menu';});
-  let menuUpsellEl=document.getElementById('cart-menu-upsell');
-  if(hasKebabTacos&&!hasMenu&&menuSupplIdx>=0){
-    if(!menuUpsellEl){menuUpsellEl=document.createElement('div');menuUpsellEl.id='cart-menu-upsell';}
-    menuUpsellEl.innerHTML=`<div class="cart-drink-card" onclick="cart.push(${menuSupplIdx});updateCartBar();renderCart();">
-      <span style="font-size:26px;">🍟</span>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);">Passez en menu ?</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Frites + boisson 33cl · +3,50€</div>
-      </div>
-      <div style="font-family:var(--font-d);font-size:20px;color:#4FC3F7;">+3,50€</div>
-    </div>`;
-    const totalBox=document.querySelector('.cart-total-box');
-    if(totalBox&&!document.getElementById('cart-menu-upsell')) totalBox.parentNode.insertBefore(menuUpsellEl, totalBox);
-  } else if(menuUpsellEl){ menuUpsellEl.remove(); }
-
-  // Suggestions
-  const suggestions=MENU_DATA.filter(m=>
-    (m.cat==='desserts'||m.cat==='menus')&&
-    !cart.some(c=>typeof c==='number'&&c===MENU_DATA.indexOf(m))
-  ).slice(0,2);
-  if(suggestions.length){
-    const suggestEl=document.getElementById('cart-suggestions')||document.createElement('div');
-    suggestEl.id='cart-suggestions';
-    suggestEl.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:.875rem 0 .5rem;">Les clients aiment aussi</div>`+
-    suggestions.map(s=>{
-      const si=MENU_DATA.indexOf(s);
-      return `<div style="display:flex;align-items:center;gap:10px;background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:7px;cursor:pointer;" onclick="addToCart(${si});renderCart();">
-        <span style="font-size:22px;">${s.icon}</span>
-        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text);">${s.name}</div><div style="font-size:12px;color:var(--text3);">${s.desc.substring(0,40)}…</div></div>
-        <div style="font-family:var(--font-d);font-size:18px;color:var(--fire);">+${s.price.toFixed(2).replace('.',',')}€</div>
-      </div>`;
-    }).join('');
-    const totalBox=document.querySelector('.cart-total-box');
-    if(totalBox&&!document.getElementById('cart-suggestions')) totalBox.parentNode.insertBefore(suggestEl, totalBox);
-  }
   const clearBtn=document.getElementById('cart-clear-btn');
   if(clearBtn) clearBtn.style.display='';
   renderOrderOptions();
