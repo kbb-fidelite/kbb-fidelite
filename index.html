@@ -2352,13 +2352,16 @@ async function stripePayInPlace(){
       client_telephone:ao.clientTel||null,
       heure_retrait:ao.heure||null
     };
-    if(pending.reward_id){ orderPayload.reward_id=pending.reward_id; orderPayload.reward_pts=pending.reward_pts||0; }
+    if(pending.reward_nom){ orderPayload.reward_nom=pending.reward_nom; }
+    if(pending.reward_pts){ orderPayload.reward_pts=parseInt(pending.reward_pts)||0; }
+    const _rIdNum=parseInt(pending.reward_id);
+    if(pending.reward_id&&!isNaN(_rIdNum)&&_rIdNum>0){ orderPayload.reward_id=_rIdNum; }
     try{
       const res=await supaReq('commandes','POST',orderPayload);
       if(res&&res[0]&&res[0].id) supaId=res[0].id;
     }catch(e){
       try{
-        const res2=await supaReq('commandes','POST',{items:orderPayload.items,montant:orderPayload.montant,statut:'en_attente',created_at:orderPayload.created_at});
+        const res2=await supaReq('commandes','POST',{items:orderPayload.items,montant:orderPayload.montant,statut:'en_attente',created_at:orderPayload.created_at,reward_nom:orderPayload.reward_nom||null,reward_pts:orderPayload.reward_pts||0});
         if(res2&&res2[0]&&res2[0].id) supaId=res2[0].id;
       }catch(e2){ console.warn('stripePayInPlace INSERT:',e2); }
     }
@@ -2406,7 +2409,12 @@ async function handleStripeReturn(){
           client_telephone:ao.clientTel||null,
           heure_retrait:ao.heure||null
         };
-        if(pending.reward_id){ orderPayload.reward_id=pending.reward_id; orderPayload.reward_pts=pending.reward_pts||0; }
+        // reward_nom et reward_pts toujours en texte/entier (pas de contrainte de type)
+        if(pending.reward_nom){ orderPayload.reward_nom=pending.reward_nom; }
+        if(pending.reward_pts){ orderPayload.reward_pts=parseInt(pending.reward_pts)||0; }
+        // reward_id uniquement si c'est un vrai ID Supabase (entier numérique)
+        const rewardIdNum=parseInt(pending.reward_id);
+        if(pending.reward_id&&!isNaN(rewardIdNum)&&rewardIdNum>0){ orderPayload.reward_id=rewardIdNum; }
         let supaId=null;
         try{
           const res=await supaReq('commandes','POST',orderPayload);
@@ -2419,7 +2427,9 @@ async function handleStripeReturn(){
               items:orderPayload.items,
               montant:orderPayload.montant,
               statut:'en_attente',
-              created_at:orderPayload.created_at
+              created_at:orderPayload.created_at,
+              reward_nom:orderPayload.reward_nom||null,
+              reward_pts:orderPayload.reward_pts||0
             });
             if(res2&&res2[0]&&res2[0].id) supaId=res2[0].id;
           }catch(e2){ console.error('Commande INSERT (minimal) failed:', e2.message); }
@@ -4327,13 +4337,12 @@ async function loadComptoir(){
     const timeBadge=(isResa||isCnC)&&o.heure_retrait?`<div class="cpt-time-badge">⏰ ${o.heure_retrait}</div>`:'';
     // Badge récompense fidélité
     let rewardBadge='';
-    if(o.reward_id){
-      const rname=(_recompensesCache||[]).find(r=>String(r.id)===String(o.reward_id))?.nom||'Récompense';
-      rewardBadge=`<div class="cpt-reward-badge">🎁 Offert fidélité : ${rname}</div>`;
+    const rewardNom=o.reward_nom||(o.reward_id?(_recompensesCache||[]).find(r=>String(r.id)===String(o.reward_id))?.nom||'Récompense':null);
+    if(rewardNom){
+      rewardBadge=`<div class="cpt-reward-badge">🎁 Offert fidélité : ${rewardNom}</div>`;
     }
     // Articles complets (avec options)
-    const itemsHtml=parseItemsKDSComptoir(o.items, o.reward_id?
-      (_recompensesCache||[]).find(r=>String(r.id)===String(o.reward_id))?.nom||null : null);
+    const itemsHtml=parseItemsKDSComptoir(o.items, rewardNom);
     // Total payé
     const totalStr=o.montant?parseFloat(o.montant).toFixed(2).replace('.',',')+' €':'—';
     const payMode=isSP?'sur place':'carte';
@@ -4371,13 +4380,13 @@ async function crediterPointsCommande(orderId){
     // 6. Niveau avant
     const ancienSolde=Math.floor(parseFloat(client.cagnotte)||0);
     const ancienNiveau=getLevel(ancienSolde).label;
-    // 6b. Déduire les pts de récompense si l'Edge Function validate-reward ne l'a pas encore fait
-    //     (fallback de sécurité : reward_valide=false = pas encore déduit)
+    // 6b. Déduire les pts de récompense si pas encore fait (reward_valide=false)
+    //     Utilise reward_pts directement — pas besoin de reward_id
     let soldeBase=ancienSolde;
     const rewardPts=parseInt(o.reward_pts||0);
-    if(o.reward_id&&rewardPts>0&&!o.reward_valide){
+    if(rewardPts>0&&!o.reward_valide){
       soldeBase=Math.max(0,ancienSolde-rewardPts);
-      console.log('[Points] Déduction récompense fallback: -'+rewardPts+' pts ('+ancienSolde+' → '+soldeBase+')');
+      console.log('[Points] Déduction récompense: -'+rewardPts+' pts ('+ancienSolde+' → '+soldeBase+')');
     }
     // 7. Mettre à jour le client : solde après récompense + points gagnés
     const c={...client};
