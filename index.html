@@ -2972,10 +2972,10 @@ async function submitClientOrder(){
   // ── Stocker le contexte dans la variable globale ──
   _pendingOrderCtx={total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,clientPts,levelKey,fee,label};
 
-  // ── Afficher l'overlay récompenses si des récompenses sont dispos ──
+  // ── Afficher l'overlay récompenses seulement si le client a des récompenses éligibles ──
   const allRecs=await loadRecompenses();
-  const eligibles=allRecs.filter(r=>r.actif!==false&&clientPts>=r.points_requis);
-  if(eligibles.length>0||allRecs.filter(r=>r.actif!==false).length>0){
+  const eligibles=allRecs.filter(r=>r.actif!==false&&clientPts>=r.points_requis&&total>=parseFloat(r.commande_minimum||0));
+  if(eligibles.length>0){
     rewardOverlayShow(allRecs,clientPts,total);
   } else {
     _doSubmitOrder(null);
@@ -5242,7 +5242,7 @@ async function recompenseAddSave(){
 async function rewardOverlayShow(allRecs, clientPts, cartTotal){
   _selectedReward=null;
   const list=document.getElementById('reward-overlay-list');
-  if(!list) return;
+  if(!list){ _doSubmitOrder(null); return; } // DOM manquant → soumettre quand même
   const icons=['🥤','🍰','🥙','👑','🎁'];
   let html='';
   const active=allRecs.filter(r=>r.actif!==false);
