@@ -18,7 +18,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- jsPDF chargé de façon lazy (uniquement lors du premier téléchargement PDF) -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -5316,6 +5316,21 @@ async function loadDashboard(){
 
 /* ══ FACTURATION ══ */
 
+// Chargement lazy de jsPDF (ne bloque pas le démarrage de l'app)
+let _jspdfLoading=null;
+function ensureJsPDF(){
+  if(window.jspdf) return Promise.resolve(true);
+  if(_jspdfLoading) return _jspdfLoading;
+  _jspdfLoading=new Promise(resolve=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload=()=>{ _jspdfLoading=null; resolve(true); };
+    s.onerror=()=>{ _jspdfLoading=null; resolve(false); };
+    document.head.appendChild(s);
+  });
+  return _jspdfLoading;
+}
+
 // TVA breakdown from grouped cart
 function computeTVABreakdown(grouped){
   let ttcSum10=0, ttcSum55=0;
@@ -5424,9 +5439,10 @@ async function createFactureSimple(cmdId, montantTTC, clientPrenom){
   }catch(e){ console.warn('createFactureSimple:',e); }
 }
 
-// Generate jsPDF invoice document from facture data
-function generateInvoicePDF(fac){
-  if(!window.jspdf){ showToast('PDF non disponible'); return null; }
+// Generate jsPDF invoice document from facture data (async — loads jsPDF on demand)
+async function generateInvoicePDF(fac){
+  const ok=await ensureJsPDF();
+  if(!ok||!window.jspdf){ showToast('Impossible de charger le module PDF'); return null; }
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'mm',format:'a4'});
   const W=210, M=15;
@@ -5532,7 +5548,7 @@ function generateInvoicePDF(fac){
   // TTC box
   doc.setFillColor(255,244,236);
   doc.setDrawColor(...FR);
-  doc.roundedRect(labelX-3,y-4,rightX-labelX+9,12,2,2,'FD');
+  doc.rect(labelX-3,y-4,rightX-labelX+9,12,'FD');
   doc.setFont('helvetica','bold');
   doc.setFontSize(12);
   doc.setTextColor(...FR);
@@ -5564,8 +5580,8 @@ function generateInvoicePDF(fac){
 }
 
 // Download a facture PDF from a facture record
-function downloadFacturePDF(fac){
-  const doc=generateInvoicePDF(fac);
+async function downloadFacturePDF(fac){
+  const doc=await generateInvoicePDF(fac);
   if(!doc) return;
   doc.save((fac.numero_facture||'facture')+'.pdf');
   showToast('Facture téléchargée 📄');
@@ -5587,28 +5603,11 @@ async function downloadAllFacturesPDF(from,to){
   let rows=[];
   try{ rows=await supaReq(q)||[]; }catch(e){ showToast('Erreur: '+e.message); return; }
   if(!rows.length){ showToast('Aucune facture sur cette période'); return; }
-  if(!window.jspdf){ showToast('PDF non disponible'); return; }
+  const ok=await ensureJsPDF();
+  if(!ok||!window.jspdf){ showToast('Impossible de charger le module PDF'); return; }
+  // Build a summary list PDF
   const {jsPDF}=window.jspdf;
-  let doc=null;
-  rows.forEach((fac,i)=>{
-    if(i===0){
-      doc=generateInvoicePDF(fac);
-    } else {
-      const tmpDoc=generateInvoicePDF(fac);
-      // Copy pages from tmpDoc to doc
-      const srcPages=tmpDoc.internal.getNumberOfPages();
-      for(let p=1;p<=srcPages;p++){
-        doc.addPage();
-        // jsPDF doesn't support direct page copy — generate separately and concat isn't native
-        // Workaround: we'll just generate individual PDFs and put them in a zip, but that requires JSZip
-        // Simplified: just save each as separate — instead generate a summary PDF
-      }
-    }
-  });
-  // Simplified: save a single PDF with just first page approach — instead generate summary
-  // Build a simple list PDF
-  const {jsPDF:jsPDF2}=window.jspdf;
-  const listDoc=new jsPDF2({unit:'mm',format:'a4'});
+  const listDoc=new jsPDF({unit:'mm',format:'a4'});
   const W=210,M=15,FR=[255,107,43],DK=[20,18,16],GR=[120,115,108];
   listDoc.setFillColor(...FR);
   listDoc.rect(0,0,W,28,'F');
