@@ -5368,7 +5368,8 @@ async function validateRewardServerSide(orderId, clientId, rewardId){
   }catch(e){ console.warn('validate-reward:',e); }
 }
 
-function renderParrainageSection(parrainages,clients,cmdByClient){
+function renderParrainageSection(parrainages,clients,cmdByClient,cmdByTel){
+  cmdByTel=cmdByTel||{};
   _parrainageCache=parrainages;
   const moisKey=getParrainageMonth();
   const monthStr=new Date().toISOString().slice(0,7);
@@ -5382,29 +5383,36 @@ function renderParrainageSection(parrainages,clients,cmdByClient){
   const pMois=parrainages.filter(p=>p.mois===moisKey||(p.date_inscription&&p.date_inscription.startsWith(monthStr)));
   const pValides=parrainages.filter(p=>p.status==='valide');
   const pMoisValides=pMois.filter(p=>p.status==='valide');
+  const pMoisEnAttente=pMois.filter(p=>p.status==='en_attente'||p.status==='reporte');
+  // Points breakdown: filleuls +20 pts, parrains +15 pts
+  const ptsFilleulsMois=pMoisValides.filter(p=>p.pts_filleul_verse).length*20;
+  const ptsParrainsMois=pMoisValides.filter(p=>p.pts_parrain_verse).length*15;
+  const ptsMoisDist=ptsFilleulsMois+ptsParrainsMois;
   const ptsFilleuls=pValides.filter(p=>p.pts_filleul_verse).length*20;
   const ptsParrains=pValides.filter(p=>p.pts_parrain_verse).length*15;
   const ptsDist=ptsFilleuls+ptsParrains;
   const convRate=pMois.length>0?Math.round(pMoisValides.length/pMois.length*100):0;
-  // Top 5 parrains
+  // Top 5 parrains (all time)
   const parrainCount={};
   parrainages.forEach(p=>{if(!p.parrain_tel)return;parrainCount[p.parrain_tel]=(parrainCount[p.parrain_tel]||0)+1;});
   const top5=Object.entries(parrainCount).sort((a,b)=>b[1]-a[1]).slice(0,5)
-    .map(([tel,n])=>{const c=clientByTel[tel];return{tel,n,nom:c?(c.prenom+' '+c.nom):tel};});
+    .map(([tel,n])=>{const c=clientByTel[tel];return{tel,n,nom:c?(c.prenom+' '+(c.nom||'')).trim():tel};});
   const maxTop=Math.max(1,top5[0]?.n||1);
-  // Weekly chart (last 7 days)
-  const dayNames=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-  const days=Array.from({length:7},(_,i)=>{
-    const d=new Date(Date.now()-(6-i)*24*60*60*1000);
-    return{label:dayNames[d.getDay()],dateStr:d.toISOString().slice(0,10),count:0};
+  // 4-week chart
+  const weeks=Array.from({length:4},(_,i)=>{
+    const wEnd=new Date(Date.now()-(3-i)*7*24*60*60*1000);
+    const wStart=new Date(wEnd.getTime()-7*24*60*60*1000);
+    const label=i===3?'Cette sem':`S-${3-i}`;
+    return{label,wStart,wEnd,count:0,valides:0};
   });
   parrainages.forEach(p=>{
     if(!p.date_inscription)return;
-    const day=days.find(d=>d.dateStr===p.date_inscription.slice(0,10));
-    if(day) day.count++;
+    const d=new Date(p.date_inscription);
+    const w=weeks.find(w=>d>=w.wStart&&d<w.wEnd);
+    if(w){w.count++;if(p.status==='valide')w.valides++;}
   });
-  const maxDay=Math.max(1,...days.map(d=>d.count));
-  // Fraud detection
+  const maxWeek=Math.max(1,...weeks.map(w=>w.count));
+  // Fraud detection (7-day volume check)
   const sevenDaysAgo=new Date(Date.now()-7*24*60*60*1000);
   const recentByParrain={};
   parrainages.forEach(p=>{
@@ -5424,42 +5432,52 @@ function renderParrainageSection(parrainages,clients,cmdByClient){
       flags.push({label:'Volume suspect (>10/7j)',color:'var(--fire)',bg:'rgba(255,107,43,.12)'});
     if(p.parrain_ip&&p.filleul_ip&&p.parrain_ip===p.filleul_ip)
       flags.push({label:'Même appareil détecté',color:'#E07B00',bg:'rgba(224,123,0,.1)'});
-    if(p.status==='en_attente'&&p.date_inscription&&(Date.now()-new Date(p.date_inscription))/(864e5)>7)
+    // Filleul inactif : inscrit depuis >7j et jamais commandé (status en_attente)
+    if((p.status==='en_attente'||p.status==='reporte')&&p.date_inscription&&(Date.now()-new Date(p.date_inscription))/(864e5)>7)
       flags.push({label:'Filleul inactif',color:'var(--gold)',bg:'rgba(255,184,48,.1)'});
-    if(p.status==='valide'&&p.filleul_id){
-      const cmds=cmdByClient[String(p.filleul_id)]||[];
-      if(cmds.length===1&&Math.abs(parseFloat(cmds[0].montant||0)-8)<=0.6)
+    // Commande seuil uniquement : filleul validé mais 1 seule commande exactement au seuil
+    if(p.status==='valide'&&filleulTel){
+      const cmds=(cmdByTel[filleulTel]||[]).concat(cmdByClient[String(p.filleul_id)]||[]);
+      const uniqueCmds=[...new Map(cmds.map(x=>[x.id||x.created_at,x])).values()];
+      if(uniqueCmds.length===1&&Math.abs(parseFloat(uniqueCmds[0].montant||0)-8)<=0.6)
         flags.push({label:'Commande seuil uniquement',color:'var(--gold)',bg:'rgba(255,184,48,.1)'});
     }
     if(flags.length) fraudAlerts.push({p,filleul,flags});
   });
-  // Build HTML
-  let h=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
-    <div class="dash-card"><div class="dash-val">${pMois.length}</div><div class="dash-lbl">Ce mois</div></div>
-    <div class="dash-card"><div class="dash-val green">${pMoisValides.length}</div><div class="dash-lbl">Validés</div></div>
-    <div class="dash-card"><div class="dash-val gold">${ptsDist}</div><div class="dash-lbl">Pts distribués</div></div>
+  // Build HTML — stats cards
+  let h=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem;">
+    <div class="dash-card"><div class="dash-val">${pMois.length}</div><div class="dash-lbl">Inscrits ce mois</div></div>
+    <div class="dash-card"><div class="dash-val green">${pMoisValides.length}</div><div class="dash-lbl">Validés ce mois</div></div>
+    <div class="dash-card"><div class="dash-val gold">${ptsMoisDist}</div><div class="dash-lbl">Pts distribués ce mois</div></div>
     <div class="dash-card"><div class="dash-val" style="color:${convRate>=50?'var(--green)':convRate>=25?'var(--gold)':'var(--fire)'}">${convRate}%</div><div class="dash-lbl">Taux conversion</div></div>
-  </div>`;
-  // Weekly chart
-  h+=`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Activité 7 jours</div>
-  <div style="display:flex;align-items:flex-end;gap:3px;height:52px;margin-bottom:.9rem;">`;
-  days.forEach(d=>{
-    const pct=d.count>0?Math.max(14,Math.round(d.count/maxDay*100)):0;
+    <div class="dash-card"><div class="dash-val" style="color:var(--text2);font-size:16px;">${ptsFilleulsMois}<span style="font-size:11px;color:var(--text3);"> pts</span></div><div class="dash-lbl">Filleuls ce mois</div></div>
+    <div class="dash-card"><div class="dash-val" style="color:var(--text2);font-size:16px;">${ptsParrainsMois}<span style="font-size:11px;color:var(--text3);"> pts</span></div><div class="dash-lbl">Parrains ce mois</div></div>
+  </div>
+  <div style="font-size:11px;color:var(--text3);margin-bottom:.75rem;">Total cumulé : <strong style="color:var(--gold)">${ptsDist} pts</strong> distribués via parrainage · ${pValides.length} parrainages validés · ${pMoisEnAttente.length} en attente ce mois</div>`;
+  // 4-week chart
+  h+=`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Parrainages par semaine</div>
+  <div style="display:flex;align-items:flex-end;gap:6px;height:64px;margin-bottom:.9rem;">`;
+  weeks.forEach(w=>{
+    const pct=w.count>0?Math.max(16,Math.round(w.count/maxWeek*100)):0;
     h+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
-      <div style="font-size:10px;color:var(--text3);">${d.count||''}</div>
-      <div style="width:100%;background:${d.count>0?'linear-gradient(180deg,var(--fire),var(--gold))':'var(--coal4)'};border-radius:3px 3px 0 0;height:${d.count>0?pct*0.34:4}px;"></div>
-      <div style="font-size:9px;color:var(--text3);">${d.label}</div>
+      <div style="font-size:10px;color:var(--text3);">${w.count||''}</div>
+      <div style="width:100%;position:relative;border-radius:3px 3px 0 0;overflow:hidden;height:${w.count>0?pct*0.44:5}px;background:${w.count>0?'linear-gradient(180deg,var(--fire),var(--gold))':'var(--coal4)'};">
+        ${w.valides>0&&w.count>0?`<div style="position:absolute;bottom:0;left:0;right:0;height:${Math.round(w.valides/w.count*100)}%;background:rgba(76,175,116,.35);"></div>`:''}
+      </div>
+      <div style="font-size:9px;color:var(--text3);white-space:nowrap;">${w.label}</div>
     </div>`;
   });
-  h+='</div>';
+  h+='</div><div style="font-size:10px;color:var(--text3);margin-bottom:.75rem;">🟢 Partie verte = validés</div>';
   // Top 5 parrains
   if(top5.length){
-    h+=`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem;">Top parrains</div>`;
+    h+=`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem;">Top parrains (tous temps)</div>`;
     top5.forEach((item,i)=>{
+      const isSuspect=(recentByParrain[item.tel]||0)>10;
       h+=`<div style="margin-bottom:6px;">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:3px;">
           <span style="color:var(--text);font-weight:600;">${['🥇','🥈','🥉','4.','5.'][i]} ${item.nom}</span>
-          <span style="color:var(--text3);">${item.n} filleul${item.n>1?'s':''}</span>
+          <span>${isSuspect?'<span style="font-size:10px;background:rgba(255,107,43,.15);color:var(--fire);border-radius:99px;padding:1px 7px;font-weight:700;">⚠ suspect</span> ':''}
+          <span style="color:var(--text3);">${item.n} filleul${item.n>1?'s':''}</span></span>
         </div>
         <div class="heure-bar-bg"><div class="heure-bar-fill" style="width:${Math.round(item.n/maxTop*100)}%"></div></div>
       </div>`;
@@ -5511,13 +5529,14 @@ async function loadDashboard(){
       try{ parrainages=await supaReq('parrainages?select=*&order=date_inscription.desc'); }catch(e){}
     }
 
-    // Index commandes by client_id for fraud detection
+    // Index commandes by client_id AND telephone for fraud detection
     const cmdByClient={};
+    const cmdByTel={};
     commandes.forEach(x=>{
       const cid=String(x.client_id||'');
-      if(!cid)return;
-      if(!cmdByClient[cid])cmdByClient[cid]=[];
-      cmdByClient[cid].push(x);
+      if(cid&&cid!=='null'&&cid!=='0'){if(!cmdByClient[cid])cmdByClient[cid]=[];cmdByClient[cid].push(x);}
+      const tel=String(x.client_telephone||'');
+      if(tel&&tel!=='null'){if(!cmdByTel[tel])cmdByTel[tel]=[];cmdByTel[tel].push(x);}
     });
 
     // CA du jour
@@ -5566,6 +5585,13 @@ async function loadDashboard(){
     const ptsTotalDistrib=Math.round(commandes.reduce((s,x)=>s+parseFloat(x.points_gagnes||0),0));
     const ptsBalance=Math.round(clients.reduce((s,x)=>s+parseFloat(x.cagnotte||0),0));
     const ptsEchangesTot=Math.max(0,ptsTotalDistrib-ptsBalance);
+    // Récompenses échangées ce mois depuis les commandes (reward_pts>0 = récompense utilisée)
+    const cmdAvecReward=commandes.filter(x=>x.created_at&&x.created_at.startsWith(monthStr)&&parseInt(x.reward_pts||0)>0);
+    const rewardByNom={};
+    cmdAvecReward.forEach(x=>{
+      const nom=x.reward_nom||'Récompense';
+      rewardByNom[nom]=(rewardByNom[nom]||0)+1;
+    });
     const rewardCostEst=Math.round(ptsEchangesTot/100*7.5);
     const inactifs30=clients.filter(x=>joursDepuisDerniereVisite(x)>=30)
       .sort((a,b)=>parseFloat(b.cagnotte||0)-parseFloat(a.cagnotte||0));
@@ -5658,6 +5684,11 @@ async function loadDashboard(){
           <div class="dash-lbl">Coût réel récompenses</div>
         </div>
       </div>
+      ${Object.keys(rewardByNom).length?`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Récompenses échangées ce mois</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem;">
+        ${Object.entries(rewardByNom).sort((a,b)=>b[1]-a[1]).map(([nom,n])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .75rem;background:rgba(255,184,48,.07);border:1px solid rgba(255,184,48,.18);border-radius:var(--radius-sm);font-size:12px;"><span style="color:var(--text);font-weight:600;">🎁 ${nom}</span><span style="color:var(--gold);font-weight:700;">${n}×</span></div>`).join('')}
+      </div>`:''}
+      <div style="font-size:11px;color:var(--text3);margin-bottom:.75rem;">Ratio pts échangés / distribués : <strong style="color:var(--text)">${ptsTotalDistrib>0?Math.round(ptsEchangesTot/ptsTotalDistrib*100):0}%</strong></div>
       ${inactifs30.length?(()=>{
         let ih='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Clients inactifs 30j+ à relancer ('+inactifs30.length+')</div>';
         ih+='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:.75rem;">';
@@ -5683,7 +5714,7 @@ async function loadDashboard(){
       ).join('');})()}
       </div>
       <div class="dash-section">🤝 Parrainage</div>
-      ${renderParrainageSection(parrainages,clients,cmdByClient)}
+      ${renderParrainageSection(parrainages,clients,cmdByClient,cmdByTel)}
       <div class="dash-section">💼 Comptabilité</div>
       <div id="compta-content">
         <div class="compta-period">
