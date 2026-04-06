@@ -18,6 +18,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -899,6 +900,16 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .compta-box-val.ttc{color:var(--fire);}
 .compta-export-btn{width:100%;padding:.85rem;background:var(--coal3);border:1.5px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:.75rem;}
 .compta-export-btn:active{opacity:.8;}
+.facture-list{display:flex;flex-direction:column;gap:.5rem;margin:.75rem 0;}
+.facture-row{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius-sm);}
+.facture-num{font-family:var(--font-d);font-size:13px;color:var(--fire);letter-spacing:.5px;flex-shrink:0;}
+.facture-info{flex:1;min-width:0;}
+.facture-date{font-size:12px;color:var(--text3);}
+.facture-ttc{font-size:14px;font-weight:700;color:var(--text);flex-shrink:0;}
+.facture-dl{background:none;border:1px solid var(--border2);color:var(--text2);border-radius:6px;padding:.3rem .7rem;font-size:13px;cursor:pointer;flex-shrink:0;}
+.facture-dl:active{opacity:.7;}
+.abtn-invoice{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:.85rem;background:var(--coal3);border:1.5px solid rgba(255,107,43,.35);color:var(--fire);border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;margin-top:.75rem;}
+.abtn-invoice:active{opacity:.8;}
 /* ══ KIOSQUE — plein écran tablette ══ */
 body.kiosk{background:#000;}
 body.kiosk #root{max-width:100vw;width:100vw;}
@@ -2145,6 +2156,10 @@ const MENU_DATA=[
   {cat:'desserts',icon:'🍫',name:'Mousse au Chocolat',desc:'Fait maison, chocolat noir intense.',price:3.90},
   {cat:'desserts',icon:'🍨',name:'Mövenpick',desc:'2 parfums au choix + 1 coulis au choix + 1 topping au choix.',price:4.90,badge:'⭐ Premium'},
 ];
+// TVA par catégorie (art. 279-a et 278-1 CGI)
+const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,desserts:0.055};
+const TVA_DEFAULT=0.10;
+
 let cart=[];
 let orderMode=null; // 'sur_place' | 'click_collect' | 'reservation'
 let orderTableNum='';
@@ -2312,8 +2327,9 @@ function handleStripeReturn(){
       if(supaOk()&&pending.orderId&&!String(pending.orderId).startsWith('local_')){
         supaReq('commandes?id=eq.'+encodeURIComponent(pending.orderId),'PATCH',{statut:'en_attente'}).catch(()=>{});
       }
-      // 2b. Enregistrer la transaction comptable
+      // 2b. Enregistrer la transaction comptable + créer la facture
       insertTransaction({orderId:pending.orderId, items:pending.label||null, montantTTC:pending.total, moyenPaiement:'carte', refStripe:null}).catch(()=>{});
+      createFactureFromPending(pending).catch(()=>{});
       // 3. Activer le suivi
       const ao=pending.activeOrder;
       if(ao){ setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
@@ -4859,6 +4875,7 @@ async function validateOrder(){
       const cmdRes=await supaReq('commandes','POST',cmdPayload);
       const newCmdId=cmdRes&&cmdRes[0]&&cmdRes[0].id?cmdRes[0].id:null;
       insertTransaction({orderId:newCmdId, items:null, montantTTC:Number(amount), moyenPaiement:'sur_place', refStripe:null}).catch(()=>{});
+      createFactureSimple(newCmdId,Number(amount),c.prenom||'').catch(()=>{});
     }catch(e){ console.error('Erreur save commande:',e.message); }
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===c.id||x.telephone===c.telephone||x.tel===c.tel);
@@ -5297,6 +5314,364 @@ async function loadDashboard(){
   }
 }
 
+/* ══ FACTURATION ══ */
+
+// TVA breakdown from grouped cart
+function computeTVABreakdown(grouped){
+  let ttcSum10=0, ttcSum55=0;
+  if(!grouped||!Object.keys(grouped).length) return {ht10:0,tva10:0,ht55:0,tva55:0,ttc:0};
+  for(const [,{item,qty}] of Object.entries(grouped)){
+    const isObj=typeof item==='object';
+    const price=isObj?item.price:MENU_DATA[item].price;
+    const cat=isObj?(item.cat||'kebabs'):(MENU_DATA[item]?.cat||'kebabs');
+    const rate=TVA_RATES[cat]??TVA_DEFAULT;
+    const line=parseFloat((price*qty).toFixed(2));
+    if(rate===0.055) ttcSum55+=line; else ttcSum10+=line;
+  }
+  const ht10=Math.round(ttcSum10/1.10*100)/100;
+  const tva10=Math.round((ttcSum10-ht10)*100)/100;
+  const ht55=Math.round(ttcSum55/1.055*100)/100;
+  const tva55=Math.round((ttcSum55-ht55)*100)/100;
+  const ttc=Math.round((ttcSum10+ttcSum55)*100)/100;
+  return {ht10,tva10,ht55,tva55,ttc};
+}
+
+// Build articles array from grouped (for Supabase storage)
+function groupedToArticles(grouped){
+  if(!grouped) return [];
+  return Object.entries(grouped).map(([,{item,qty}])=>{
+    const isObj=typeof item==='object';
+    const name=isObj?item.name:(MENU_DATA[item]?.name||'Article');
+    const price=isObj?item.price:(MENU_DATA[item]?.price||0);
+    const cat=isObj?(item.cat||'kebabs'):(MENU_DATA[item]?.cat||'kebabs');
+    const tva_rate=TVA_RATES[cat]??TVA_DEFAULT;
+    return {name,qty,price,cat,tva_rate};
+  });
+}
+
+// Get next FAC-YYYY-NNNNN number (counts existing factures for this year)
+async function getNextFactureNumber(){
+  const year=new Date().getFullYear();
+  let n=1;
+  try{
+    if(supaOk()){
+      const rows=await supaReq('factures?select=id&date=gte.'+year+'-01-01T00:00:00Z&date=lt.'+(year+1)+'-01-01T00:00:00Z');
+      n=(rows||[]).length+1;
+    }
+  }catch(e){ console.warn('facture number:',e); }
+  return 'FAC-'+year+'-'+String(n).padStart(5,'0');
+}
+
+// Save facture to Supabase and return the full record
+async function saveFacture(data){
+  if(!supaOk()) return data;
+  try{
+    const res=await supaReq('factures','POST',data);
+    return (res&&res[0])||data;
+  }catch(e){ console.warn('save facture:',e); return data; }
+}
+
+// Create facture from Stripe pending object
+async function createFactureFromPending(pending){
+  try{
+    const numero=await getNextFactureNumber();
+    const grouped=pending.grouped||null;
+    const articles=grouped?groupedToArticles(grouped):[];
+    const tva=grouped?computeTVABreakdown(grouped):{ht10:0,tva10:0,ht55:0,tva55:0,ttc:pending.total||0};
+    // If no grouped, all goes to 10%
+    const ht10=tva.ht10||(Math.round((pending.total||0)/1.10*100)/100);
+    const tvA10=tva.tva10||Math.round(((pending.total||0)-ht10)*100)/100;
+    const facData={
+      numero_facture:numero,
+      date:new Date().toISOString(),
+      commande_id:String(pending.orderId||''),
+      client_prenom:pending.clientData?.prenom||'',
+      total_ht_10:tva.ht10||ht10,
+      tva_10:tva.tva10||tvA10,
+      total_ht_55:tva.ht55||0,
+      tva_55:tva.tva55||0,
+      total_ttc:tva.ttc||pending.total||0,
+      moyen_paiement:'carte',
+      ref_stripe:pending.stripeSessionId||null,
+      articles:articles
+    };
+    const saved=await saveFacture(facData);
+    window._lastFacture=saved;
+    localStorage.setItem('kbb_last_facture',JSON.stringify(saved));
+    return saved;
+  }catch(e){ console.warn('createFactureFromPending:',e); return null; }
+}
+
+// Create facture for employee-validated order (no grouped, 100% TVA 10%)
+async function createFactureSimple(cmdId, montantTTC, clientPrenom){
+  try{
+    const numero=await getNextFactureNumber();
+    const ht10=Math.round(montantTTC/1.10*100)/100;
+    const tva10=Math.round((montantTTC-ht10)*100)/100;
+    const facData={
+      numero_facture:numero,
+      date:new Date().toISOString(),
+      commande_id:cmdId?String(cmdId):'',
+      client_prenom:clientPrenom||'',
+      total_ht_10:ht10, tva_10:tva10,
+      total_ht_55:0, tva_55:0,
+      total_ttc:montantTTC,
+      moyen_paiement:'sur_place',
+      ref_stripe:null,
+      articles:[]
+    };
+    await saveFacture(facData);
+  }catch(e){ console.warn('createFactureSimple:',e); }
+}
+
+// Generate jsPDF invoice document from facture data
+function generateInvoicePDF(fac){
+  if(!window.jspdf){ showToast('PDF non disponible'); return null; }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210, M=15;
+  let y=0;
+  const FR=[255,107,43], DK=[20,18,16], GR=[120,115,108], LG=[230,228,225];
+
+  // ── Header band ──────────────────────────────────────
+  doc.setFillColor(...FR);
+  doc.rect(0,0,W,38,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(20);
+  doc.text('KBB À LA BRAISE',M,14);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(8);
+  doc.text('SAS ST2Z · SIRET 98736246400016 · TVA FR53987362464',M,20);
+  doc.text('5 rue François Xavier Bichat · 39100 Dole',M,25);
+  doc.text('09 81 50 27 57 · St2z39100@gmail.com',M,30);
+  // Right: FACTURE
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(24);
+  doc.text('FACTURE',W-M,14,{align:'right'});
+  doc.setFontSize(10);
+  doc.text(fac.numero_facture||'',W-M,22,{align:'right'});
+  const dateStr=new Date(fac.date||Date.now()).toLocaleDateString('fr-FR');
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  doc.text('Date : '+dateStr,W-M,28,{align:'right'});
+  doc.text('Paiement : '+(fac.moyen_paiement==='carte'?'Carte bancaire':fac.moyen_paiement==='sur_place'?'Sur place':fac.moyen_paiement||'—'),W-M,34,{align:'right'});
+  y=46;
+
+  // ── Commande info bar ─────────────────────────────────
+  doc.setFillColor(245,242,238);
+  doc.rect(M,y,(W-2*M)/2-4,20,'F');
+  doc.setFillColor(240,237,233);
+  doc.rect(W/2+4,y,(W-2*M)/2-4,20,'F');
+  doc.setFontSize(7);
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(...GR);
+  doc.text('FACTURÉ À',M+3,y+6);
+  doc.text('COMMANDE',W/2+7,y+6);
+  doc.setTextColor(...DK);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(11);
+  doc.text(fac.client_prenom||'Client',M+3,y+14);
+  doc.setFontSize(10);
+  const cmdNum=fac.commande_id?'#KBB-'+String(fac.commande_id).padStart(3,'0'):'—';
+  doc.text(cmdNum,W/2+7,y+14);
+  y+=28;
+
+  // ── Articles table ────────────────────────────────────
+  if((fac.articles||[]).length>0){
+    // Header
+    doc.setFillColor(...FR);
+    doc.rect(M,y,W-2*M,8,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8.5);
+    doc.text('Désignation',M+3,y+5.5);
+    doc.text('Qté',M+100,y+5.5,{align:'center'});
+    doc.text('PU TTC',M+122,y+5.5,{align:'center'});
+    doc.text('TVA',M+141,y+5.5,{align:'center'});
+    doc.text('Total TTC',W-M-3,y+5.5,{align:'right'});
+    y+=8;
+    (fac.articles||[]).forEach((art,i)=>{
+      if(i%2===0){doc.setFillColor(252,250,248);doc.rect(M,y,W-2*M,7,'F');}
+      doc.setTextColor(...DK);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(8.5);
+      doc.text(String(art.name||'').substring(0,40),M+3,y+4.8);
+      doc.text(String(art.qty||1),M+100,y+4.8,{align:'center'});
+      doc.text(((art.price||0).toFixed(2)+'€').replace('.',','),M+122,y+4.8,{align:'center'});
+      doc.text(art.tva_rate===0.055?'5,5%':'10%',M+141,y+4.8,{align:'center'});
+      doc.text((((art.price||0)*(art.qty||1)).toFixed(2)+'€').replace('.',','),W-M-3,y+4.8,{align:'right'});
+      y+=7;
+    });
+    doc.setDrawColor(...LG);
+    doc.line(M,y+2,W-M,y+2);
+    y+=8;
+  }
+
+  // ── TVA breakdown ─────────────────────────────────────
+  const rightX=W-M-3, labelX=W/2+5;
+  const row=(lbl,val,bold=false,color=GR)=>{
+    doc.setFont('helvetica',bold?'bold':'normal');
+    doc.setFontSize(bold?10:9);
+    doc.setTextColor(...color);
+    doc.text(lbl,labelX,y);
+    doc.text((val.toFixed(2)+' €').replace('.',','),rightX,y,{align:'right'});
+    y+=6;
+  };
+  if((fac.total_ht_10||0)>0){
+    row('Base HT soumise à TVA 10% :',fac.total_ht_10);
+    row('TVA 10% :',fac.tva_10);
+  }
+  if((fac.total_ht_55||0)>0){
+    row('Base HT soumise à TVA 5,5% :',fac.total_ht_55);
+    row('TVA 5,5% :',fac.tva_55);
+  }
+  const totalTVA=(fac.tva_10||0)+(fac.tva_55||0);
+  row('Total TVA collectée :',totalTVA);
+  y+=3;
+  // TTC box
+  doc.setFillColor(255,244,236);
+  doc.setDrawColor(...FR);
+  doc.roundedRect(labelX-3,y-4,rightX-labelX+9,12,2,2,'FD');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...FR);
+  doc.text('TOTAL TTC :',labelX,y+4);
+  doc.text(((fac.total_ttc||0).toFixed(2)+' €').replace('.',','),rightX,y+4,{align:'right'});
+  y+=18;
+
+  // Ref Stripe
+  if(fac.ref_stripe){
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GR);
+    doc.text('Réf. paiement : '+fac.ref_stripe,M,y);
+    y+=7;
+  }
+
+  // ── Footer ────────────────────────────────────────────
+  const FY=275;
+  doc.setDrawColor(...LG);
+  doc.line(M,FY,W-M,FY);
+  doc.setTextColor(...GR);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(7.5);
+  doc.text('SAS ST2Z — KBB à la braise · 5 rue François Xavier Bichat · 39100 Dole · Tél. 09 81 50 27 57',W/2,FY+5,{align:'center'});
+  doc.text('SIRET 98736246400016 · TVA intracommunautaire FR53987362464 · St2z39100@gmail.com',W/2,FY+10,{align:'center'});
+  doc.text('Merci de votre visite ! Facture conforme à l\'article 289 du CGI.',W/2,FY+15,{align:'center'});
+
+  return doc;
+}
+
+// Download a facture PDF from a facture record
+function downloadFacturePDF(fac){
+  const doc=generateInvoicePDF(fac);
+  if(!doc) return;
+  doc.save((fac.numero_facture||'facture')+'.pdf');
+  showToast('Facture téléchargée 📄');
+}
+
+// Download last facture (from localStorage or window._lastFacture)
+function downloadLastFacture(){
+  const fac=window._lastFacture||JSON.parse(localStorage.getItem('kbb_last_facture')||'null');
+  if(!fac){ showToast('Aucune facture disponible'); return; }
+  downloadFacturePDF(fac);
+}
+
+// Download all factures for a period as a multi-page PDF
+async function downloadAllFacturesPDF(from,to){
+  if(!supaOk()){ showToast('Non connecté'); return; }
+  let q='factures?select=*&order=date.asc';
+  if(from) q+='&date=gte.'+from+'T00:00:00Z';
+  if(to)   q+='&date=lte.'+to+'T23:59:59Z';
+  let rows=[];
+  try{ rows=await supaReq(q)||[]; }catch(e){ showToast('Erreur: '+e.message); return; }
+  if(!rows.length){ showToast('Aucune facture sur cette période'); return; }
+  if(!window.jspdf){ showToast('PDF non disponible'); return; }
+  const {jsPDF}=window.jspdf;
+  let doc=null;
+  rows.forEach((fac,i)=>{
+    if(i===0){
+      doc=generateInvoicePDF(fac);
+    } else {
+      const tmpDoc=generateInvoicePDF(fac);
+      // Copy pages from tmpDoc to doc
+      const srcPages=tmpDoc.internal.getNumberOfPages();
+      for(let p=1;p<=srcPages;p++){
+        doc.addPage();
+        // jsPDF doesn't support direct page copy — generate separately and concat isn't native
+        // Workaround: we'll just generate individual PDFs and put them in a zip, but that requires JSZip
+        // Simplified: just save each as separate — instead generate a summary PDF
+      }
+    }
+  });
+  // Simplified: save a single PDF with just first page approach — instead generate summary
+  // Build a simple list PDF
+  const {jsPDF:jsPDF2}=window.jspdf;
+  const listDoc=new jsPDF2({unit:'mm',format:'a4'});
+  const W=210,M=15,FR=[255,107,43],DK=[20,18,16],GR=[120,115,108];
+  listDoc.setFillColor(...FR);
+  listDoc.rect(0,0,W,28,'F');
+  listDoc.setTextColor(255,255,255);
+  listDoc.setFont('helvetica','bold');
+  listDoc.setFontSize(18);
+  listDoc.text('KBB À LA BRAISE — Récapitulatif factures',M,12);
+  listDoc.setFont('helvetica','normal');
+  listDoc.setFontSize(9);
+  const fromStr=from?new Date(from+'T00:00:00').toLocaleDateString('fr-FR'):'—';
+  const toStr=to?new Date(to+'T00:00:00').toLocaleDateString('fr-FR'):'—';
+  listDoc.text('Période : '+fromStr+' au '+toStr+' · '+rows.length+' facture(s)',M,20);
+  let y=36;
+  listDoc.setFont('helvetica','bold');
+  listDoc.setFontSize(8.5);
+  listDoc.setFillColor(230,225,220);
+  listDoc.rect(M,y,W-2*M,7,'F');
+  listDoc.setTextColor(...DK);
+  listDoc.text('N° Facture',M+2,y+5);
+  listDoc.text('Date',M+45,y+5);
+  listDoc.text('Client',M+75,y+5);
+  listDoc.text('HT 10%',M+105,y+5,{align:'right'});
+  listDoc.text('HT 5,5%',M+128,y+5,{align:'right'});
+  listDoc.text('TVA',M+150,y+5,{align:'right'});
+  listDoc.text('TTC',W-M-2,y+5,{align:'right'});
+  y+=8;
+  let totHT10=0,totHT55=0,totTVA=0,totTTC=0;
+  rows.forEach((fac,i)=>{
+    if(y>270){listDoc.addPage();y=20;}
+    if(i%2===0){listDoc.setFillColor(252,250,248);listDoc.rect(M,y,W-2*M,7,'F');}
+    listDoc.setFont('helvetica','normal');
+    listDoc.setFontSize(8);
+    listDoc.setTextColor(...DK);
+    listDoc.text(fac.numero_facture||'',M+2,y+5);
+    listDoc.text(new Date(fac.date).toLocaleDateString('fr-FR'),M+45,y+5);
+    listDoc.text((fac.client_prenom||'').substring(0,15),M+75,y+5);
+    listDoc.text(((fac.total_ht_10||0).toFixed(2)+'€').replace('.',','),M+105,y+5,{align:'right'});
+    listDoc.text(((fac.total_ht_55||0).toFixed(2)+'€').replace('.',','),M+128,y+5,{align:'right'});
+    const tvaTot=(fac.tva_10||0)+(fac.tva_55||0);
+    listDoc.text((tvaTot.toFixed(2)+'€').replace('.',','),M+150,y+5,{align:'right'});
+    listDoc.text(((fac.total_ttc||0).toFixed(2)+'€').replace('.',','),W-M-2,y+5,{align:'right'});
+    totHT10+=fac.total_ht_10||0; totHT55+=fac.total_ht_55||0;
+    totTVA+=tvaTot; totTTC+=fac.total_ttc||0;
+    y+=7;
+  });
+  // Totals
+  y+=3;
+  listDoc.setDrawColor(...FR);
+  listDoc.line(M,y,W-M,y);
+  y+=5;
+  listDoc.setFont('helvetica','bold');
+  listDoc.setFontSize(9);
+  listDoc.setTextColor(...FR);
+  listDoc.text('TOTAUX',M+2,y+5);
+  listDoc.text((totHT10.toFixed(2)+'€').replace('.',','),M+105,y+5,{align:'right'});
+  listDoc.text((totHT55.toFixed(2)+'€').replace('.',','),M+128,y+5,{align:'right'});
+  listDoc.text((totTVA.toFixed(2)+'€').replace('.',','),M+150,y+5,{align:'right'});
+  listDoc.text((totTTC.toFixed(2)+'€').replace('.',','),W-M-2,y+5,{align:'right'});
+  const fname='kbb-factures-'+(from||'debut')+'-'+(to||'fin')+'.pdf';
+  listDoc.save(fname);
+  showToast('PDF téléchargé 📄');
+}
+
 /* ══ RGPD — CONSENTEMENT ══ */
 function rgpdBannerCheck(){
   if(!localStorage.getItem('kbb_rgpd_consent')){
@@ -5398,55 +5773,96 @@ async function loadComptaSection(from, to){
   if(!el) return;
   el.innerHTML='<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px;">⏳ Chargement…</div>';
   try{
-    let q='transactions?select=*&order=date_heure.asc';
-    if(from) q+='&date_heure=gte.'+from+'T00:00:00Z';
-    if(to)   q+='&date_heure=lte.'+to+'T23:59:59Z';
+    let q='factures?select=*&order=date.desc';
+    if(from) q+='&date=gte.'+from+'T00:00:00Z';
+    if(to)   q+='&date=lte.'+to+'T23:59:59Z';
     const rows=await supaReq(q)||[];
-    const totalHT=rows.reduce((s,x)=>s+parseFloat(x.montant_ht||0),0);
-    const totalTVA=rows.reduce((s,x)=>s+parseFloat(x.tva||0),0);
-    const totalTTC=rows.reduce((s,x)=>s+parseFloat(x.montant_ttc||0),0);
+    const totHT10=rows.reduce((s,x)=>s+parseFloat(x.total_ht_10||0),0);
+    const totTVA10=rows.reduce((s,x)=>s+parseFloat(x.tva_10||0),0);
+    const totHT55=rows.reduce((s,x)=>s+parseFloat(x.total_ht_55||0),0);
+    const totTVA55=rows.reduce((s,x)=>s+parseFloat(x.tva_55||0),0);
+    const totTTC=rows.reduce((s,x)=>s+parseFloat(x.total_ttc||0),0);
+    const totTVA=totTVA10+totTVA55;
+    const totHT=totHT10+totHT55;
+    const nb=rows.length;
+    const panier=nb>0?totTTC/nb:0;
+    const facListHtml=rows.slice(0,20).map(f=>`
+      <div class="facture-row">
+        <div class="facture-num">${f.numero_facture||'—'}</div>
+        <div class="facture-info">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${f.client_prenom||'Client'}</div>
+          <div class="facture-date">${new Date(f.date).toLocaleDateString('fr-FR')} · ${f.moyen_paiement==='carte'?'💳 Carte':'🏠 Sur place'}</div>
+        </div>
+        <div class="facture-ttc">${(f.total_ttc||0).toFixed(2).replace('.',',')}€</div>
+        <button class="facture-dl" onclick='downloadFacturePDF(${JSON.stringify(f)})'>📄</button>
+      </div>`).join('');
     el.innerHTML=`
-      <div class="compta-summary">
-        <div class="compta-box"><div class="compta-box-val ht">${totalHT.toFixed(2)}€</div><div class="compta-box-lbl">Total HT</div></div>
-        <div class="compta-box"><div class="compta-box-val tva">${totalTVA.toFixed(2)}€</div><div class="compta-box-lbl">TVA 10%</div></div>
-        <div class="compta-box"><div class="compta-box-val ttc">${totalTTC.toFixed(2)}€</div><div class="compta-box-lbl">Total TTC</div></div>
+      <div class="compta-summary" style="grid-template-columns:repeat(2,1fr);">
+        <div class="compta-box"><div class="compta-box-val ht">${totHT.toFixed(2)}€</div><div class="compta-box-lbl">CA Total HT</div></div>
+        <div class="compta-box"><div class="compta-box-val ttc">${totTTC.toFixed(2)}€</div><div class="compta-box-lbl">CA Total TTC</div></div>
+        <div class="compta-box"><div class="compta-box-val tva">${totTVA10.toFixed(2)}€</div><div class="compta-box-lbl">TVA 10%</div></div>
+        <div class="compta-box"><div class="compta-box-val tva">${totTVA55.toFixed(2)}€</div><div class="compta-box-lbl">TVA 5,5%</div></div>
       </div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:.75rem;text-align:center;">${rows.length} transaction${rows.length>1?'s':''} sur la période</div>
-      <button class="compta-export-btn" onclick="exportComptaCSV('${from||''}','${to||''}')">📊 Exporter CSV (Excel/Comptable)</button>`;
+      <div style="font-size:12px;color:var(--text3);text-align:center;margin:-.25rem 0 .75rem;">${nb} facture${nb>1?'s':''} · panier moyen ${panier.toFixed(2).replace('.',',')}€</div>
+      <div class="facture-list">${facListHtml||'<div style="text-align:center;padding:.75rem;color:var(--text3);font-size:13px;">Aucune facture sur cette période</div>'}</div>
+      ${nb>20?`<div style="text-align:center;font-size:12px;color:var(--text3);padding:.25rem 0;">${nb-20} facture${nb-20>1?'s':''} supplémentaire${nb-20>1?'s':''} dans l'export CSV</div>`:''}
+      <div style="display:flex;gap:.625rem;flex-wrap:wrap;">
+        <button class="compta-export-btn" style="flex:1" onclick="exportComptaCSV('${from||''}','${to||''}')">📊 Export CSV</button>
+        <button class="compta-export-btn" style="flex:1" onclick="downloadAllFacturesPDF('${from||''}','${to||''}')">📄 PDF récapitulatif</button>
+      </div>
+      <button class="compta-export-btn" onclick="triggerMonthlyReport()">✉️ Envoyer rapport mensuel</button>`;
   }catch(e){
     el.innerHTML='<div style="color:var(--red);font-size:13px;padding:.5rem;">Erreur : '+e.message+'</div>';
   }
 }
 
+// Trigger the monthly accounting email manually
+async function triggerMonthlyReport(){
+  if(!supaOk()){ showToast('Non connecté'); return; }
+  showToast('Envoi en cours…');
+  try{
+    const r=await fetch(SURL+'/functions/v1/send-monthly-accounting',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+      body:'{}'
+    });
+    const d=await r.json();
+    if(d.ok) showToast('Rapport envoyé ✉️ ('+(d.nb||0)+' factures)');
+    else showToast('Erreur: '+(d.error||'inconnue'));
+  }catch(e){ showToast('Erreur: '+e.message); }
+}
+
 async function exportComptaCSV(from, to){
   if(!supaOk()){ showToast('Non connecté à Supabase'); return; }
-  let q='transactions?select=*&order=date_heure.asc';
-  if(from) q+='&date_heure=gte.'+from+'T00:00:00Z';
-  if(to)   q+='&date_heure=lte.'+to+'T23:59:59Z';
+  let q='factures?select=*&order=date.asc';
+  if(from) q+='&date=gte.'+from+'T00:00:00Z';
+  if(to)   q+='&date=lte.'+to+'T23:59:59Z';
   let rows=[];
   try{ rows=await supaReq(q)||[]; }catch(e){ showToast('Erreur export: '+e.message); return; }
   const bom='\uFEFF';
   const sep=';';
-  const header=['Date','Heure','Numéro commande','Articles','HT (€)','TVA 10% (€)','TTC (€)','Moyen de paiement','Référence Stripe','Statut'].join(sep);
+  const header=['Date','Heure','N° Facture','N° Commande','Articles','HT 10% (€)','TVA 10% (€)','HT 5,5% (€)','TVA 5,5% (€)','TTC (€)','Paiement','Réf. Stripe'].join(sep);
   const lines=rows.map(r=>{
-    const dt=new Date(r.date_heure);
+    const dt=new Date(r.date);
     const date=dt.toLocaleDateString('fr-FR');
     const heure=dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
     const arts=r.articles?JSON.stringify(r.articles).replace(/;/g,' ').replace(/"/g,"'"):'';
-    return [date,heure,r.numero_commande||'',arts,
-      String(r.montant_ht).replace('.',','),
-      String(r.tva).replace('.',','),
-      String(r.montant_ttc).replace('.',','),
-      r.moyen_paiement||'',r.ref_stripe||'',r.statut||''].join(sep);
+    return [date,heure,r.numero_facture||'',
+      r.commande_id?'#KBB-'+String(r.commande_id).padStart(3,'0'):'',arts,
+      String(r.total_ht_10||0).replace('.',','),
+      String(r.tva_10||0).replace('.',','),
+      String(r.total_ht_55||0).replace('.',','),
+      String(r.tva_55||0).replace('.',','),
+      String(r.total_ttc||0).replace('.',','),
+      r.moyen_paiement||'',r.ref_stripe||''].join(sep);
   });
   const csv=bom+header+'\n'+lines.join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  const fname='kbb-transactions-'+(from||'debut')+'-'+(to||'fin')+'.csv';
-  a.href=url; a.download=fname; a.click();
+  a.href=url; a.download='kbb-factures-'+(from||'debut')+'-'+(to||'fin')+'.csv'; a.click();
   URL.revokeObjectURL(url);
-  showToast('Export téléchargé 📊');
+  showToast('Export CSV téléchargé 📊');
 }
 
 /* ══ OVERLAY ══ */
@@ -5704,10 +6120,14 @@ function renderSuivi(){
   const rtSub=!!_rtChannels['suivi-order'];
   const isRtConnected=rtSub&&(_rtChannels['suivi-order']?.state==='joined');
   if(footer){
+    // Check if we have a facture for this order
+    const _lastFac=window._lastFacture||JSON.parse(localStorage.getItem('kbb_last_facture')||'null');
+    const _hasFac=_lastFac&&(String(_lastFac.commande_id)===String(o.supaId)||String(_lastFac.commande_id)===String(o.orderId));
+    const _facBtn=_hasFac?`<button class="abtn-invoice" onclick="downloadLastFacture()">📄 Télécharger ma facture</button>`:'';
     if(o.statut==='archive'){
-      footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">Retour à l'accueil</button>`;
+      footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">Retour à l'accueil</button>${_facBtn}`;
     } else if(o.statut==='pret'){
-      footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">✅ J'ai récupéré ma commande</button>`;
+      footer.innerHTML=`<button class="abtn" onclick="setActiveOrder(null);updateCommandesTile();go('page-dashboard')">✅ J'ai récupéré ma commande</button>${_facBtn}`;
     } else {
       footer.innerHTML=`
         ${isRtConnected
