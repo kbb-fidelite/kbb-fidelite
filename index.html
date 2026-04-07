@@ -2185,9 +2185,18 @@ function goBack(){
   }
 }
 
+// ── Auth guard global ──────────────────────────────────────────────────────
+// Mis à true dès que getSession() synchrone a fini (window.load STEP 1).
+// Tant que false : aucune redirection vers page-client-login n'est possible —
+// la session n'a pas encore eu le temps d'être lue.
+let _authInitialized = false;
+
 const _AUTH_PAGES=['page-menu','page-fidel','page-parrainage'];
 function go(p){
-  if(_AUTH_PAGES.includes(p)&&!currentPortalClient){
+  // Guard AUTH : actif UNIQUEMENT après initialisation de la session.
+  // Avant _authInitialized, on laisse passer — currentPortalClient sera défini
+  // juste après par getSession() synchrone.
+  if(_authInitialized && _AUTH_PAGES.includes(p) && !currentPortalClient){
     localStorage.setItem('kbb_post_login',p==='page-menu'?'cart':'');
     document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
     document.getElementById('page-client-login').classList.add('active');
@@ -7018,8 +7027,13 @@ function _doHideSplash(){
   if(!splash) return;
   splash.classList.add('spl-out');
   setTimeout(() => { splash.style.display = 'none'; }, 600);
-  const anyActive = document.querySelector('.page.active');
-  if(!anyActive) go('page-home');
+  // Ne fallback vers page-home qu'après initialisation de la session :
+  // évite qu'un timeout prématuré affiche la home avec currentPortalClient=null
+  // alors que l'IDB n'a pas encore répondu.
+  if(_authInitialized){
+    const anyActive = document.querySelector('.page.active');
+    if(!anyActive) go('page-home');
+  }
 }
 
 window.addEventListener('load', async function(){
@@ -7050,6 +7064,12 @@ window.addEventListener('load', async function(){
       go('page-dashboard');
     }
   }
+
+  // ── Auth guard débloqué ─────────────────────────────────────────────────
+  // getSession() synchrone est terminé. currentPortalClient est désormais défini
+  // (ou null si aucune session). Le guard go() et _doHideSplash peuvent maintenant
+  // s'appliquer sans risque de redirection prématurée.
+  _authInitialized = true;
 
   // ══ ÉTAPE 2 — TÂCHES DE FOND (après que currentPortalClient est défini) ══
 
