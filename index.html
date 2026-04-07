@@ -1253,31 +1253,47 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
       <p><strong>Rappel :</strong> 1€ = 1 point. Cumulez vos points et échangez-les contre des récompenses exclusives !</p>
     </div>
 
-    <!-- Zone PIN rapide -->
-    <div id="pin-rapide-zone" style="display:none;margin-bottom:1.25rem;">
-      <div style="font-size:13px;color:var(--text3);margin-bottom:6px;text-align:center;">Bonjour <span id="pin-prenom" style="color:var(--text);font-weight:700;"></span> 👋</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:1rem;text-align:center;">Entrez votre PIN rapide</div>
-      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:1rem;">
-        <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    <!-- Étape 1 : saisie du numéro de téléphone -->
+    <div id="otp-step1">
+      <div class="field">
+        <label>Numéro de téléphone</label>
+        <input type="tel" id="otp-tel" placeholder="06 12 34 56 78" autocomplete="tel" inputmode="tel">
       </div>
-      <div class="pin-grid" style="max-width:260px;margin:0 auto;">
-        <button class="pkey" onclick="ppk('1')">1</button><button class="pkey" onclick="ppk('2')">2</button><button class="pkey" onclick="ppk('3')">3</button>
-        <button class="pkey" onclick="ppk('4')">4</button><button class="pkey" onclick="ppk('5')">5</button><button class="pkey" onclick="ppk('6')">6</button>
-        <button class="pkey" onclick="ppk('7')">7</button><button class="pkey" onclick="ppk('8')">8</button><button class="pkey" onclick="ppk('9')">9</button>
-        <button class="pkey" style="visibility:hidden"></button><button class="pkey" onclick="ppk('0')">0</button><button class="pkey del" onclick="ppdel()">⌫</button>
-      </div>
-      <div id="pin-rapide-err" style="color:#e74c3c;text-align:center;font-size:13px;margin-top:.5rem;min-height:18px;"></div>
-      <button onclick="resetPinRapide()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;width:100%;text-align:center;padding:.75rem 0 0;">Utiliser mon code secret →</button>
+      <button class="abtn" id="otp-send-btn" onclick="otpSendCode()">Recevoir un code SMS →</button>
+      <p style="font-size:12px;color:var(--text3);text-align:center;margin-top:1.25rem;line-height:1.6;">
+        Un code à 6 chiffres vous sera envoyé par SMS.<br>
+        Pas encore inscrit ? <a href="#" onclick="go('page-inscription');return false;" style="color:var(--fire);text-decoration:none;font-weight:600;">Créer un compte →</a>
+      </p>
     </div>
 
-    <!-- Formulaire classique -->
-    <div id="normal-login-zone">
-      <div class="field"><label>Numéro de téléphone</label><input type="tel" id="login-tel" placeholder="06 12 34 56 78"></div>
-      <div class="field"><label>Code secret</label><input type="password" id="login-code" placeholder="Votre code secret"></div>
-      <button class="abtn" onclick="clientLogin()">Accéder à mes points →</button>
+    <!-- Étape 2 : saisie du code OTP -->
+    <div id="otp-step2" style="display:none">
+      <div style="text-align:center;margin-bottom:1.75rem;">
+        <div style="font-size:36px;margin-bottom:.75rem;">📱</div>
+        <div style="font-weight:700;font-size:17px;color:var(--text);margin-bottom:.4rem;">Code envoyé !</div>
+        <div style="font-size:13px;color:var(--text3);" id="otp-tel-label">Vérifiez vos SMS</div>
+      </div>
+      <div class="field">
+        <label>Code à 6 chiffres</label>
+        <input type="text" id="otp-code" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+               style="font-size:24px;letter-spacing:6px;text-align:center;font-weight:700;">
+      </div>
+      <button class="abtn" id="otp-verify-btn" onclick="otpVerifyCode()">Se connecter →</button>
+      <div style="display:flex;justify-content:space-between;margin-top:.75rem;">
+        <button onclick="otpBackToStep1()" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.5rem 0;">← Modifier le numéro</button>
+        <button onclick="otpSendCode(true)" style="background:none;border:none;color:var(--fire);font-size:13px;cursor:pointer;padding:.5rem 0;">Renvoyer le code</button>
+      </div>
     </div>
 
-    <!-- Zones fantômes pour compatibilité -->
+    <!-- Zones fantômes — conservées pour compatibilité avec le code existant -->
+    <div id="pin-rapide-zone" style="display:none"></div>
+    <div id="pin-prenom" style="display:none"></div>
+    <div id="pin-rapide-err" style="display:none"></div>
+    <div id="pd0" style="display:none"></div><div id="pd1" style="display:none"></div>
+    <div id="pd2" style="display:none"></div><div id="pd3" style="display:none"></div>
+    <div id="normal-login-zone" style="display:none">
+      <input type="hidden" id="login-tel"><input type="hidden" id="login-code">
+    </div>
     <div id="quick-login-zone" style="display:none"></div>
     <div id="quick-auto-zone" style="display:none"></div>
     <div id="quick-pin-zone" style="display:none"></div>
@@ -1406,6 +1422,7 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
         <button class="rgpd-btn" onclick="exportMyData()"><span style="font-size:18px">📥</span><div><div>Télécharger mes données</div><div style="font-size:11px;font-weight:400;color:var(--text3);margin-top:1px">Export JSON de mon profil</div></div></button>
         <button class="rgpd-btn" onclick="go('page-politique-confidentialite')"><span style="font-size:18px">🔒</span><div><div>Politique de confidentialité</div><div style="font-size:11px;font-weight:400;color:var(--text3);margin-top:1px">RGPD — Vos droits</div></div></button>
         <button class="rgpd-btn danger" onclick="deleteMyAccount()"><span style="font-size:18px">🗑️</span><div><div>Supprimer mon compte</div><div style="font-size:11px;font-weight:400;opacity:.7;margin-top:1px">Suppression définitive de vos données</div></div></button>
+        <button class="rgpd-btn" onclick="authSignOut()"><span style="font-size:18px">🚪</span><div><div>Se déconnecter</div><div style="font-size:11px;font-weight:400;color:var(--text3);margin-top:1px">Fermer la session sur cet appareil</div></div></button>
       </div>
     </div>
   </div>
@@ -2011,6 +2028,23 @@ function computePassages(amount){
 let SURL=localStorage.getItem('kbb_surl')||'https://mwfezeuaohwbhubaaddm.supabase.co';
 let SKEY=localStorage.getItem('kbb_skey')||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13ZmV6ZXVhb2h3Ymh1YmFhZGRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwOTEzODUsImV4cCI6MjA4OTY2NzM4NX0.lunGe8ukuiunhqDQ6ydRyDqURP3C4GCdFz0i7POV4jA';
 function supaOk(){return SURL&&SKEY;}
+
+// ── Client Supabase Auth — instance dédiée à l'authentification (session persistante) ──
+// NB : séparé du client Realtime (_supaClient) qui n'a pas de session
+let _supaAuthClient=null;
+function getSupaClient(){
+  if(_supaAuthClient) return _supaAuthClient;
+  if(!SURL||!SKEY||!window.supabase) return null;
+  _supaAuthClient=window.supabase.createClient(SURL,SKEY,{
+    auth:{
+      persistSession:true,
+      storageKey:'sb-kbb-auth',
+      autoRefreshToken:true,
+      detectSessionInUrl:false
+    }
+  });
+  return _supaAuthClient;
+}
 async function supaReq(path,method='GET',body=null){
   const o={method,headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'}};
   if(body) o.body=JSON.stringify(body);
@@ -3632,6 +3666,108 @@ function getParrainStats(clients){
 /* ══ CLIENT LOGIN ══ */
 function genToken(){
   return Math.random().toString(36).substr(2)+Date.now().toString(36);
+}
+
+/* ── Supabase Auth OTP SMS ─────────────────────────────────────────────────
+   Flux : téléphone → SMS OTP 6 chiffres → session Supabase native
+   La session est gérée par le SDK Supabase (refresh token automatique).
+   ────────────────────────────────────────────────────────────────────────── */
+
+let _otpPhone = ''; // numéro en cours de vérification (format E.164)
+
+// Normalise un numéro français vers E.164 (+33XXXXXXXXX)
+function normalizePhone(tel){
+  const t=tel.replace(/[\s\-\.\(\)]/g,'');
+  if(t.startsWith('+')) return t;
+  if(t.startsWith('00')) return '+'+t.slice(2);
+  if(t.startsWith('0')) return '+33'+t.slice(1);
+  return '+33'+t;
+}
+
+// Numéro E.164 → format local (0XXXXXXXXX) pour lookup dans la table clients
+function e164ToLocal(e164){
+  if(e164.startsWith('+33')) return '0'+e164.slice(3);
+  return e164;
+}
+
+async function otpSendCode(isResend){
+  const rawTel=(document.getElementById('otp-tel').value||_otpPhone.replace('+33','0')).trim();
+  if(!rawTel){ showToast('Entrez votre numéro de téléphone'); return; }
+  const phone=normalizePhone(rawTel);
+  const auth=getSupaClient();
+  if(!auth){ showToast('Service indisponible — vérifiez votre connexion'); return; }
+  const btn=document.getElementById('otp-send-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Envoi…'; }
+  try{
+    const {error}=await auth.auth.signInWithOtp({phone});
+    if(error) throw error;
+    _otpPhone=phone;
+    document.getElementById('otp-step1').style.display='none';
+    document.getElementById('otp-step2').style.display='block';
+    document.getElementById('otp-tel-label').textContent='Code envoyé au '+rawTel;
+    document.getElementById('otp-code').value='';
+    document.getElementById('otp-code').focus();
+    if(isResend) showToast('Nouveau code envoyé par SMS');
+  }catch(err){
+    showToast('Erreur : '+(err.message||'impossible d\'envoyer le SMS'));
+    console.error('OTP send error:',err);
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Recevoir un code SMS →'; }
+  }
+}
+
+function otpBackToStep1(){
+  document.getElementById('otp-step2').style.display='none';
+  document.getElementById('otp-step1').style.display='block';
+  document.getElementById('otp-tel').focus();
+}
+
+async function otpVerifyCode(){
+  const token=(document.getElementById('otp-code').value||'').trim();
+  if(token.length!==6){ showToast('Le code doit contenir 6 chiffres'); return; }
+  if(!_otpPhone){ otpBackToStep1(); return; }
+  const auth=getSupaClient();
+  if(!auth){ showToast('Service indisponible'); return; }
+  const btn=document.getElementById('otp-verify-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Vérification…'; }
+  try{
+    const {data,error}=await auth.auth.verifyOtp({phone:_otpPhone,token,type:'sms'});
+    if(error) throw error;
+    // OTP validé — récupérer le compte fidélité par téléphone
+    const localTel=e164ToLocal(_otpPhone);
+    let client=await dbByTel(localTel);
+    // Essayer aussi en E.164 si le numéro est stocké dans ce format
+    if(!client) client=await dbByTel(_otpPhone);
+    if(!client){
+      // Compte inconnu → inscription
+      showToast('Numéro inconnu — inscrivez-vous d\'abord');
+      go('page-inscription');
+      const telInput=document.getElementById('reg-tel');
+      if(telInput) telInput.value=localTel;
+      return;
+    }
+    saveSession(client);
+    renderPortal(client);
+    _postLoginRedirect();
+    showToast('Connecté ! Bienvenue '+client.prenom+' 🔥');
+  }catch(err){
+    showToast('Code incorrect ou expiré — réessayez');
+    console.error('OTP verify error:',err);
+    document.getElementById('otp-code').value='';
+    document.getElementById('otp-code').focus();
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Se connecter →'; }
+  }
+}
+
+// Déconnexion complète — efface la session Supabase Auth + toutes les clés locales
+async function authSignOut(){
+  const auth=getSupaClient();
+  if(auth){ try{ await auth.auth.signOut(); }catch(e){} }
+  clearSession();
+  currentPortalClient=null;
+  go('page-home');
+  showToast('Déconnecté');
 }
 
 /* ── IndexedDB layer (backup contre iOS ITP qui efface localStorage) ── */
@@ -6874,38 +7010,55 @@ window.addEventListener('load', async function(){
   // ── Précharger les récompenses depuis Supabase en arrière-plan ──
   loadRecompenses().catch(()=>{});
 
-  // Auto-login au démarrage
-  // Flux : lire le numéro depuis IDB → appeler Supabase → connexion directe, sans PIN
-  // Le PIN n'est demandé qu'à la toute première connexion ou après déconnexion manuelle
+  // Auto-login au démarrage — Supabase Auth comme source de vérité
+  // La session est persistée nativement par le SDK (refresh token automatique)
   async function tryAutoLogin(){
 
     // ── CAS 0 : mode kiosque ──
     if(window._kioskMode){ go('page-pin'); return true; }
 
-    // ── CAS 1 : numéro connu → récupérer le compte depuis Supabase → connexion auto ──
-    const tel = await getIdentityAsync();
-    if(tel){
-      let client = null;
-
-      // Priorité réseau : données fraîches depuis Supabase
-      if(supaOk()){
-        try{ client = await dbByTel(tel); }catch(e){ client = null; }
-      }
-
-      // Fallback hors-ligne : session en cache (localStorage → cookie → IDB)
-      if(!client){
-        const sess = await getSessionAsync();
-        if(sess) client = sess.clientData;
-      }
-
-      if(client){
-        renderPortal(client);
-        go('page-dashboard');
-        return true;
-      }
+    // ── CAS 1 : session Supabase Auth active → connexion automatique ──
+    const auth = getSupaClient();
+    if(auth){
+      try{
+        const { data:{ session } } = await auth.auth.getSession();
+        if(session && session.user){
+          const phone = session.user.phone;
+          if(phone){
+            let client = null;
+            // Récupérer les données fidélité depuis Supabase
+            if(supaOk()){
+              try{
+                const localTel = e164ToLocal(phone);
+                client = await dbByTel(localTel);
+                if(!client) client = await dbByTel(phone); // fallback E.164
+              }catch(e){}
+            }
+            // Fallback hors-ligne : session en cache (IDB)
+            if(!client){
+              const sess = await getSessionAsync();
+              if(sess) client = sess.clientData;
+            }
+            if(client){
+              renderPortal(client);
+              go('page-dashboard');
+              return true;
+            }
+          }
+        }
+      }catch(e){ console.warn('tryAutoLogin auth error:', e); }
     }
 
-    // ── CAS 2 : premier lancement ou déconnexion manuelle → page d'accueil ──
+    // ── CAS 2 : fallback legacy — numéro stocké en IDB (migration v86) ──
+    const tel = await getIdentityAsync();
+    if(tel && supaOk()){
+      try{
+        const client = await dbByTel(tel);
+        if(client){ renderPortal(client); go('page-dashboard'); return true; }
+      }catch(e){}
+    }
+
+    // ── CAS 3 : aucune session → page de connexion ──
     return false;
   }
 
