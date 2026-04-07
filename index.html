@@ -1287,15 +1287,18 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
       </div>
     </div>
 
-    <!-- Fallback : connexion avec code secret (sans SMS) -->
+    <!-- Fallback : connexion avec numéro de téléphone (+ code secret si défini) -->
     <div id="otp-step-code-secret" style="display:none">
+      <div style="text-align:center;margin-bottom:1.25rem;">
+        <div style="font-size:13px;color:var(--text3);line-height:1.6;">Entrez votre numéro de téléphone.<br>Si vous avez un code secret, saisissez-le aussi.</div>
+      </div>
       <div class="field">
         <label>Numéro de téléphone</label>
         <input type="tel" id="cs-tel" placeholder="06 12 34 56 78" autocomplete="tel" inputmode="tel">
       </div>
       <div class="field">
-        <label>Code secret</label>
-        <input type="password" id="cs-code" placeholder="Votre code secret" autocomplete="current-password">
+        <label>Code secret <span style="font-weight:400;color:var(--text3);font-size:12px;">(facultatif)</span></label>
+        <input type="password" id="cs-code" placeholder="Laisser vide si vous n'en avez pas" autocomplete="current-password">
       </div>
       <button class="abtn" onclick="loginWithCodeSecret()">Se connecter →</button>
       <div style="text-align:center;margin-top:.75rem;">
@@ -3762,14 +3765,16 @@ function loginShowCodeSecret(){
 async function loginWithCodeSecret(){
   const tel=(document.getElementById('cs-tel').value||'').replace(/\s/g,'');
   const code=(document.getElementById('cs-code').value||'').trim();
-  if(!tel||!code){ showToast('Remplissez tous les champs'); return; }
+  if(!tel){ showToast('Entrez votre numéro de téléphone'); return; }
   const btn=document.querySelector('#otp-step-code-secret .abtn');
   if(btn){ btn.disabled=true; btn.textContent='Connexion…'; }
   try{
     const c=await dbByTel(tel);
-    if(!c){ showToast('Numéro introuvable'); return; }
+    if(!c){ showToast('Numéro introuvable — êtes-vous bien inscrit ?'); return; }
     const storedCode=c.code_secret||'';
-    if(storedCode&&storedCode!==code){ showToast('Code secret incorrect'); return; }
+    // Si le compte a un code secret, il faut le fournir
+    if(storedCode && storedCode!==code){ showToast('Code secret incorrect'); return; }
+    // Si le compte n'a pas de code secret, connexion libre par numéro seul
     saveSession(c);
     renderPortal(c);
     _postLoginRedirect();
