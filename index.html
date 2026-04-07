@@ -7023,57 +7023,68 @@ function _doHideSplash(){
 }
 
 window.addEventListener('load', async function(){
-  // ── Détection mode kiosque ──
+
+  // ══ ÉTAPE 1 — SYNCHRONE, BLOQUANTE ══
+  // Détection kiosque + lecture session : currentPortalClient doit être défini
+  // AVANT tout accès au routeur go() et AVANT tout autre traitement.
+
+  // 1a. Kiosque
   const _urlParams=new URLSearchParams(location.search);
   if(_urlParams.get('mode')==='kiosque'){
     window._kioskMode=true;
     document.body.classList.add('kiosk');
-    // Pointer vers le manifest kiosque (fullscreen + landscape)
     const mlink=document.querySelector('link[rel="manifest"]');
     if(mlink) mlink.href='manifest-kiosque.json';
-    // Détecter la cible (cuisine ou comptoir) via l'ancre
     const _hash=location.hash;
     window._kioskTarget=_hash==='#comptoir'?'comptoir':'cuisine';
   }
 
-  // ── Retour depuis Stripe Checkout ──
+  // 1b. Session locale — lecture synchrone localStorage + cookie, zéro réseau, zéro délai.
+  //     Si la session est là, currentPortalClient est défini ici, avant go() et avant Stripe.
+  if(window._kioskMode){
+    go('page-pin');
+  } else {
+    const syncSess = getSession(); // synchrone — pas d'await, pas de setTimeout
+    if(syncSess && syncSess.clientData){
+      renderPortal(syncSess.clientData);
+      go('page-dashboard');
+    }
+  }
+
+  // ══ ÉTAPE 2 — TÂCHES DE FOND (après que currentPortalClient est défini) ══
+
+  // Retour depuis Stripe : peut appeler go() — currentPortalClient est déjà défini
   handleStripeReturn();
 
-  // ── Précharger les récompenses depuis Supabase en arrière-plan ──
+  // Précharger les récompenses
   loadRecompenses().catch(()=>{});
 
-  // Auto-login au démarrage
-  // Priorité : données locales (zéro réseau) → Supabase en arrière-plan pour rafraîchir
-  async function tryAutoLogin(){
-
-    // ── CAS 0 : mode kiosque ──
-    if(window._kioskMode){ go('page-pin'); return true; }
-
-    // ── CAS 1 : session locale (localStorage → cookie → IDB) — aucun réseau requis ──
-    // C'est le chemin principal, identique à ce qui fonctionnait avant v86
-    const sess = await getSessionAsync();
-    if(sess && sess.clientData){
-      renderPortal(sess.clientData);
-      go('page-dashboard');
-      // Rafraîchir depuis Supabase en arrière-plan sans bloquer l'affichage
-      const tel = sess.clientData.tel||sess.clientData.telephone;
-      if(tel) dbByTel(tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
-      return true;
-    }
-
-    // ── CAS 2 : aucune session locale → page de connexion ──
-    return false;
-  }
+  // ══ ÉTAPE 3 — FALLBACK ASYNC (IDB si localStorage était vide) ══
+  // + refresh Supabase en arrière-plan pour mettre à jour les points
 
   const safetyTimer = setTimeout(()=>{ hideSplash(); }, 6000);
 
-  setTimeout(async function(){
-    try{ await tryAutoLogin(); }catch(e){}
-    clearTimeout(safetyTimer);
-    hideSplash();
-    // Afficher le bandeau RGPD si pas encore accepté (hors mode kiosque)
-    if(!window._kioskMode) rgpdBannerCheck();
-  }, 300);
+  try{
+    if(!window._kioskMode){
+      if(!currentPortalClient){
+        // localStorage et cookie vides → tenter IndexedDB (purge iOS possible)
+        const idbSess = await getSessionAsync();
+        if(idbSess && idbSess.clientData){
+          renderPortal(idbSess.clientData);
+          go('page-dashboard');
+        }
+      }
+      // Rafraîchir depuis Supabase en arrière-plan (non bloquant, met à jour les points)
+      if(currentPortalClient){
+        const tel = currentPortalClient.tel||currentPortalClient.telephone;
+        if(tel) dbByTel(tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
+      }
+    }
+  }catch(e){}
+
+  clearTimeout(safetyTimer);
+  hideSplash();
+  if(!window._kioskMode) rgpdBannerCheck();
 });
 </script>
 <script>
