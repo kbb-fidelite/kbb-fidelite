@@ -1999,6 +1999,14 @@ function loadSettingsUI(){
   if(el('new-pin-cuisine')) el('new-pin-cuisine').value='';
   if(el('new-pin-comptoir')) el('new-pin-comptoir').value='';
   renderReglagesRecompenses();
+  // Synchroniser l'état du bouton Stop avec l'offre flash Supabase
+  refreshFlashCache().then(()=>{
+    const f=getFlashActive();
+    const stopBtn=document.getElementById('stop-flash-btn');
+    const statusEl=document.getElementById('flash-status');
+    if(stopBtn) stopBtn.style.display=f?'block':'none';
+    if(statusEl) statusEl.textContent=f?'✓ Offre active — visible par tous les clients':'';
+  }).catch(()=>{});
 }
 
 /* ══ RULES ══ */
@@ -5351,29 +5359,107 @@ async function validateOrder(){
 }
 
 /* ══ OFFRE FLASH ══ */
+// Cache en mémoire — rechargé depuis Supabase au démarrage et toutes les 60 s.
+// getFlashActive() reste synchrone pour ne pas perturber computePoints().
+let _flashCache=null;
+
 function getFlashActive(){
-  const f=localStorage.getItem('kbb_flash');
-  if(!f) return null;
-  const d=JSON.parse(f);
-  if(Date.now()>d.end){localStorage.removeItem('kbb_flash');return null;}
-  return d;
+  if(!_flashCache) return null;
+  if(Date.now()>_flashCache.end){_flashCache=null;return null;}
+  return _flashCache;
 }
 
-function lancerOffreFlash(){
+async function refreshFlashCache(){
+  try{
+    if(supaOk()){
+      const rows=await supaReq('settings?key=eq.flash&select=value');
+      const f=rows&&rows[0]&&rows[0].value?rows[0].value:null;
+      _flashCache=(f&&Date.now()<=f.end)?f:null;
+    } else {
+      // Pas de Supabase : fallback localStorage (appareil du patron uniquement)
+      const raw=localStorage.getItem('kbb_flash');
+      if(raw){ try{const d=JSON.parse(raw);_flashCache=Date.now()<=d.end?d:null;}catch(e){_flashCache=null;} }
+      else { _flashCache=null; }
+    }
+  }catch(e){
+    // En cas d'erreur réseau, conserver le cache précédent
+    console.warn('refreshFlashCache error:',e);
+  }
+  // Mettre à jour les zones flash déjà présentes dans le DOM
+  ['portal-flash','fidel-flash'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) renderFlash(el);
+  });
+  const banner=document.getElementById('flash-banner');
+  const bannerText=document.getElementById('flash-banner-text');
+  if(banner&&bannerText){
+    if(_flashCache){
+      bannerText.textContent='⚡ '+_flashCache.msg+' — x'+_flashCache.multi+' points';
+      banner.style.display='flex';
+    } else {
+      banner.style.display='none';
+    }
+  }
+}
+
+// Rafraîchissement périodique toutes les 60 s (les clients voient l'offre démarrer/s'arrêter)
+setInterval(()=>refreshFlashCache().catch(()=>{}), 60000);
+
+async function lancerOffreFlash(){
   const msg=document.getElementById('flash-msg').value.trim()||'Offre spéciale !';
   const duree=parseInt(document.getElementById('flash-duree').value)||2;
   const multi=parseFloat(document.getElementById('flash-multi').value)||2;
   const flash={msg,multi,start:Date.now(),end:Date.now()+duree*3600000};
-  localStorage.setItem('kbb_flash',JSON.stringify(flash));
-  document.getElementById('stop-flash-btn').style.display='block';
-  document.getElementById('flash-status').textContent='✓ Offre active — visible par tous les clients';
-  showToast('⚡ Offre flash lancée ! x'+multi+' pts pendant '+duree+'h');
+  const statusEl=document.getElementById('flash-status');
+
+  if(supaOk()){
+    statusEl.textContent='⏳ Enregistrement…';
+    try{
+      // UPSERT : INSERT avec Prefer merge-duplicates (key est PRIMARY KEY)
+      await fetch(SURL+'/rest/v1/settings',{
+        method:'POST',
+        headers:{
+          'apikey':SKEY,'Authorization':'Bearer '+SKEY,
+          'Content-Type':'application/json',
+          'Prefer':'resolution=merge-duplicates,return=minimal'
+        },
+        body:JSON.stringify({key:'flash',value:flash,updated_at:new Date().toISOString()})
+      });
+      _flashCache=flash;
+      localStorage.setItem('kbb_flash',JSON.stringify(flash)); // fallback local
+      document.getElementById('stop-flash-btn').style.display='block';
+      statusEl.textContent='✓ Offre active — visible par tous les clients';
+      showToast('⚡ Offre flash lancée ! x'+multi+' pts pendant '+duree+'h');
+      await refreshFlashCache();
+    }catch(e){
+      statusEl.textContent='⚠ Erreur Supabase — offre locale seulement';
+      showToast('Erreur Supabase lors du lancement');
+      console.error('lancerOffreFlash:',e);
+    }
+  } else {
+    // Sans Supabase : localStorage uniquement (comportement précédent)
+    _flashCache=flash;
+    localStorage.setItem('kbb_flash',JSON.stringify(flash));
+    document.getElementById('stop-flash-btn').style.display='block';
+    statusEl.textContent='⚠ Supabase non configuré — offre locale uniquement';
+    showToast('⚡ Offre flash lancée (locale) ! x'+multi+' pts pendant '+duree+'h');
+  }
 }
 
-function stopOffreFlash(){
+async function stopOffreFlash(){
+  _flashCache=null;
   localStorage.removeItem('kbb_flash');
   document.getElementById('stop-flash-btn').style.display='none';
   document.getElementById('flash-status').textContent='';
+
+  if(supaOk()){
+    try{
+      await supaReq('settings?key=eq.flash','DELETE');
+    }catch(e){
+      console.warn('stopOffreFlash DELETE error:',e);
+    }
+  }
+  await refreshFlashCache();
   showToast('Offre flash arrêtée');
 }
 
@@ -7195,8 +7281,9 @@ window.addEventListener('load', async function(){
   // Retour depuis Stripe : peut appeler go() — currentPortalClient est déjà défini
   handleStripeReturn();
 
-  // Précharger les récompenses
+  // Précharger les récompenses et l'offre flash (Supabase → visible par tous les clients)
   loadRecompenses().catch(()=>{});
+  refreshFlashCache().catch(()=>{});
 
   // ══ ÉTAPE 3 — FALLBACK ASYNC (IDB si localStorage était vide) ══
   // + refresh Supabase en arrière-plan pour mettre à jour les points
