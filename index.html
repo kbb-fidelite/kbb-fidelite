@@ -7042,55 +7042,26 @@ window.addEventListener('load', async function(){
   // ── Précharger les récompenses depuis Supabase en arrière-plan ──
   loadRecompenses().catch(()=>{});
 
-  // Auto-login au démarrage — Supabase Auth comme source de vérité
-  // La session est persistée nativement par le SDK (refresh token automatique)
+  // Auto-login au démarrage
+  // Priorité : données locales (zéro réseau) → Supabase en arrière-plan pour rafraîchir
   async function tryAutoLogin(){
 
     // ── CAS 0 : mode kiosque ──
     if(window._kioskMode){ go('page-pin'); return true; }
 
-    // ── CAS 1 : session Supabase Auth active → connexion automatique ──
-    const auth = getSupaClient();
-    if(auth){
-      try{
-        const { data:{ session } } = await auth.auth.getSession();
-        if(session && session.user){
-          const phone = session.user.phone;
-          if(phone){
-            let client = null;
-            // Récupérer les données fidélité depuis Supabase
-            if(supaOk()){
-              try{
-                const localTel = e164ToLocal(phone);
-                client = await dbByTel(localTel);
-                if(!client) client = await dbByTel(phone); // fallback E.164
-              }catch(e){}
-            }
-            // Fallback hors-ligne : session en cache (IDB)
-            if(!client){
-              const sess = await getSessionAsync();
-              if(sess) client = sess.clientData;
-            }
-            if(client){
-              renderPortal(client);
-              go('page-dashboard');
-              return true;
-            }
-          }
-        }
-      }catch(e){ console.warn('tryAutoLogin auth error:', e); }
+    // ── CAS 1 : session locale (localStorage → cookie → IDB) — aucun réseau requis ──
+    // C'est le chemin principal, identique à ce qui fonctionnait avant v86
+    const sess = await getSessionAsync();
+    if(sess && sess.clientData){
+      renderPortal(sess.clientData);
+      go('page-dashboard');
+      // Rafraîchir depuis Supabase en arrière-plan sans bloquer l'affichage
+      const tel = sess.clientData.tel||sess.clientData.telephone;
+      if(tel) dbByTel(tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
+      return true;
     }
 
-    // ── CAS 2 : fallback legacy — numéro stocké en IDB (migration v86) ──
-    const tel = await getIdentityAsync();
-    if(tel && supaOk()){
-      try{
-        const client = await dbByTel(tel);
-        if(client){ renderPortal(client); go('page-dashboard'); return true; }
-      }catch(e){}
-    }
-
-    // ── CAS 3 : aucune session → page de connexion ──
+    // ── CAS 2 : aucune session locale → page de connexion ──
     return false;
   }
 
