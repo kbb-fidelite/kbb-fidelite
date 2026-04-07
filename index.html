@@ -1260,8 +1260,10 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
         <input type="tel" id="otp-tel" placeholder="06 12 34 56 78" autocomplete="tel" inputmode="tel">
       </div>
       <button class="abtn" id="otp-send-btn" onclick="otpSendCode()">Recevoir un code SMS →</button>
-      <p style="font-size:12px;color:var(--text3);text-align:center;margin-top:1.25rem;line-height:1.6;">
-        Un code à 6 chiffres vous sera envoyé par SMS.<br>
+      <div style="text-align:center;margin-top:1rem;">
+        <button onclick="loginShowCodeSecret()" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;text-decoration:underline;">Utiliser mon code secret →</button>
+      </div>
+      <p style="font-size:12px;color:var(--text3);text-align:center;margin-top:.75rem;line-height:1.6;">
         Pas encore inscrit ? <a href="#" onclick="go('page-inscription');return false;" style="color:var(--fire);text-decoration:none;font-weight:600;">Créer un compte →</a>
       </p>
     </div>
@@ -1282,6 +1284,22 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
       <div style="display:flex;justify-content:space-between;margin-top:.75rem;">
         <button onclick="otpBackToStep1()" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.5rem 0;">← Modifier le numéro</button>
         <button onclick="otpSendCode(true)" style="background:none;border:none;color:var(--fire);font-size:13px;cursor:pointer;padding:.5rem 0;">Renvoyer le code</button>
+      </div>
+    </div>
+
+    <!-- Fallback : connexion avec code secret (sans SMS) -->
+    <div id="otp-step-code-secret" style="display:none">
+      <div class="field">
+        <label>Numéro de téléphone</label>
+        <input type="tel" id="cs-tel" placeholder="06 12 34 56 78" autocomplete="tel" inputmode="tel">
+      </div>
+      <div class="field">
+        <label>Code secret</label>
+        <input type="password" id="cs-code" placeholder="Votre code secret" autocomplete="current-password">
+      </div>
+      <button class="abtn" onclick="loginWithCodeSecret()">Se connecter →</button>
+      <div style="text-align:center;margin-top:.75rem;">
+        <button onclick="otpBackToStep1()" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;text-decoration:underline;">← Recevoir un code SMS</button>
       </div>
     </div>
 
@@ -3709,8 +3727,15 @@ async function otpSendCode(isResend){
     document.getElementById('otp-code').focus();
     if(isResend) showToast('Nouveau code envoyé par SMS');
   }catch(err){
-    showToast('Erreur : '+(err.message||'impossible d\'envoyer le SMS'));
     console.error('OTP send error:',err);
+    const msg=(err.message||'').toLowerCase();
+    // Si le provider SMS n'est pas configuré → basculer automatiquement vers code secret
+    if(msg.includes('unsupported')||msg.includes('phone provider')||msg.includes('provider')){
+      showToast('SMS non disponible — utilisez votre code secret');
+      loginShowCodeSecret();
+    } else {
+      showToast('Erreur : '+(err.message||'impossible d\'envoyer le SMS'));
+    }
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='Recevoir un code SMS →'; }
   }
@@ -3718,8 +3743,43 @@ async function otpSendCode(isResend){
 
 function otpBackToStep1(){
   document.getElementById('otp-step2').style.display='none';
+  const cs=document.getElementById('otp-step-code-secret');
+  if(cs) cs.style.display='none';
   document.getElementById('otp-step1').style.display='block';
   document.getElementById('otp-tel').focus();
+}
+
+function loginShowCodeSecret(){
+  // Pré-remplir le numéro s'il est déjà saisi dans l'étape 1
+  const tel=(document.getElementById('otp-tel').value||'').trim();
+  const cstel=document.getElementById('cs-tel');
+  if(cstel&&tel) cstel.value=tel;
+  document.getElementById('otp-step1').style.display='none';
+  document.getElementById('otp-step-code-secret').style.display='block';
+  document.getElementById('cs-code').focus();
+}
+
+async function loginWithCodeSecret(){
+  const tel=(document.getElementById('cs-tel').value||'').replace(/\s/g,'');
+  const code=(document.getElementById('cs-code').value||'').trim();
+  if(!tel||!code){ showToast('Remplissez tous les champs'); return; }
+  const btn=document.querySelector('#otp-step-code-secret .abtn');
+  if(btn){ btn.disabled=true; btn.textContent='Connexion…'; }
+  try{
+    const c=await dbByTel(tel);
+    if(!c){ showToast('Numéro introuvable'); return; }
+    const storedCode=c.code_secret||'';
+    if(storedCode&&storedCode!==code){ showToast('Code secret incorrect'); return; }
+    saveSession(c);
+    renderPortal(c);
+    _postLoginRedirect();
+    showToast('Connecté ! Bienvenue '+c.prenom+' 🔥');
+  }catch(e){
+    showToast('Erreur de connexion — réessayez');
+    console.error('loginWithCodeSecret:',e);
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Se connecter →'; }
+  }
 }
 
 async function otpVerifyCode(){
