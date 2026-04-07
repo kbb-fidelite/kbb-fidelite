@@ -3376,6 +3376,7 @@ function saveQuickLogin(data){
   localStorage.setItem('kbb_quick_login',str);
   const exp=new Date();exp.setFullYear(exp.getFullYear()+1);
   document.cookie='kbb_ql='+encodeURIComponent(str)+';expires='+exp.toUTCString()+';path=/;SameSite=Lax';
+  _idbSet('kbb_quick_login',data).catch(()=>{});
 }
 function getQuickLogin(){
   try{
@@ -3394,8 +3395,8 @@ function setupQuickLogin(mode){
     if(!pin||pin.length!==4||!/^\d{4}$/.test(pin)){showToast('PIN invalide — 4 chiffres requis');return;}
     const tel=quickLoginClient.tel||quickLoginClient.telephone;
     saveQuickLogin({tel,prenom:quickLoginClient.prenom,nom:quickLoginClient.nom,mode:'pin',pin,clientData:quickLoginClient});
-    // Supprimer kbb_session pour forcer le clavier PIN au prochain lancement
-    clearSession();
+    // NE PAS effacer kbb_session — tryAutoLogin vérifie PIN en premier (CAS 2 avant CAS 1)
+    // ce qui force le clavier PIN tout en conservant la session comme fallback ITP
     // Sauvegarder aussi dans Supabase
     if(quickLoginClient.id) dbUpdate(quickLoginClient.id,{pin_rapide:pin}).catch(()=>{});
     const ldb=lLoad();const li=ldb.findIndex(x=>x.id===quickLoginClient.id);
@@ -3633,7 +3634,45 @@ function genToken(){
   return Math.random().toString(36).substr(2)+Date.now().toString(36);
 }
 
-// Sauvegarde la session complète dans localStorage — reconnexion sans réseau
+/* ── IndexedDB layer (backup contre iOS ITP qui efface localStorage) ── */
+const _IDB_NAME='kbb_store';
+const _IDB_STORE='kv';
+let _idbPromise=null;
+function _idbOpen(){
+  if(_idbPromise) return _idbPromise;
+  _idbPromise=new Promise((res,rej)=>{
+    const req=indexedDB.open(_IDB_NAME,1);
+    req.onupgradeneeded=e=>e.target.result.createObjectStore(_IDB_STORE);
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=e=>rej(e.target.error);
+  });
+  return _idbPromise;
+}
+function _idbSet(key,val){
+  return _idbOpen().then(db=>new Promise((res,rej)=>{
+    const tx=db.transaction(_IDB_STORE,'readwrite');
+    tx.objectStore(_IDB_STORE).put(val,key);
+    tx.oncomplete=()=>res();
+    tx.onerror=e=>rej(e.target.error);
+  }));
+}
+function _idbGet(key){
+  return _idbOpen().then(db=>new Promise((res,rej)=>{
+    const req=db.transaction(_IDB_STORE,'readonly').objectStore(_IDB_STORE).get(key);
+    req.onsuccess=e=>res(e.target.result??null);
+    req.onerror=e=>rej(e.target.error);
+  }));
+}
+function _idbDel(key){
+  return _idbOpen().then(db=>new Promise((res,rej)=>{
+    const tx=db.transaction(_IDB_STORE,'readwrite');
+    tx.objectStore(_IDB_STORE).delete(key);
+    tx.oncomplete=()=>res();
+    tx.onerror=e=>rej(e.target.error);
+  }));
+}
+
+// Sauvegarde la session complète dans localStorage + cookie + IDB — reconnexion sans réseau
 function saveSession(c){
   const data={
     tel:c.tel||c.telephone, prenom:c.prenom, nom:c.nom,
@@ -3643,6 +3682,8 @@ function saveSession(c){
   // Backup cookie 1 an
   const exp=new Date(); exp.setFullYear(exp.getFullYear()+1);
   document.cookie='kbb_session='+encodeURIComponent(JSON.stringify(data))+';expires='+exp.toUTCString()+';path=/;SameSite=Lax';
+  // Backup IndexedDB — résiste à iOS ITP (efface localStorage après 7j sans accès)
+  _idbSet('kbb_session',data).catch(()=>{});
 }
 
 function getSession(){
@@ -3655,9 +3696,25 @@ function getSession(){
   return null;
 }
 
+// Version async — consulte aussi IndexedDB si localStorage+cookie vides (ITP recovery)
+async function getSessionAsync(){
+  const sync=getSession();
+  if(sync) return sync;
+  try{
+    const d=await _idbGet('kbb_session');
+    if(d&&d.connecte&&d.clientData){
+      // Restaurer dans localStorage pour les lectures synchrones suivantes
+      localStorage.setItem('kbb_session',JSON.stringify(d));
+      return d;
+    }
+  }catch(e){}
+  return null;
+}
+
 function clearSession(){
   localStorage.removeItem('kbb_session');
   document.cookie='kbb_session=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
+  _idbDel('kbb_session').catch(()=>{});
 }
 
 function commanderOuLogin(){
@@ -3735,6 +3792,8 @@ function animateCount(el, from, to, duration){
 let currentPortalClient=null;
 function renderPortal(c){
   currentPortalClient=c;
+  // Rafraîchir la session à chaque rendu (localStorage + cookie + IDB)
+  saveSession(c);
   // Persister en local DB pour que l'auto-login fonctionne hors-ligne
   try{
     const tel=c.telephone||c.tel;
@@ -6791,7 +6850,9 @@ window.addEventListener('load', async function(){
   // ── Précharger les récompenses depuis Supabase en arrière-plan ──
   loadRecompenses().catch(()=>{});
 
-  // Auto-login au démarrage — 3 cas distincts
+  // Auto-login au démarrage — 4 cas distincts
+  // ORDRE IMPORTANT : PIN vérifié AVANT session pour forcer le clavier PIN
+  // même si kbb_session existe (PIN est plus sécurisé que l'auto-login silencieux)
   async function tryAutoLogin(){
 
     // ── CAS 0 : mode kiosque → aller directement à l'écran cuisine ou comptoir ──
@@ -6800,32 +6861,38 @@ window.addEventListener('load', async function(){
       return true;
     }
 
-    // ── CAS 1 : session complète dans localStorage → dashboard immédiat, zéro réseau ──
-    const sess = getSession();
+    // ── CAS 1 : PIN sauvegardé → afficher uniquement le clavier PIN ──
+    // Vérifier localStorage d'abord, puis cookie, puis IndexedDB (fallback ITP)
+    let qlStr = getQuickLogin();
+    let qlData = null;
+    if(qlStr){
+      try{ qlData=JSON.parse(qlStr); }catch(e){}
+    }
+    // Fallback IDB si localStorage+cookie vides (iOS ITP a tout effacé)
+    if(!qlData){
+      try{ qlData=await _idbGet('kbb_quick_login'); }catch(e){}
+    }
+    if(qlData && qlData.tel && qlData.mode==='pin'){
+      // Restaurer dans localStorage pour éviter une nouvelle perte
+      saveQuickLogin(qlData);
+      pinRapideClient = {...qlData, telephone: qlData.tel, pin_rapide: qlData.pin};
+      pinRapideVal = '';
+      document.getElementById('pin-prenom').textContent = qlData.prenom||'';
+      document.getElementById('pin-rapide-zone').style.display = 'block';
+      document.getElementById('normal-login-zone').style.display = 'none';
+      go('page-client-login');
+      return true;
+    }
+
+    // ── CAS 2 : session complète (localStorage → cookie → IDB) → dashboard immédiat ──
+    const sess = await getSessionAsync();
     if(sess){
       renderPortal(sess.clientData);
       go('page-dashboard');
       // Sync Supabase en arrière-plan pour rafraîchir les points
       const tel = sess.clientData.tel||sess.clientData.telephone;
-      if(tel) dbByTel(tel).then(fresh=>{ if(fresh){ saveSession(fresh); renderPortal(fresh); } }).catch(()=>{});
+      if(tel) dbByTel(tel).then(fresh=>{ if(fresh){ renderPortal(fresh); } }).catch(()=>{});
       return true;
-    }
-
-    // ── CAS 2 : PIN sauvegardé → afficher uniquement le clavier PIN ──
-    const ql = localStorage.getItem('kbb_quick_login');
-    if(ql){
-      try{
-        const d = JSON.parse(ql);
-        if(d && d.tel && d.mode === 'pin'){
-          pinRapideClient = {...d, telephone: d.tel, pin_rapide: d.pin};
-          pinRapideVal = '';
-          document.getElementById('pin-prenom').textContent = d.prenom||'';
-          document.getElementById('pin-rapide-zone').style.display = 'block';
-          document.getElementById('normal-login-zone').style.display = 'none';
-          go('page-client-login');
-          return true;
-        }
-      }catch(e){ console.warn('PIN login error:', e); }
     }
 
     // ── CAS 3 : aucune session → page d'accueil (défaut) ──
