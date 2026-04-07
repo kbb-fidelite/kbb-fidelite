@@ -3672,6 +3672,27 @@ function _idbDel(key){
   }));
 }
 
+// ── Identifiant persistant : numéro seul, très léger, survit aux purges iOS ──
+// C'est la clé de reconnexion Supabase au démarrage : on lit le tel → dbByTel(tel)
+function saveIdentity(tel){
+  if(!tel) return;
+  localStorage.setItem('kbb_tel', tel);
+  _idbSet('kbb_tel', tel).catch(()=>{});
+}
+async function getIdentityAsync(){
+  try{
+    const ls=localStorage.getItem('kbb_tel');
+    if(ls) return ls;
+    const idb=await _idbGet('kbb_tel');
+    if(idb){ localStorage.setItem('kbb_tel',idb); return idb; }
+  }catch(e){}
+  return null;
+}
+function clearIdentity(){
+  localStorage.removeItem('kbb_tel');
+  _idbDel('kbb_tel').catch(()=>{});
+}
+
 // Sauvegarde la session complète dans localStorage + cookie + IDB — reconnexion sans réseau
 function saveSession(c){
   const data={
@@ -3684,6 +3705,8 @@ function saveSession(c){
   document.cookie='kbb_session='+encodeURIComponent(JSON.stringify(data))+';expires='+exp.toUTCString()+';path=/;SameSite=Lax';
   // Backup IndexedDB — résiste à iOS ITP (efface localStorage après 7j sans accès)
   _idbSet('kbb_session',data).catch(()=>{});
+  // Sauvegarder le numéro seul (plus léger, clé de reconnexion Supabase)
+  saveIdentity(c.tel||c.telephone);
 }
 
 function getSession(){
@@ -3715,6 +3738,7 @@ function clearSession(){
   localStorage.removeItem('kbb_session');
   document.cookie='kbb_session=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
   _idbDel('kbb_session').catch(()=>{});
+  clearIdentity(); // Effacer aussi le numéro → force re-login complet
 }
 
 function commanderOuLogin(){
@@ -6850,52 +6874,38 @@ window.addEventListener('load', async function(){
   // ── Précharger les récompenses depuis Supabase en arrière-plan ──
   loadRecompenses().catch(()=>{});
 
-  // Auto-login au démarrage — 4 cas distincts
-  // ORDRE IMPORTANT : PIN vérifié AVANT session pour forcer le clavier PIN
-  // même si kbb_session existe (PIN est plus sécurisé que l'auto-login silencieux)
+  // Auto-login au démarrage
+  // Flux : lire le numéro depuis IDB → appeler Supabase → connexion directe, sans PIN
+  // Le PIN n'est demandé qu'à la toute première connexion ou après déconnexion manuelle
   async function tryAutoLogin(){
 
-    // ── CAS 0 : mode kiosque → aller directement à l'écran cuisine ou comptoir ──
-    if(window._kioskMode){
-      go('page-pin');
-      return true;
+    // ── CAS 0 : mode kiosque ──
+    if(window._kioskMode){ go('page-pin'); return true; }
+
+    // ── CAS 1 : numéro connu → récupérer le compte depuis Supabase → connexion auto ──
+    const tel = await getIdentityAsync();
+    if(tel){
+      let client = null;
+
+      // Priorité réseau : données fraîches depuis Supabase
+      if(supaOk()){
+        try{ client = await dbByTel(tel); }catch(e){ client = null; }
+      }
+
+      // Fallback hors-ligne : session en cache (localStorage → cookie → IDB)
+      if(!client){
+        const sess = await getSessionAsync();
+        if(sess) client = sess.clientData;
+      }
+
+      if(client){
+        renderPortal(client);
+        go('page-dashboard');
+        return true;
+      }
     }
 
-    // ── CAS 1 : PIN sauvegardé → afficher uniquement le clavier PIN ──
-    // Vérifier localStorage d'abord, puis cookie, puis IndexedDB (fallback ITP)
-    let qlStr = getQuickLogin();
-    let qlData = null;
-    if(qlStr){
-      try{ qlData=JSON.parse(qlStr); }catch(e){}
-    }
-    // Fallback IDB si localStorage+cookie vides (iOS ITP a tout effacé)
-    if(!qlData){
-      try{ qlData=await _idbGet('kbb_quick_login'); }catch(e){}
-    }
-    if(qlData && qlData.tel && qlData.mode==='pin'){
-      // Restaurer dans localStorage pour éviter une nouvelle perte
-      saveQuickLogin(qlData);
-      pinRapideClient = {...qlData, telephone: qlData.tel, pin_rapide: qlData.pin};
-      pinRapideVal = '';
-      document.getElementById('pin-prenom').textContent = qlData.prenom||'';
-      document.getElementById('pin-rapide-zone').style.display = 'block';
-      document.getElementById('normal-login-zone').style.display = 'none';
-      go('page-client-login');
-      return true;
-    }
-
-    // ── CAS 2 : session complète (localStorage → cookie → IDB) → dashboard immédiat ──
-    const sess = await getSessionAsync();
-    if(sess){
-      renderPortal(sess.clientData);
-      go('page-dashboard');
-      // Sync Supabase en arrière-plan pour rafraîchir les points
-      const tel = sess.clientData.tel||sess.clientData.telephone;
-      if(tel) dbByTel(tel).then(fresh=>{ if(fresh){ renderPortal(fresh); } }).catch(()=>{});
-      return true;
-    }
-
-    // ── CAS 3 : aucune session → page d'accueil (défaut) ──
+    // ── CAS 2 : premier lancement ou déconnexion manuelle → page d'accueil ──
     return false;
   }
 
