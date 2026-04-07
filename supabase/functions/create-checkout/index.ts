@@ -1,10 +1,13 @@
 // Supabase Edge Function — create-checkout (avec validation des prix côté serveur)
 // Les prix sont recalculés CÔTÉ SERVEUR — le client n'envoie que les articles (noms + options)
-// Secrets requis : STRIPE_SECRET_KEY
+// Pré-crée la commande en "pending_payment" dans Supabase avec stripe_session_id.
+// verify-payment activera la commande en "en_attente" après vérification du paiement.
+// Secrets requis : STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 //
 // Déploiement : supabase functions deploy create-checkout
 
 import Stripe from 'https://esm.sh/stripe@14?target=deno';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,16 +91,26 @@ Deno.serve(async (req) => {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) throw new Error('STRIPE_SECRET_KEY non configurée');
 
-    const stripe = new Stripe(stripeKey, { apiVersion: '2024-04-10' });
+    const supaUrl  = Deno.env.get('SUPABASE_URL')!;
+    const supaKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const stripe   = new Stripe(stripeKey, { apiVersion: '2024-04-10' });
+    const supabase = createClient(supaUrl, supaKey);
 
     const {
       orderId,
-      items,          // [{name, menu, suppls, sauces}] — calculé côté serveur
-      clientLevel,    // 'bronze' | 'argent' | 'or'
+      items,              // [{name, menu, suppls, sauces}] — calculé côté serveur
+      clientLevel,        // 'bronze' | 'argent' | 'or'
       clientTel,
       orderLabel,
       successUrl,
       cancelUrl,
+      // Données de commande pour pré-création Supabase
+      orderType,          // 'sur_place' | 'reservation' | 'click_collect'
+      heureRetrait,       // heure de retrait (string HH:MM)
+      rewardId,           // ID récompense Supabase (nullable)
+      rewardPts,          // points récompense (nullable)
+      rewardNom,          // nom récompense (nullable)
+      ptsACrediter,       // points à créditer au client après remise
       // amountCents envoyé par le client — utilisé uniquement pour vérification
       amountCents: clientAmountCents,
     } = await req.json();
@@ -107,10 +120,10 @@ Deno.serve(async (req) => {
       throw new Error('Panier vide ou invalide');
     }
 
-    const serverTotal    = calcServerTotal(items);
-    const fee            = getServiceFee(clientLevel);
-    const serverGrandTotal = serverTotal + fee;
-    const serverCents    = Math.round(serverGrandTotal * 100);
+    const serverTotal       = calcServerTotal(items);
+    const fee               = getServiceFee(clientLevel);
+    const serverGrandTotal  = serverTotal + fee;
+    const serverCents       = Math.round(serverGrandTotal * 100);
 
     // Vérification anti-fraude : le montant client doit correspondre (±tolérance)
     if (clientAmountCents !== undefined) {
@@ -152,6 +165,7 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── Créer la session Stripe Checkout ─────────────────────────
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
@@ -159,7 +173,6 @@ Deno.serve(async (req) => {
       success_url: successUrl,
       cancel_url:  cancelUrl,
       metadata: {
-        order_id:     orderId ? String(orderId) : 'local',
         client_tel:   clientTel || '',
         client_level: clientLevel || 'bronze',
         server_total: String(serverGrandTotal),
@@ -167,15 +180,53 @@ Deno.serve(async (req) => {
       phone_number_collection: { enabled: false },
     });
 
+    // ── Pré-créer la commande en "pending_payment" dans Supabase ─
+    // La commande sera activée (→ en_attente) par verify-payment après vérification Stripe.
+    // Sans cette vérification, la commande reste inactive et n'apparaît pas en cuisine.
+    let supabaseOrderId: number | null = null;
+    try {
+      const orderPayload: Record<string, unknown> = {
+        type:             orderType || 'sur_place',
+        items:            JSON.stringify(items),
+        montant:          serverGrandTotal,
+        statut:           'pending_payment',
+        created_at:       new Date().toISOString(),
+        client_telephone: clientTel || null,
+        heure_retrait:    heureRetrait || null,
+        stripe_session_id: session.id,
+        pts_a_crediter:   parseInt(String(ptsACrediter || 0)) || 0,
+      };
+      if (rewardNom) orderPayload.reward_nom = rewardNom;
+      if (rewardPts) orderPayload.reward_pts = parseInt(String(rewardPts)) || 0;
+      const rewardIdNum = parseInt(String(rewardId || 0));
+      if (rewardId && !isNaN(rewardIdNum) && rewardIdNum > 0) orderPayload.reward_id = rewardIdNum;
+
+      const { data, error: insertErr } = await supabase
+        .from('commandes')
+        .insert(orderPayload)
+        .select('id')
+        .single();
+
+      if (insertErr) {
+        console.error('create-checkout: pré-création commande échouée:', insertErr.message);
+      } else if (data) {
+        supabaseOrderId = data.id;
+        console.log(`create-checkout: commande ${supabaseOrderId} pré-créée (pending_payment) — session ${session.id}`);
+      }
+    } catch (dbErr) {
+      // Non bloquant : la session Stripe est créée, verify-payment signalera l'erreur
+      console.error('create-checkout: erreur DB:', (dbErr as Error).message);
+    }
+
     return new Response(
-      JSON.stringify({ url: session.url, sessionId: session.id, serverTotal: serverGrandTotal }),
+      JSON.stringify({ url: session.url, sessionId: session.id, supabaseOrderId, serverTotal: serverGrandTotal }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (err) {
     console.error('create-checkout error:', err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: (err as Error).message }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
