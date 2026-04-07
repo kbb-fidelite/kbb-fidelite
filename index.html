@@ -1072,6 +1072,7 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
   <div style="text-align:center;padding:.75rem .5rem 1.25rem;display:flex;justify-content:center;gap:1.5rem;">
     <button onclick="go('page-mentions-legales')" style="background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-decoration:underline;">Mentions légales</button>
     <button onclick="go('page-politique-confidentialite')" style="background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-decoration:underline;">Confidentialité</button>
+    <button onclick="showDiagPanel()" style="background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-decoration:underline;">🔍 Diag</button>
   </div>
 </div>
 
@@ -1082,7 +1083,10 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
       <div class="home-brand">KBB à la braise</div>
       <div class="home-sub-small">Programme de fidélité</div>
     </div>
-    <button class="home-emp-btn" onclick="go('page-pin')" title="Espace employé">🔐</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="showDiagPanel()" style="background:none;border:none;font-size:18px;cursor:pointer;opacity:.5;" title="Diagnostic session">🔍</button>
+      <button class="home-emp-btn" onclick="go('page-pin')" title="Espace employé">🔐</button>
+    </div>
   </div>
   <div class="dash-accroche">🔥 Braisé artisanalement au feu de bois — Livraison & sur place</div>
   <div class="flash-banner" id="flash-banner" style="display:none;">
@@ -7041,15 +7045,100 @@ function _doHideSplash(){
   }
 }
 
+// ══ DIAGNOSTIC PANEL ══════════════════════════════════════════════
+function _diagEntry(label, val, ok){
+  const color = ok === true ? '#4ade80' : ok === false ? '#f87171' : '#facc15';
+  return `<div style="margin-bottom:6px;"><span style="color:#888;">${label}</span> <span style="color:${color};word-break:break-all;">${val}</span></div>`;
+}
+function _diagSection(title){
+  return `<div style="margin:12px 0 6px;color:#FF6B2B;font-weight:700;border-top:1px solid #333;padding-top:8px;">${title}</div>`;
+}
+function _buildDiagHTML(){
+  let html = '';
+
+  // ── Avant fermeture (lu depuis localStorage kbb_diag_before_close) ──
+  html += _diagSection('📤 SESSION BEFORE CLOSE (dernière fermeture)');
+  const beforeRaw = localStorage.getItem('kbb_diag_before_close');
+  if(beforeRaw){
+    try{
+      const b = JSON.parse(beforeRaw);
+      html += _diagEntry('Horodatage :', b.ts || '?', null);
+      html += _diagEntry('localStorage kbb_session :', b.ls ? '✅ PRÉSENT — tel='+b.lsTel : '❌ ABSENT', b.ls);
+      html += _diagEntry('Cookie kbb_session :', b.cookie ? '✅ PRÉSENT' : '❌ ABSENT', b.cookie);
+    }catch(e){ html += _diagEntry('Erreur lecture log :', e.message, false); }
+  } else {
+    html += _diagEntry('(aucun log disponible — fermez et rouvrez l\'app)', '', null);
+  }
+
+  // ── Au démarrage (lu depuis kbb_diag_after_reload) ──
+  html += _diagSection('📥 SESSION AFTER RELOAD (dernier démarrage)');
+  const afterRaw = localStorage.getItem('kbb_diag_after_reload');
+  if(afterRaw){
+    try{
+      const a = JSON.parse(afterRaw);
+      html += _diagEntry('Horodatage :', a.ts || '?', null);
+      html += _diagEntry('localStorage kbb_session :', a.ls ? '✅ PRÉSENT — tel='+a.lsTel : '❌ ABSENT', a.ls);
+      html += _diagEntry('Cookie kbb_session :', a.cookie ? '✅ PRÉSENT' : '❌ ABSENT', a.cookie);
+      html += _diagEntry('getSession() résultat :', a.getSessionOk ? '✅ session lue, tel='+a.getSessionTel : '❌ null', a.getSessionOk);
+      html += _diagEntry('Fallback IDB déclenché :', a.idbTriggered ? '⚠️ OUI (localStorage était vide)' : 'non', null);
+      if(a.idbTriggered) html += _diagEntry('IDB résultat :', a.idbOk ? '✅ trouvé tel='+a.idbTel : '❌ vide', a.idbOk);
+    }catch(e){ html += _diagEntry('Erreur lecture log :', e.message, false); }
+  } else {
+    html += _diagEntry('(aucun log disponible — rouvrez l\'app une fois)', '', null);
+  }
+
+  // ── État actuel ──
+  html += _diagSection('🔴 ÉTAT MAINTENANT');
+  const nowLs = localStorage.getItem('kbb_session');
+  let nowTel = '?'; try{ nowTel = nowLs ? JSON.parse(nowLs).tel : null; }catch(e){}
+  html += _diagEntry('localStorage kbb_session :', nowLs ? '✅ PRÉSENT — tel='+nowTel : '❌ ABSENT', !!nowLs);
+  html += _diagEntry('Cookie kbb_session :', document.cookie.includes('kbb_session') ? '✅ PRÉSENT' : '❌ ABSENT', document.cookie.includes('kbb_session'));
+  html += _diagEntry('currentPortalClient :', typeof currentPortalClient !== 'undefined' && currentPortalClient ? '✅ défini, tel='+(currentPortalClient.tel||currentPortalClient.telephone) : '❌ null', !!(typeof currentPortalClient !== 'undefined' && currentPortalClient));
+  html += _diagEntry('_authInitialized :', typeof _authInitialized !== 'undefined' ? String(_authInitialized) : '?', null);
+  html += _diagEntry('SW version cache :', 'kbb-v94', null);
+
+  // ── Diagnostic ──
+  html += _diagSection('🧪 Conclusion');
+  const beforeOk = beforeRaw && JSON.parse(beforeRaw||'{}').ls;
+  const afterOk  = afterRaw && JSON.parse(afterRaw||'{}').ls;
+  if(!beforeRaw){ html += _diagEntry('→', 'Fermez l\'app puis rouvrez-la pour voir les données', null); }
+  else if(beforeOk && !afterOk){ html += _diagEntry('→', '🚨 iOS A EFFACÉ localStorage entre fermeture et réouverture !', false); }
+  else if(!beforeOk){ html += _diagEntry('→', '⚠️ Session non présente AVANT fermeture — saveSession() non appelé ?', false); }
+  else if(afterOk){ html += _diagEntry('→', '✅ Session persistée et relue correctement', true); }
+
+  return html;
+}
+function showDiagPanel(){
+  document.getElementById('diag-content').innerHTML = _buildDiagHTML();
+  document.getElementById('diag-panel').style.display = 'block';
+}
+function hideDiagPanel(){
+  document.getElementById('diag-panel').style.display = 'none';
+}
+function refreshDiagPanel(){
+  document.getElementById('diag-content').innerHTML = _buildDiagHTML();
+}
+function clearDiagLog(){
+  localStorage.removeItem('kbb_diag_before_close');
+  localStorage.removeItem('kbb_diag_after_reload');
+  refreshDiagPanel();
+}
+// ══════════════════════════════════════════════════════════════════
+
 window.addEventListener('pagehide', ()=>{
   const raw = localStorage.getItem('kbb_session');
-  console.log('[KBB-DIAG] SESSION BEFORE CLOSE — localStorage kbb_session:', raw ? JSON.parse(raw).tel : 'NULL');
+  const tel = raw ? (() => { try{ return JSON.parse(raw).tel; }catch(e){ return '?'; } })() : null;
+  const logEntry = { ts: new Date().toISOString(), ls: !!raw, lsTel: tel, cookie: document.cookie.includes('kbb_session') };
+  localStorage.setItem('kbb_diag_before_close', JSON.stringify(logEntry));
+  console.log('[KBB-DIAG] SESSION BEFORE CLOSE — localStorage kbb_session:', raw ? tel : 'NULL');
 });
 
 window.addEventListener('load', async function(){
   // ── DIAGNOSTIC: état du stockage au tout début du chargement ──
   const _diagRaw = localStorage.getItem('kbb_session');
-  console.log('[KBB-DIAG] SESSION AFTER RELOAD — localStorage kbb_session:', _diagRaw ? 'PRÉSENT tel='+JSON.parse(_diagRaw||'{}').tel : 'NULL');
+  let _diagLsTel = null; try{ _diagLsTel = _diagRaw ? JSON.parse(_diagRaw).tel : null; }catch(e){}
+  const _diagAfter = { ts: new Date().toISOString(), ls: !!_diagRaw, lsTel: _diagLsTel, cookie: document.cookie.includes('kbb_session'), getSessionOk: false, getSessionTel: null, idbTriggered: false, idbOk: false, idbTel: null };
+  console.log('[KBB-DIAG] SESSION AFTER RELOAD — localStorage kbb_session:', _diagRaw ? 'PRÉSENT tel='+_diagLsTel : 'NULL');
   console.log('[KBB-DIAG] SESSION AFTER RELOAD — cookie kbb_session:', document.cookie.includes('kbb_session') ? 'PRÉSENT' : 'NULL');
 
   // ══ ÉTAPE 1 — SYNCHRONE, BLOQUANTE ══
@@ -7074,10 +7163,13 @@ window.addEventListener('load', async function(){
   } else {
     const syncSess = getSession(); // synchrone — pas d'await, pas de setTimeout
     if(syncSess && syncSess.clientData){
+      _diagAfter.getSessionOk = true;
+      _diagAfter.getSessionTel = syncSess.tel || syncSess.clientData.tel || syncSess.clientData.telephone;
       renderPortal(syncSess.clientData);
       go('page-dashboard');
     }
   }
+  localStorage.setItem('kbb_diag_after_reload', JSON.stringify(_diagAfter));
 
   // ── Auth guard débloqué ─────────────────────────────────────────────────
   // getSession() synchrone est terminé. currentPortalClient est désormais défini
@@ -7102,10 +7194,16 @@ window.addEventListener('load', async function(){
     if(!window._kioskMode){
       if(!currentPortalClient){
         // localStorage et cookie vides → tenter IndexedDB (purge iOS possible)
+        _diagAfter.idbTriggered = true;
         const idbSess = await getSessionAsync();
         if(idbSess && idbSess.clientData){
+          _diagAfter.idbOk = true;
+          _diagAfter.idbTel = idbSess.tel || idbSess.clientData.tel || idbSess.clientData.telephone;
+          localStorage.setItem('kbb_diag_after_reload', JSON.stringify(_diagAfter));
           renderPortal(idbSess.clientData);
           go('page-dashboard');
+        } else {
+          localStorage.setItem('kbb_diag_after_reload', JSON.stringify(_diagAfter));
         }
       }
       // Rafraîchir depuis Supabase en arrière-plan (non bloquant, met à jour les points)
@@ -7163,6 +7261,21 @@ if('serviceWorker' in navigator){
   <button class="kiosk-enter-btn" onclick="kioskEnterFullscreen()">Passer en plein écran</button>
   <div class="kiosk-enter-txt">Appuyez pour lancer le mode kiosque</div>
 </div>
+</div>
+
+<!-- ══ PANNEAU DIAGNOSTIC SESSION ══ -->
+<div id="diag-panel" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.85);overflow-y:auto;padding:16px;">
+  <div style="background:#1a1a1a;border-radius:16px;padding:20px;max-width:430px;margin:0 auto;font-family:monospace;font-size:12px;color:#e0e0e0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:700;color:#FF6B2B;">🔍 Diagnostic Session</div>
+      <button onclick="hideDiagPanel()" style="background:#333;border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;">✕ Fermer</button>
+    </div>
+    <div id="diag-content" style="line-height:1.8;"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="refreshDiagPanel()" style="background:#FF6B2B;border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:monospace;">↺ Actualiser</button>
+      <button onclick="clearDiagLog()" style="background:#444;border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:monospace;">🗑 Effacer log</button>
+    </div>
+  </div>
 </div>
 </body>
 </html>
