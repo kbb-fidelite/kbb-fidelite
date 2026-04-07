@@ -962,6 +962,29 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
 .kiosk-enter-overlay.visible{display:flex;}
 .kiosk-enter-btn{padding:1.1rem 2.5rem;background:var(--fire);color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:20px;font-weight:800;cursor:pointer;letter-spacing:.5px;}
 .kiosk-enter-txt{font-size:16px;color:var(--text2);text-align:center;}
+/* ══ MES COMMANDES ══ */
+.cmd-card{background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;}
+.cmd-card-header{padding:.75rem 1rem .5rem;display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;}
+.cmd-num{font-family:var(--font-d);font-size:17px;color:var(--fire);letter-spacing:.5px;flex-shrink:0;}
+.cmd-date{font-size:11px;color:var(--text3);margin-top:2px;}
+.cmd-type{font-size:11px;color:var(--text2);background:var(--coal4);border-radius:99px;padding:2px 8px;flex-shrink:0;}
+.cmd-status{font-size:10px;font-weight:700;border-radius:99px;padding:2px 8px;flex-shrink:0;}
+.cmd-status.archive{background:rgba(76,175,116,.15);color:var(--green);}
+.cmd-status.pret{background:rgba(255,184,48,.15);color:var(--gold);}
+.cmd-status.en_cours{background:rgba(255,107,43,.15);color:var(--fire);}
+.cmd-status.en_attente{background:rgba(255,255,255,.07);color:var(--text3);}
+.cmd-items-section{padding:0 1rem .5rem;border-top:1px solid var(--border2);}
+.cmd-item-row{padding:.45rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--text);}
+.cmd-item-row:last-child{border-bottom:none;}
+.cmd-item-name{font-weight:600;margin-bottom:2px;}
+.cmd-item-opts{font-size:11px;color:var(--text3);line-height:1.5;}
+.cmd-reward-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;background:rgba(255,184,48,.12);color:var(--gold);border:1px solid rgba(255,184,48,.3);border-radius:99px;padding:2px 8px;margin-top:4px;}
+.cmd-footer{padding:.65rem 1rem;background:var(--coal4);display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;}
+.cmd-total{font-family:var(--font-d);font-size:18px;color:var(--text);}
+.cmd-actions{display:flex;gap:.5rem;flex-wrap:wrap;}
+.cmd-btn{font-size:11px;font-weight:700;padding:5px 12px;border-radius:99px;border:1px solid var(--border2);background:var(--coal3);color:var(--text2);cursor:pointer;font-family:var(--font);white-space:nowrap;}
+.cmd-btn.primary{background:var(--fire);border-color:var(--fire);color:#fff;}
+.cmd-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:.875rem 0 .5rem;}
 </style>
 </head>
 <body>
@@ -1523,6 +1546,17 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
   <div class="suivi-timeline" id="suivi-timeline"></div>
   <div id="suivi-pret-banner"></div>
   <div class="suivi-footer" id="suivi-footer"></div>
+</div>
+
+<!-- MES COMMANDES -->
+<div class="page" id="page-commandes">
+  <div class="topbar">
+    <button class="tbback" onclick="goBack()">←</button>
+    <div class="tbtitle">Mes commandes</div>
+  </div>
+  <div id="commandes-hist-content" style="padding:.75rem 1rem 5rem;">
+    <div class="empty"><div class="big">⏳</div><p>Chargement…</p></div>
+  </div>
 </div>
 
 <!-- KDS — Kitchen Display System -->
@@ -2151,6 +2185,7 @@ function go(p){
   if(p==='page-supa-config'){document.getElementById('supa-url').value=SURL;document.getElementById('supa-key').value=SKEY;}
   if(p==='page-client-login'){initLoginPage();}
   if(p==='page-dashboard'){updateCommandesTile();refreshClientSolde();}
+  if(p==='page-commandes') loadCommandesHistory();
   if(p!=='page-suivi'&&p!=='page-confirmation') stopSuiviPolling();
 }
 
@@ -6384,9 +6419,199 @@ function updateCommandesTile(){
 }
 
 function ouvrirCommandes(){
-  const o=getActiveOrder();
-  if(o&&o.supaId){ go('page-suivi'); renderSuivi(); startSuiviPolling(); }
-  else go('page-menu');
+  go('page-commandes');
+}
+
+/* ══ HISTORIQUE COMMANDES CLIENT ══ */
+
+function _fmtDateCmd(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  const jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const mois=['jan','fév','mar','avr','mai','jun','jul','août','sep','oct','nov','déc'];
+  return jours[d.getDay()]+' '+d.getDate()+' '+mois[d.getMonth()]+' '+d.getFullYear()+' à '+d.getHours().toString().padStart(2,'0')+'h'+d.getMinutes().toString().padStart(2,'0');
+}
+
+function _typeLabelCmd(type){
+  if(type==='click_collect') return '🏃 À emporter';
+  if(type==='reservation') return '📅 Réservation';
+  return '🪑 Sur place';
+}
+
+function _statusLabelCmd(s){
+  if(s==='archive') return {cls:'archive',txt:'✓ Récupérée'};
+  if(s==='pret') return {cls:'pret',txt:'✅ Prête'};
+  if(s==='en_cours') return {cls:'en_cours',txt:'🔥 En préparation'};
+  return {cls:'en_attente',txt:'⏳ En attente'};
+}
+
+function _renderCmdItems(itemsStr, rewardNom){
+  try{
+    const arr=JSON.parse(itemsStr);
+    if(!Array.isArray(arr)) return '<div class="cmd-item-row"><div class="cmd-item-name">Commande</div></div>';
+    let h=arr.map(it=>{
+      const opts=[];
+      if(it.pain) opts.push(it.pain==='galette'?'🫓 Galette':'🍞 Pain');
+      if(it.sauces&&it.sauces.length) opts.push('🥫 '+it.sauces.join(', '));
+      if(it.sansSauce) opts.push('🚫 Sans sauce');
+      if(it.removed&&it.removed.length) opts.push('❌ Sans '+it.removed.join(', '));
+      if(it.suppls&&it.suppls.length) opts.push('➕ '+it.suppls.join(', '));
+      if(it.menu) opts.push('🍟 Menu frites + boisson');
+      return `<div class="cmd-item-row">
+        <div class="cmd-item-name">${it.icon||'🍴'} ${it.name}${it.taille&&it.taille!=='M'?' ('+it.taille+')':''} <span style="color:var(--fire);font-family:var(--font-d);">${it.price?.toFixed(2).replace('.',',')}€</span></div>
+        ${opts.length?'<div class="cmd-item-opts">'+opts.join(' · ')+'</div>':''}
+      </div>`;
+    }).join('');
+    if(rewardNom) h+=`<div class="cmd-item-row"><div class="cmd-reward-badge">🎁 Offert fidélité : ${rewardNom}</div></div>`;
+    return h;
+  }catch(_){
+    return '<div class="cmd-item-row"><div class="cmd-item-name">'+itemsStr+'</div></div>';
+  }
+}
+
+function _renderCmdCard(cmd, facture){
+  const num=cmd.id?'#KBB-'+String(cmd.id).padStart(3,'0'):'#KBB-???';
+  const st=_statusLabelCmd(cmd.statut);
+  const dateStr=_fmtDateCmd(cmd.created_at);
+  const shortDate=(()=>{const d=new Date(cmd.created_at||Date.now());const m=['jan','fév','mar','avr','mai','jun','jul','août','sep','oct','nov','déc'];return d.getDate()+' '+m[d.getMonth()];})();
+  return `<div class="cmd-card">
+    <div class="cmd-card-header">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+          <span class="cmd-num">${num}</span>
+          <span class="cmd-type">${_typeLabelCmd(cmd.type)}</span>
+          <span class="cmd-status ${st.cls}">${st.txt}</span>
+        </div>
+        <div class="cmd-date">${dateStr}</div>
+      </div>
+    </div>
+    <div class="cmd-items-section">
+      ${_renderCmdItems(cmd.items||'[]', cmd.reward_nom||null)}
+    </div>
+    <div class="cmd-footer">
+      <div class="cmd-total">${parseFloat(cmd.montant||0).toFixed(2).replace('.',',')}€</div>
+      <div class="cmd-actions">
+        ${facture?`<button class="cmd-btn" onclick="downloadFacturePDF(${JSON.stringify(facture).replace(/'/g,'&#39;')})">📄 Facture</button>`
+          :`<button class="cmd-btn" onclick="downloadFactureByCommandeId('${cmd.id}')">📄 Facture</button>`}
+        <button class="cmd-btn primary" onclick="reorderCommande('${(cmd.items||'[]').replace(/'/g,'&#39;').replace(/\\/g,'\\\\').replace(/"/g,'&quot;')}','${shortDate}')">🔄 Recommander</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function loadCommandesHistory(){
+  const el=document.getElementById('commandes-hist-content');
+  if(!el) return;
+  const tel=currentPortalClient?.telephone||currentPortalClient?.tel;
+  if(!tel||!supaOk()){
+    el.innerHTML='<div class="empty"><p>Connectez-vous pour voir vos commandes</p></div>';
+    return;
+  }
+  el.innerHTML='<div class="empty"><div class="big">⏳</div><p>Chargement…</p></div>';
+  try{
+    // Fetch commandes
+    const commandes=await supaReq('commandes?select=*&client_telephone=eq.'+encodeURIComponent(tel)+'&order=created_at.desc&limit=60').catch(()=>[]);
+    // Check active order
+    const ao=getActiveOrder();
+    let html='';
+    if(ao&&ao.supaId){
+      html+=`<div style="background:rgba(255,107,43,.08);border:1.5px solid rgba(255,107,43,.3);border-radius:var(--radius);padding:.875rem 1rem;margin-bottom:.875rem;cursor:pointer;" onclick="go('page-suivi');renderSuivi();startSuiviPolling();">
+        <div style="font-size:13px;font-weight:700;color:var(--fire);margin-bottom:3px;">🔥 Commande en cours</div>
+        <div style="font-size:12px;color:var(--text2);">${ao.orderNum||'En attente'} — Appuyez pour suivre →</div>
+      </div>`;
+    }
+    if(!commandes||!commandes.length){
+      html+='<div class="empty"><p>Aucune commande pour le moment<br><span style="font-size:12px;color:var(--text3);">Vos commandes apparaîtront ici</span></p></div>';
+      el.innerHTML=html; return;
+    }
+    // Fetch factures for these commandes
+    const ids=commandes.map(c=>String(c.id)).filter(Boolean);
+    let factures=[];
+    if(ids.length) factures=await supaReq('factures?select=*&commande_id=in.('+ids.join(',')+')'  ).catch(()=>[]);
+    const factureByCmd={};
+    (factures||[]).forEach(f=>{ factureByCmd[String(f.commande_id)]=f; });
+    // Stats
+    const total=commandes.reduce((s,c)=>s+parseFloat(c.montant||0),0);
+    const nbRecompenses=commandes.filter(c=>c.reward_nom).length;
+    html+=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:.875rem;">
+      <div class="dash-card"><div class="dash-val" style="font-size:18px;">${commandes.length}</div><div class="dash-lbl">Commandes</div></div>
+      <div class="dash-card"><div class="dash-val gold" style="font-size:18px;">${total.toFixed(0)}€</div><div class="dash-lbl">Total dépensé</div></div>
+      <div class="dash-card"><div class="dash-val" style="font-size:18px;color:var(--fire);">${nbRecompenses}</div><div class="dash-lbl">Récompenses</div></div>
+    </div>`;
+    // Factures section
+    if(factures&&factures.length){
+      html+=`<div class="cmd-section-title">📄 Mes factures (${factures.length})</div>
+      <div style="background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;">`;
+      factures.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(f=>{
+        html+=`<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border-bottom:1px solid var(--border2);">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:700;color:var(--text);">${f.numero_facture||'FAC-???'}</div>
+            <div style="font-size:11px;color:var(--text3);">${_fmtDateCmd(f.date)}</div>
+          </div>
+          <div style="font-family:var(--font-d);font-size:15px;color:var(--text);flex-shrink:0;">${parseFloat(f.total_ttc||0).toFixed(2).replace('.',',')}€</div>
+          <button class="cmd-btn" onclick="downloadFacturePDF(${JSON.stringify(f).replace(/'/g,'&#39;')})">📄</button>
+        </div>`;
+      });
+      html+='</div>';
+    }
+    // Orders list
+    html+=`<div class="cmd-section-title">🍖 Historique (${commandes.length})</div>`;
+    html+=commandes.map(c=>_renderCmdCard(c, factureByCmd[String(c.id)]||null)).join('');
+    el.innerHTML=html;
+  }catch(e){
+    el.innerHTML='<div class="empty"><p>Erreur: '+e.message+'</p></div>';
+    console.error('loadCommandesHistory:',e);
+  }
+}
+
+async function downloadFactureByCommandeId(commandeId){
+  showToast('Recherche de la facture…');
+  try{
+    const rows=await supaReq('factures?select=*&commande_id=eq.'+encodeURIComponent(String(commandeId)));
+    const fac=rows&&rows[0];
+    if(!fac){ showToast('Facture introuvable — contactez le restaurant'); return; }
+    await downloadFacturePDF(fac);
+  }catch(e){ showToast('Erreur: '+e.message); }
+}
+
+function reorderCommande(itemsStr, dateLabel){
+  let items;
+  try{ items=JSON.parse(itemsStr.replace(/&quot;/g,'"').replace(/&#39;/g,"'")); }
+  catch(e){ showToast('Impossible de lire la commande'); return; }
+  if(!Array.isArray(items)||!items.length){ showToast('Commande vide'); return; }
+  const unavailable=[];
+  items.forEach(it=>{
+    // Find matching product by name (exact or starts with first word)
+    let idx=MENU_DATA.findIndex(m=>m.name===it.name);
+    if(idx<0) idx=MENU_DATA.findIndex(m=>it.name&&m.name&&it.name.split(' (')[0]===m.name.split(' (')[0]);
+    if(idx<0){ unavailable.push(it.name||'Produit'); return; }
+    // Reconstruct suppls with prices from SUPPLEMENTS list
+    const suppls=(it.suppls||[]).map(sname=>{
+      const s=SUPPLEMENTS.find(x=>x.name===sname);
+      return s?{name:s.name,price:s.price}:{name:sname,price:0};
+    });
+    // Recalculate price
+    let price=MENU_DATA[idx].price;
+    if(it.taille==='L') price=11.50;
+    if(it.taille==='XL') price=14.50;
+    if(it.menu) price+=3.50;
+    const sauceExtra=Math.max(0,(it.sauces||[]).length-SAUCES_FREE);
+    price+=sauceExtra*SAUCE_EXTRA_PRICE;
+    suppls.forEach(s=>price+=s.price);
+    cart.push({
+      idx, price:parseFloat(price.toFixed(2)), name:MENU_DATA[idx].name+(it.taille&&it.taille!=='M'?' ('+it.taille+')':''),
+      taille:it.taille||null, pain:it.pain||null, removed:it.removed||[], sauces:it.sauces||[],
+      suppls, menu:it.menu||false, icon:MENU_DATA[idx].icon||it.icon||'🍴', cat:it.cat||MENU_DATA[idx].cat,
+      sansSauce:it.sansSauce||false
+    });
+  });
+  updateCartBar();
+  if(unavailable.length) showToast('⚠️ Introuvable : '+unavailable.join(', '));
+  if(cart.length){
+    showToast('✓ Commande du '+dateLabel+' ajoutée au panier');
+    go('page-menu');
+    showCart();
+  }
 }
 
 let suiviInterval=null;
