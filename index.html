@@ -2153,7 +2153,6 @@ async function testSupa(){
   try{
     await supaReq('clients?select=id&limit=1');
     updateSupaStatus(true);
-    showOv('✅','Connecté !','Supabase est opérationnel. Vos données sont synchronisées dans le cloud.');
   }catch(e){
     updateSupaStatus(false);
     showToast('Erreur connexion Supabase');
@@ -7015,8 +7014,7 @@ let toastT;
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2500);}
 
 /* ══ INIT ══ */
-if(supaOk()) testSupa().catch(()=>updateSupaStatus(false));
-else updateSupaStatus(false);
+updateSupaStatus(supaOk());
 if(window.location.hash==='#register') go('page-register');
 
 // Hide splash — minimum 2.5s display, then fade out
