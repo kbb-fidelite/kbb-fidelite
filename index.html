@@ -2205,29 +2205,47 @@ async function dbCreate(client){
 }
 async function dbUpdate(id,u){
   if(supaOk()){
+    const EMP_FIELDS=['points','cagnotte','telephone','nom','prenom','code_secret','pin_rapide',
+      'parrain_status','parrain_tel','parrain_mois','parrain_mois_count','parrain_de',
+      'session_token','derniere_visite','dernier_bonus_anniv','date_naissance','bloque'];
     const safe={};
-    if(u.points!==undefined) safe.points=u.points;
-    if(u.cagnotte!==undefined) safe.cagnotte=u.cagnotte;
-    if(u.telephone!==undefined) safe.telephone=u.telephone;
-    if(u.nom!==undefined) safe.nom=u.nom;
-    if(u.prenom!==undefined) safe.prenom=u.prenom;
-    if(u.code_secret!==undefined) safe.code_secret=u.code_secret;
-    if(u.pin_rapide!==undefined) safe.pin_rapide=u.pin_rapide;
-    if(u.parrain_status!==undefined) safe.parrain_status=u.parrain_status;
-    if(u.parrain_tel!==undefined) safe.parrain_tel=u.parrain_tel;
-    if(u.parrain_mois!==undefined) safe.parrain_mois=u.parrain_mois;
-    if(u.parrain_mois_count!==undefined) safe.parrain_mois_count=u.parrain_mois_count;
-    if(u.parrain_de!==undefined) safe.parrain_de=u.parrain_de;
-    if(u.session_token!==undefined) safe.session_token=u.session_token;
-    if(u.derniere_visite!==undefined) safe.derniere_visite=u.derniere_visite;
-    if(u.dernier_bonus_anniv!==undefined) safe.dernier_bonus_anniv=u.dernier_bonus_anniv;
-    if(u.date_naissance!==undefined) safe.date_naissance=u.date_naissance;
-    const d=await supaReq('clients?id=eq.'+encodeURIComponent(id),'PATCH',safe);
-    return d[0]||d;
+    for(const f of EMP_FIELDS){ if(u[f]!==undefined) safe[f]=u[f]; }
+    const empToken=_getEmpToken();
+    const clientTel=currentPortalClient?.telephone||currentPortalClient?.tel||null;
+    const body={id:String(id),data:safe};
+    if(empToken) body.emp_token=empToken;
+    else if(clientTel) body.client_tel=clientTel;
+    const r=await fetch(SURL+'/functions/v1/update-client',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok){
+      const msg=await r.text().catch(()=>String(r.status));
+      throw new Error('update-client: '+msg);
+    }
+    const j=await r.json();
+    return j.client;
   }
   const d=lLoad();
   const i=d.findIndex(c=>c.id===id);
   if(i>-1){d[i]={...d[i],...u};lSave(d);return d[i];}
+}
+
+/* ── Helper : mettre à jour une commande via Edge Function (emp_token requis) ── */
+async function empUpdateCommande(id,data){
+  if(!supaOk()||!id||String(id).startsWith('local_')) return;
+  const empToken=_getEmpToken();
+  const r=await fetch(SURL+'/functions/v1/update-commande',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+    body:JSON.stringify({id:String(id),data,emp_token:empToken})
+  });
+  if(!r.ok){
+    const msg=await r.text().catch(()=>String(r.status));
+    throw new Error('update-commande: '+msg);
+  }
+  return (await r.json()).commande;
 }
 
 /* ══ LOCAL ══ */
@@ -4750,8 +4768,7 @@ async function loadKDS(){
 async function kdsUpdateStatus(id,status,btn){
   if(btn){btn.disabled=true;btn.textContent='…';}
   try{
-    if(supaOk()&&!String(id).startsWith('local_'))
-      await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:status});
+    await empUpdateCommande(id,{statut:status});
   }catch(e){
     console.warn('KDS status:',e);
     if(btn){btn.disabled=false;btn.textContent=status==='en_cours'?'🔥 En préparation':'✅ Prête !';}
@@ -4871,7 +4888,7 @@ async function crediterPointsCommande(orderId){
     c.passages=(c.passages||0)+pass;
     await dbUpdate(c.id,{cagnotte:c.cagnotte,points:c.passages});
     // 8. Marquer la commande comme créditée
-    await supaReq('commandes?id=eq.'+encodeURIComponent(orderId),'PATCH',{points_credites:true});
+    await empUpdateCommande(orderId,{points_credites:true});
     // 9. Sync cache local
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===c.id||x.telephone===c.telephone||x.tel===c.tel);
@@ -4891,8 +4908,7 @@ async function cptRemis(id){
   const btn=event?.target;
   if(btn){btn.disabled=true;btn.textContent='…';}
   try{
-    if(supaOk()&&!String(id).startsWith('local_'))
-      await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:'archive'});
+    await empUpdateCommande(id,{statut:'archive'});
     await crediterPointsCommande(id);
   }catch(e){console.warn('Cpt remis:',e);}
   finally{_cptLock.delete(String(id));}
@@ -5313,8 +5329,7 @@ async function updateOrderStatus(id,status){
   const li=localOrders.findIndex(o=>String(o.id)===String(id));
   if(li>=0){localOrders[li].statut=status;localStorage.setItem('kbb_client_orders',JSON.stringify(localOrders));}
   try{
-    if(supaOk()&&!String(id).startsWith('local_'))
-      await supaReq('commandes?id=eq.'+encodeURIComponent(id),'PATCH',{statut:status});
+    await empUpdateCommande(id,{statut:status});
   }catch(e){ console.warn('Status update:',e); }
   loadEmpCommandes();
 }
