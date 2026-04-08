@@ -727,6 +727,51 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .flash-banner{display:flex;align-items:center;gap:8px;padding:.55rem 1.25rem;background:linear-gradient(90deg,rgba(255,107,43,.18),rgba(255,184,48,.1));border-bottom:1px solid rgba(255,107,43,.3);font-size:12px;font-weight:600;color:var(--text);cursor:pointer;}
 .flash-badge{background:var(--fire);color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:.3px;text-transform:uppercase;flex-shrink:0;}
 
+/* ══ DASHBOARD PREMIUM ══ */
+.dash-hero{position:relative;height:220px;overflow:hidden;flex-shrink:0;}
+.dash-hero-bg{position:absolute;inset:0;background-image:url('https://mwfezeuaohwbhubaaddm.supabase.co/storage/v1/object/public/images/IMG_9021.PNG');background-size:cover;background-position:center;}
+.dash-hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.95) 100%);}
+.dash-hero-topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:flex-end;gap:8px;padding:.75rem 1rem;z-index:2;}
+.dash-icon-btn{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0;}
+.dash-hero-bottom{position:absolute;bottom:0;left:0;right:0;padding:.875rem 1.25rem 1rem;z-index:2;}
+.dash-hero-brand{font-family:Georgia,serif;font-size:20px;font-weight:700;color:#FF6B1A;line-height:1;margin-bottom:.25rem;}
+.dash-hero-hello{font-size:21px;font-weight:700;color:#fff;line-height:1.2;}
+.dash-hero-sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:3px;}
+.dash-pts-card{margin:-20px 1rem 0;background:rgba(255,107,26,.1);border:1px solid rgba(255,107,26,.22);border-radius:16px;padding:1rem 1.25rem .875rem;position:relative;z-index:10;}
+.dash-pts-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.6rem;}
+.dash-pts-value{font-size:38px;font-weight:800;color:#FF6B1A;line-height:1;}
+.dash-pts-unit{font-size:15px;font-weight:600;color:#FF6B1A;opacity:.65;margin-left:4px;}
+.dash-pts-sub{font-size:12px;color:rgba(255,255,255,.45);margin-top:5px;}
+.dash-lvl-badge{background:rgba(255,107,26,.18);border:1px solid rgba(255,107,26,.3);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700;color:#FF6B1A;white-space:nowrap;}
+.dash-prog-track{height:4px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;}
+.dash-prog-fill{height:100%;background:linear-gradient(90deg,#FF6B1A,#FFB830);border-radius:99px;width:0%;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.dash-cmd-wrap{padding:.875rem 1rem .5rem;}
+.dash-cmd-btn{width:100%;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#FF6B1A,#e85a0e);border:none;border-radius:14px;padding:1rem 1.25rem;cursor:pointer;text-align:left;box-shadow:0 6px 24px rgba(255,107,26,.35);}
+.dash-cmd-btn:active{transform:scale(.98);}
+.dash-cmd-ico{font-size:26px;flex-shrink:0;}
+.dash-cmd-title{font-size:16px;font-weight:700;color:#fff;line-height:1.2;}
+.dash-cmd-sub{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;}
+.dash-cmd-arrow{margin-left:auto;font-size:24px;font-weight:700;color:rgba(255,255,255,.5);flex-shrink:0;}
+.dash-cards{display:flex;flex-direction:column;gap:8px;padding:.5rem 1rem 1rem;}
+.dash-card{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:.875rem 1.25rem;cursor:pointer;transition:background .15s;}
+.dash-card:active{background:rgba(255,255,255,.08);}
+.dash-card-ico{font-size:22px;flex-shrink:0;}
+.dash-card-body{flex:1;}
+.dash-card-title{font-size:15px;font-weight:700;color:var(--text);}
+.dash-card-sub{font-size:12px;color:rgba(255,255,255,.38);margin-top:2px;}
+.dash-card-arrow{font-size:20px;font-weight:700;color:#FF6B1A;flex-shrink:0;}
+/* Barre de navigation globale (toutes pages client) */
+#global-bottom-nav{display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:#0d0500;border-top:1px solid rgba(255,107,26,.15);z-index:50;height:65px;}
+#global-bottom-nav.gnav-visible{display:flex;align-items:stretch;}
+#global-bottom-nav .gnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.32);font-family:var(--font);transition:color .15s;padding:.5rem .25rem;position:relative;}
+#global-bottom-nav .gnav-btn:active{background:rgba(255,107,26,.08);}
+#global-bottom-nav .gnav-ico{font-size:20px;line-height:1;}
+#global-bottom-nav .gnav-lbl{font-size:10px;font-weight:600;letter-spacing:.3px;}
+#global-bottom-nav .gnav-btn.active{color:#FF6B1A;}
+.gnav-dot{position:absolute;top:6px;right:calc(50% - 12px);width:7px;height:7px;background:#FF6B1A;border-radius:50%;display:none;}
+.gnav-dot.visible{display:block;}
+body.has-gnav .page{padding-bottom:65px;}
+
 /* ══ DRINK UPSELL ══ */
 .cart-drink-card{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;background:var(--coal3);border:1px solid rgba(79,195,247,.25);border-radius:var(--radius-sm);margin:.5rem 0 .875rem;cursor:pointer;transition:border-color .15s;}
 .cart-drink-card:active{border-color:rgba(79,195,247,.55);}
@@ -1078,72 +1123,70 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
 
 <!-- DASHBOARD (connecté) -->
 <div class="page" id="page-dashboard">
-  <div class="home-header">
-    <div>
-      <div class="home-brand">KBB à la braise</div>
-      <div class="home-sub-small">Programme de fidélité</div>
+  <!-- 1. HERO PHOTO -->
+  <div class="dash-hero">
+    <div class="dash-hero-bg"></div>
+    <div class="dash-hero-overlay"></div>
+    <div class="dash-hero-topbar">
+      <button onclick="showDiagPanel()" class="dash-icon-btn" title="Diagnostic">🔍</button>
+      <button onclick="go('page-pin')" class="dash-icon-btn" title="Espace employé">⚙️</button>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <button onclick="showDiagPanel()" style="background:none;border:none;font-size:18px;cursor:pointer;opacity:.5;" title="Diagnostic session">🔍</button>
-      <button class="home-emp-btn" onclick="go('page-pin')" title="Espace employé">🔐</button>
+    <div class="dash-hero-bottom">
+      <div class="dash-hero-brand">KBB 🔥</div>
+      <div class="dash-hero-hello">Bonjour, <span id="dash-prenom">…</span> 👋</div>
+      <div class="dash-hero-sub">Ravi de vous revoir !</div>
     </div>
   </div>
-  <div class="dash-accroche">🔥 Braisé artisanalement au feu de bois — Livraison & sur place</div>
+
+  <!-- 2. CARTE POINTS FIDÉLITÉ -->
+  <div class="dash-pts-card">
+    <div class="dash-pts-top">
+      <div>
+        <div><span class="dash-pts-value" id="dash-cag">0</span><span class="dash-pts-unit"> pts</span></div>
+        <div class="dash-pts-sub" id="dash-cag-sub">Chargement…</div>
+      </div>
+      <div class="dash-lvl-badge" id="dash-lvl-badge">🥉 Bronze</div>
+    </div>
+    <div class="dash-prog-track"><div class="dash-prog-fill" id="dash-prog-bar"></div></div>
+  </div>
+
+  <!-- 3. OFFRE FLASH (si active) -->
   <div class="flash-banner" id="flash-banner" style="display:none;">
     <span class="flash-badge">Offre flash</span>
     <span id="flash-banner-text"></span>
   </div>
-  <div class="home-tiles">
-    <div class="tile" onclick="go('page-fidelite')"
-      style="background-image:url('https://images.unsplash.com/photo-1561651823-34feb02250e4?w=800&q=80&fit=crop')">
-      <div class="tile-overlay"></div>
-      <div class="tile-content">
-        <span class="tile-icon">🏆</span>
-        <div class="tile-title">Fidélité</div>
-        <div class="tile-sub">Mes points & récompenses</div>
+
+  <!-- 4. BOUTON COMMANDER -->
+  <div class="dash-cmd-wrap">
+    <button class="dash-cmd-btn" onclick="go('page-menu')">
+      <span class="dash-cmd-ico">🥙</span>
+      <div>
+        <div class="dash-cmd-title">Commander maintenant</div>
+        <div class="dash-cmd-sub">Voir notre carte complète</div>
       </div>
-      <div class="tile-arrow">›</div>
+      <span class="dash-cmd-arrow">›</span>
+    </button>
+  </div>
+
+  <!-- 5. CARTES FIDÉLITÉ ET PARRAINAGE -->
+  <div class="dash-cards">
+    <div class="dash-card" onclick="go('page-fidelite')">
+      <span class="dash-card-ico">🏆</span>
+      <div class="dash-card-body">
+        <div class="dash-card-title">Fidélité</div>
+        <div class="dash-card-sub">Mes récompenses disponibles</div>
+      </div>
+      <span class="dash-card-arrow">›</span>
     </div>
-    <div class="tile" onclick="ouvrirParrainage()"
-      style="background-image:url('https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=800&q=80&fit=crop')">
-      <div class="tile-overlay"></div>
-      <div class="tile-content">
-        <span class="tile-icon">🤝</span>
-        <div class="tile-title">Parrainage</div>
-        <div class="tile-sub">Inviter un ami, gagner des points</div>
+    <div class="dash-card" onclick="ouvrirParrainage()">
+      <span class="dash-card-ico">🤝</span>
+      <div class="dash-card-body">
+        <div class="dash-card-title">Parrainage</div>
+        <div class="dash-card-sub">Inviter un ami · Gagner des points</div>
       </div>
-      <div class="tile-arrow">›</div>
-    </div>
-    <div class="tile" id="tile-commandes" onclick="ouvrirCommandes()"
-      style="background-image:url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80&fit=crop')">
-      <div class="tile-overlay"></div>
-      <div id="tile-commandes-badge" style="display:none;" class="tile-suivi-badge">⏳ En cours</div>
-      <div class="tile-content">
-        <span class="tile-icon">🍖</span>
-        <div class="tile-title">Mes Commandes</div>
-        <div class="tile-sub" id="tile-commandes-sub">Commander & suivre mon panier</div>
-      </div>
-      <div class="tile-arrow">›</div>
+      <span class="dash-card-arrow">›</span>
     </div>
   </div>
-  <nav class="bottom-nav">
-    <button class="bnav-item active" onclick="go('page-dashboard')">
-      <span class="bnav-icon">🏠</span>
-      <span class="bnav-label">Accueil</span>
-    </button>
-    <button class="bnav-item" onclick="ouvrirParrainage()">
-      <span class="bnav-icon">🤝</span>
-      <span class="bnav-label">Parrainage</span>
-    </button>
-    <button class="bnav-item" onclick="go('page-menu')">
-      <span class="bnav-icon">📦</span>
-      <span class="bnav-label">Commandes</span>
-    </button>
-    <button class="bnav-item commander" onclick="go('page-menu')">
-      <span class="bnav-icon">🍖</span>
-      <span class="bnav-label">Commander</span>
-    </button>
-  </nav>
 </div>
 
 <!-- PAGE FIDÉLITÉ -->
@@ -2203,6 +2246,26 @@ function goBack(){
 let _authInitialized = false;
 
 const _AUTH_PAGES=['page-menu','page-fidel','page-parrainage'];
+// Pages client sur lesquelles la barre de navigation globale est visible
+const _GNAV_PAGES=['page-dashboard','page-fidelite','page-parrainage','page-menu','page-cart','page-confirmation','page-suivi','page-commandes','page-client-portal'];
+// Page active → bouton actif dans la barre
+const _GNAV_MAP={'page-dashboard':'gnav-home','page-fidelite':'gnav-home','page-parrainage':'gnav-home','page-menu':'gnav-menu','page-cart':'gnav-menu','page-confirmation':'gnav-commandes','page-suivi':'gnav-commandes','page-commandes':'gnav-factures','page-client-portal':'gnav-profil'};
+
+function updateBottomNav(p){
+  const nav=document.getElementById('global-bottom-nav');
+  if(!nav) return;
+  if(_GNAV_PAGES.includes(p)){
+    nav.classList.add('gnav-visible');
+    document.body.classList.add('has-gnav');
+    nav.querySelectorAll('.gnav-btn').forEach(b=>b.classList.remove('active'));
+    const activeId=_GNAV_MAP[p];
+    if(activeId){ const btn=document.getElementById(activeId); if(btn) btn.classList.add('active'); }
+  } else {
+    nav.classList.remove('gnav-visible');
+    document.body.classList.remove('has-gnav');
+  }
+}
+
 function go(p){
   // Guard AUTH : actif UNIQUEMENT après initialisation de la session.
   // Avant _authInitialized, on laisse passer — currentPortalClient sera défini
@@ -2221,6 +2284,7 @@ function go(p){
   }
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.getElementById(p).classList.add('active');
+  updateBottomNav(p);
   if(p==='page-qr') genQR();
   if(p==='page-menu') initMenu();
   if(p==='page-employee'){refreshEmp();loadSettingsUI();}
@@ -4059,37 +4123,52 @@ function renderPortal(c){
   const lvlEl=document.getElementById('portal-lvl-badge');
   if(lvlEl) lvlEl.innerHTML=`<div class="lvl-badge ${lvl.cls}">${lvl.emoji} Niveau ${lvl.label}</div>`;
 
+  // ── Dashboard premium : nouveaux éléments ──────────────────────
+  const dashPren=document.getElementById('dash-prenom');
+  if(dashPren) dashPren.textContent=c.prenom;
+  const dashLvl=document.getElementById('dash-lvl-badge');
+  if(dashLvl) dashLvl.textContent=lvl.emoji+' '+lvl.label;
+
   // Points animation
   const cagEl=document.getElementById('portal-cag');
-  if(pts!==prevPts && prevPts<pts){
-    cagEl.classList.remove('pts-anim');
-    void cagEl.offsetWidth;
-    cagEl.classList.add('pts-anim');
-    animateCount(cagEl, prevPts, pts, 800);
-  } else {
-    cagEl.textContent=pts;
-  }
-
-  // Progress bar
   const nextR=rewards.find(r=>r.pts>pts);
-  const progEl=document.getElementById('portal-prog');
-  if(progEl){
-    if(nextR){
-      const prevProg=rewards.find(r=>r.pts<=pts);
-      const base=prevProg?prevProg.pts:0;
-      const pct=Math.min(100,Math.round((pts-base)/(nextR.pts-base)*100));
-      setTimeout(()=>progEl.style.width=pct+'%', 100);
-    } else {
-      setTimeout(()=>progEl.style.width='100%', 100);
-    }
+  if(pts!==prevPts && prevPts<pts){
+    if(cagEl){ cagEl.classList.remove('pts-anim'); void cagEl.offsetWidth; cagEl.classList.add('pts-anim'); animateCount(cagEl,prevPts,pts,800); }
+    const dashCag=document.getElementById('dash-cag');
+    if(dashCag) animateCount(dashCag,prevPts,pts,800);
+  } else {
+    if(cagEl) cagEl.textContent=pts;
+    const dashCag=document.getElementById('dash-cag');
+    if(dashCag) dashCag.textContent=pts;
   }
 
-  if(nextR){
-    document.getElementById('portal-cag-sub').innerHTML=
-      `Plus que <span class="hl">${nextR.pts-pts} pts</span> pour : <span class="hl">${nextR.icon} ${nextR.name}</span>`;
-  } else if(rewards.length){
-    document.getElementById('portal-cag-sub').innerHTML=
-      `<span class="hl">🎉 Toutes les récompenses débloquées !</span>`;
+  // Progress bar (portal + dashboard)
+  const progEl=document.getElementById('portal-prog');
+  const dashProg=document.getElementById('dash-prog-bar');
+  if(progEl||dashProg){
+    let pct=100;
+    if(nextR){
+      const prevProg=rewards.filter(r=>r.pts<=pts).slice(-1)[0];
+      const base=prevProg?prevProg.pts:0;
+      pct=Math.min(100,Math.round((pts-base)/(nextR.pts-base)*100));
+    }
+    setTimeout(()=>{
+      if(progEl) progEl.style.width=pct+'%';
+      if(dashProg) dashProg.style.width=pct+'%';
+    },100);
+  }
+
+  // Sub-text (portal + dashboard)
+  const subHtml=nextR
+    ?`Plus que <span class="hl">${nextR.pts-pts} pts</span> pour : <span class="hl">${nextR.icon} ${nextR.name}</span>`
+    :rewards.length?`<span class="hl">🎉 Toutes les récompenses débloquées !</span>`:'';
+  const portalSub=document.getElementById('portal-cag-sub');
+  if(portalSub) portalSub.innerHTML=subHtml;
+  const dashSub=document.getElementById('dash-cag-sub');
+  if(dashSub){
+    if(nextR) dashSub.innerHTML=`Encore <strong style="color:#FF6B1A">${nextR.pts-pts} pts</strong> pour ${nextR.icon} ${nextR.name}`;
+    else if(rewards.length) dashSub.textContent='🎉 Toutes les récompenses débloquées !';
+    else dashSub.textContent='';
   }
 
   // Reward alert — si récompense dispo
@@ -6773,17 +6852,22 @@ function setActiveOrder(o){if(o)localStorage.setItem('kbb_active_order',JSON.str
 
 function updateCommandesTile(){
   const o=getActiveOrder();
+  // Point orange sur le bouton Commandes de la barre globale
+  const dot=document.getElementById('gnav-commandes-dot');
+  if(dot) dot.classList.toggle('visible', !!(o&&o.supaId));
+  // Backward compat : anciens éléments tile si encore dans le DOM
   const badge=document.getElementById('tile-commandes-badge');
   const sub=document.getElementById('tile-commandes-sub');
-  if(!badge||!sub) return;
-  if(o&&o.supaId){
-    const labels={en_attente:'⏳ En attente',en_cours:'🔥 En préparation',pret:'✅ Prête !'};
-    badge.textContent=labels[o.statut]||'⏳ En cours';
-    badge.style.display='';
-    sub.textContent='Votre commande : '+labels[o.statut];
-  } else {
-    badge.style.display='none';
-    sub.textContent='Commander & suivre mon panier';
+  if(badge&&sub){
+    if(o&&o.supaId){
+      const labels={en_attente:'⏳ En attente',en_cours:'🔥 En préparation',pret:'✅ Prête !'};
+      badge.textContent=labels[o.statut]||'⏳ En cours';
+      badge.style.display='';
+      sub.textContent='Votre commande : '+(labels[o.statut]||'');
+    } else {
+      badge.style.display='none';
+      sub.textContent='Commander & suivre mon panier';
+    }
   }
 }
 
@@ -7362,6 +7446,31 @@ if('serviceWorker' in navigator){
   <div class="kiosk-enter-txt">Appuyez pour lancer le mode kiosque</div>
 </div>
 </div>
+
+<!-- ══ BARRE DE NAVIGATION GLOBALE (toutes pages client) ══ -->
+<nav id="global-bottom-nav">
+  <button class="gnav-btn" id="gnav-home" onclick="go('page-dashboard')">
+    <span class="gnav-ico">🏠</span>
+    <span class="gnav-lbl">Accueil</span>
+  </button>
+  <button class="gnav-btn" id="gnav-menu" onclick="go('page-menu')">
+    <span class="gnav-ico">🥙</span>
+    <span class="gnav-lbl">Commander</span>
+  </button>
+  <button class="gnav-btn" id="gnav-commandes" onclick="ouvrirCommandes()">
+    <span class="gnav-ico">📦</span>
+    <span class="gnav-lbl">Commandes</span>
+    <span class="gnav-dot" id="gnav-commandes-dot"></span>
+  </button>
+  <button class="gnav-btn" id="gnav-factures" onclick="go('page-commandes')">
+    <span class="gnav-ico">🧾</span>
+    <span class="gnav-lbl">Factures</span>
+  </button>
+  <button class="gnav-btn" id="gnav-profil" onclick="go('page-client-portal')">
+    <span class="gnav-ico">👤</span>
+    <span class="gnav-lbl">Profil</span>
+  </button>
+</nav>
 
 <!-- ══ PANNEAU DIAGNOSTIC SESSION ══ -->
 <div id="diag-panel" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.85);overflow-y:auto;padding:16px;">
