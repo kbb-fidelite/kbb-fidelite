@@ -2160,6 +2160,24 @@ function getSupaClient(){
   });
   return _supaAuthClient;
 }
+
+/* ── Helper Edge Functions — supabase.functions.invoke() avec fallback fetch ── */
+async function callEdge(fnName, body){
+  const client=getSupaClient();
+  if(client&&client.functions){
+    const {data,error}=await client.functions.invoke(fnName,{body});
+    if(error) throw new Error(fnName+': '+(error.message||JSON.stringify(error)));
+    return data;
+  }
+  // Fallback fetch direct (si SDK non dispo)
+  const r=await fetch(SURL+'/functions/v1/'+fnName,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+    body:JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error(fnName+': '+(await r.text().catch(()=>String(r.status))));
+  return r.json();
+}
 async function supaReq(path,method='GET',body=null){
   const o={method,headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'}};
   if(body) o.body=JSON.stringify(body);
@@ -2325,16 +2343,7 @@ async function dbUpdate(id,u){
     const body={id:String(id),data:safe};
     if(empToken) body.emp_token=empToken;
     else if(clientTel) body.client_tel=clientTel;
-    const r=await fetch(SURL+'/functions/v1/update-client',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
-      body:JSON.stringify(body)
-    });
-    if(!r.ok){
-      const msg=await r.text().catch(()=>String(r.status));
-      throw new Error('update-client: '+msg);
-    }
-    const j=await r.json();
+    const j=await callEdge('update-client',body);
     return j.client;
   }
   const d=lLoad();
@@ -2342,20 +2351,20 @@ async function dbUpdate(id,u){
   if(i>-1){d[i]={...d[i],...u};lSave(d);return d[i];}
 }
 
-/* ── Helper : mettre à jour une commande via Edge Function (emp_token requis) ── */
+/* ── Met à jour une commande via Edge Function (emp_token requis) ── */
 async function empUpdateCommande(id,data){
   if(!supaOk()||!id||String(id).startsWith('local_')) return;
   const empToken=_getEmpToken();
-  const r=await fetch(SURL+'/functions/v1/update-commande',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
-    body:JSON.stringify({id:String(id),data,emp_token:empToken})
-  });
-  if(!r.ok){
-    const msg=await r.text().catch(()=>String(r.status));
-    throw new Error('update-commande: '+msg);
-  }
-  return (await r.json()).commande;
+  const j=await callEdge('update-commande',{id:String(id),data,emp_token:empToken});
+  return j.commande;
+}
+
+/* ── Crée une commande via Edge Function (service_role, bypass RLS) ── */
+async function createCommande(payload){
+  if(!supaOk()) throw new Error('Supabase non configuré');
+  const j=await callEdge('create-commande',{payload});
+  if(!j.ok||!j.commande) throw new Error('create-commande: réponse invalide');
+  return j.commande;
 }
 
 /* ══ LOCAL ══ */
@@ -2714,14 +2723,9 @@ async function stripePayInPlace(){
     const _rIdNum=parseInt(pending.reward_id);
     if(pending.reward_id&&!isNaN(_rIdNum)&&_rIdNum>0){ orderPayload.reward_id=_rIdNum; }
     try{
-      const res=await supaReq('commandes','POST',orderPayload);
-      if(res&&res[0]&&res[0].id) supaId=res[0].id;
-    }catch(e){
-      try{
-        const res2=await supaReq('commandes','POST',{items:orderPayload.items,montant:orderPayload.montant,statut:'en_attente',created_at:orderPayload.created_at});
-        if(res2&&res2[0]&&res2[0].id) supaId=res2[0].id;
-      }catch(e2){ console.warn('stripePayInPlace INSERT:',e2); }
-    }
+      const cmd=await createCommande(orderPayload);
+      if(cmd&&cmd.id) supaId=cmd.id;
+    }catch(e){ console.warn('stripePayInPlace createCommande:',e); }
     const effectiveIdInPlace=supaId||pending.orderId;
     try{ await insertTransaction({orderId:effectiveIdInPlace,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'sur_place',refStripe:null}); }
     catch(e){ console.error('stripePayInPlace — insertTransaction échoué:',e); }
@@ -2761,14 +2765,9 @@ async function handleStripeReturn(){
     //    Aucune commande n'est créée ou activée sans confirmation Stripe via verify-payment.
     if(!supaOk()){ showToast('Configuration Supabase manquante'); return; }
     try{
-      const vRes=await fetch(SURL+'/functions/v1/verify-payment',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
-        body:JSON.stringify({session_id:sessionId})
-      });
-      const vData=await vRes.json();
+      const vData=await callEdge('verify-payment',{session_id:sessionId});
 
-      if(!vRes.ok||!vData.ok){
+      if(!vData.ok){
         // Paiement non vérifié — commande reste en pending_payment (invisible en cuisine)
         console.error('verify-payment échoué:',vData.error);
         showToast('⚠️ Vérification paiement échouée — contactez le restaurant');
@@ -5614,9 +5613,9 @@ async function validateOrder(){
   try{
     await dbUpdate(c.id,{points:c.passages,cagnotte:c.cagnotte});
     try{
-      const cmdPayload={client_id: String(c.id), montant: Number(amount), points_gagnes: Number(pts)};
-      const cmdRes=await supaReq('commandes','POST',cmdPayload);
-      const newCmdId=cmdRes&&cmdRes[0]&&cmdRes[0].id?cmdRes[0].id:null;
+      const cmdPayload={client_telephone:c.telephone||c.tel||null,montant:Number(amount),points_gagnes:Number(pts),statut:'archive',created_at:new Date().toISOString()};
+      const cmdObj=await createCommande(cmdPayload).catch(e=>{console.error('validateOrder createCommande:',e);return null;});
+      const newCmdId=cmdObj&&cmdObj.id?cmdObj.id:null;
       try{ await insertTransaction({orderId:newCmdId, items:null, montantTTC:Number(amount), moyenPaiement:'sur_place', refStripe:null}); }
       catch(e){ console.error('validateOrder — insertTransaction échoué:',e); }
       try{ await createFactureSimple(newCmdId,Number(amount),c.prenom||''); }
