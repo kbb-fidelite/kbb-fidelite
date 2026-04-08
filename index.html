@@ -2594,8 +2594,11 @@ async function stripePayInPlace(){
         if(res2&&res2[0]&&res2[0].id) supaId=res2[0].id;
       }catch(e2){ console.warn('stripePayInPlace INSERT:',e2); }
     }
-    insertTransaction({orderId:supaId||pending.orderId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'sur_place',refStripe:null}).catch(()=>{});
-    createFactureFromPending({...pending,orderId:supaId||pending.orderId}).catch(()=>{});
+    const effectiveIdInPlace=supaId||pending.orderId;
+    try{ await insertTransaction({orderId:effectiveIdInPlace,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'sur_place',refStripe:null}); }
+    catch(e){ console.error('stripePayInPlace — insertTransaction échoué:',e); }
+    try{ await createFactureFromPending({...pending,orderId:effectiveIdInPlace}); }
+    catch(e){ console.error('stripePayInPlace — createFactureFromPending échoué:',e); }
   }
   const realNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):pending.orderNum;
   setActiveOrder({...ao,supaId:supaId||null,statut:'en_attente',orderNum:realNum}); updateCommandesTile();
@@ -2646,7 +2649,6 @@ async function handleStripeReturn(){
       }
 
       // 4. Paiement confirmé — mettre à jour l'affichage avec l'ID réel
-      localStorage.removeItem('kbb_stripe_pending');
       const supaId=vData.orderId||pending.supabaseOrderId||null;
       if(supaId){
         const realNum='#KBB-'+String(supaId).padStart(3,'0');
@@ -2656,8 +2658,15 @@ async function handleStripeReturn(){
         updateCommandesTile();
       }
       const effectiveId=supaId||pending.orderId;
-      insertTransaction({orderId:effectiveId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:sessionId}).catch(()=>{});
-      createFactureFromPending({...pending,orderId:effectiveId}).catch(()=>{});
+      // F2 : passer le vrai sessionId comme stripeSessionId pour la facture
+      const pendingWithSession={...pending,orderId:effectiveId,stripeSessionId:sessionId};
+      // F1 : await — ne pas fire-and-forget les écritures comptables
+      // F3 : supprimer le pending APRÈS les écritures (pas avant)
+      try{ await insertTransaction({orderId:effectiveId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:sessionId}); }
+      catch(e){ console.error('handleStripeReturn — insertTransaction échoué:',e); }
+      try{ await createFactureFromPending(pendingWithSession); }
+      catch(e){ console.error('handleStripeReturn — createFactureFromPending échoué:',e); showToast('⚠️ Facture non générée — contactez le restaurant'); }
+      localStorage.removeItem('kbb_stripe_pending'); // F3 : supprimé APRÈS les écritures
       setTimeout(()=>goToSuivi(), 2500);
 
     }catch(e){
@@ -5483,8 +5492,10 @@ async function validateOrder(){
       const cmdPayload={client_id: String(c.id), montant: Number(amount), points_gagnes: Number(pts)};
       const cmdRes=await supaReq('commandes','POST',cmdPayload);
       const newCmdId=cmdRes&&cmdRes[0]&&cmdRes[0].id?cmdRes[0].id:null;
-      insertTransaction({orderId:newCmdId, items:null, montantTTC:Number(amount), moyenPaiement:'sur_place', refStripe:null}).catch(()=>{});
-      createFactureSimple(newCmdId,Number(amount),c.prenom||'').catch(()=>{});
+      try{ await insertTransaction({orderId:newCmdId, items:null, montantTTC:Number(amount), moyenPaiement:'sur_place', refStripe:null}); }
+      catch(e){ console.error('validateOrder — insertTransaction échoué:',e); }
+      try{ await createFactureSimple(newCmdId,Number(amount),c.prenom||''); }
+      catch(e){ console.error('validateOrder — createFactureSimple échoué:',e); }
     }catch(e){ console.error('Erreur save commande:',e.message); }
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===c.id||x.telephone===c.telephone||x.tel===c.tel);
@@ -6331,66 +6342,90 @@ async function getNextFactureNumber(){
   return 'FAC-'+year+'-'+String(n).padStart(5,'0');
 }
 
-// Save facture to Supabase and return the full record
+// Save facture to Supabase — throws on failure (F5: ne plus avaler l'erreur)
 async function saveFacture(data){
-  if(!supaOk()) return data;
-  try{
-    const res=await supaReq('factures','POST',data);
-    return (res&&res[0])||data;
-  }catch(e){ console.warn('save facture:',e); return data; }
+  if(!supaOk()) throw new Error('Supabase non configuré');
+  const res=await supaReq('factures','POST',data); // supaReq throw déjà si !r.ok
+  if(!res||!res[0]) throw new Error('Supabase: réponse vide après insert facture');
+  return res[0];
 }
 
-// Create facture from Stripe pending object
-async function createFactureFromPending(pending){
+// Idempotence : chercher une facture existante pour une commande (F4)
+async function findFactureByCommandeId(commandeId){
+  if(!supaOk()||!commandeId) return null;
   try{
-    const numero=await getNextFactureNumber();
-    const grouped=pending.grouped||null;
-    const articles=grouped?groupedToArticles(grouped):[];
-    const tva=grouped?computeTVABreakdown(grouped):{ht10:0,tva10:0,ht55:0,tva55:0,ttc:pending.total||0};
-    // If no grouped, all goes to 10%
-    const ht10=tva.ht10||(Math.round((pending.total||0)/1.10*100)/100);
-    const tvA10=tva.tva10||Math.round(((pending.total||0)-ht10)*100)/100;
-    const facData={
-      numero_facture:numero,
-      date:new Date().toISOString(),
-      commande_id:String(pending.orderId||''),
-      client_prenom:pending.clientData?.prenom||'',
-      total_ht_10:tva.ht10||ht10,
-      tva_10:tva.tva10||tvA10,
-      total_ht_55:tva.ht55||0,
-      tva_55:tva.tva55||0,
-      total_ttc:tva.ttc||pending.total||0,
-      moyen_paiement:'carte',
-      ref_stripe:pending.stripeSessionId||null,
-      articles:articles
-    };
-    const saved=await saveFacture(facData);
-    window._lastFacture=saved;
-    localStorage.setItem('kbb_last_facture',JSON.stringify(saved));
-    return saved;
-  }catch(e){ console.warn('createFactureFromPending:',e); return null; }
+    const rows=await supaReq('factures?commande_id=eq.'+encodeURIComponent(String(commandeId))+'&select=*&limit=1');
+    return (rows&&rows[0])||null;
+  }catch(e){ console.warn('findFactureByCommandeId:',e); return null; }
+}
+
+// Create facture from Stripe pending object — idempotent (F4), ref_stripe réel (F2)
+async function createFactureFromPending(pending){
+  const commandeId=String(pending.orderId||'');
+  // F4 : vérifier si une facture existe déjà pour cette commande
+  if(commandeId){
+    const existing=await findFactureByCommandeId(commandeId);
+    if(existing){
+      console.log('createFactureFromPending: facture déjà existante pour commande',commandeId,'—',existing.numero_facture);
+      window._lastFacture=existing;
+      localStorage.setItem('kbb_last_facture',JSON.stringify(existing));
+      return existing;
+    }
+  }
+  const numero=await getNextFactureNumber();
+  const grouped=pending.grouped||null;
+  const articles=grouped?groupedToArticles(grouped):[];
+  const tva=grouped?computeTVABreakdown(grouped):{ht10:0,tva10:0,ht55:0,tva55:0,ttc:pending.total||0};
+  const ht10=tva.ht10||(Math.round((pending.total||0)/1.10*100)/100);
+  const tvA10=tva.tva10||Math.round(((pending.total||0)-ht10)*100)/100;
+  const facData={
+    numero_facture:numero,
+    date:new Date().toISOString(),
+    commande_id:commandeId,
+    client_prenom:pending.clientData?.prenom||'',
+    total_ht_10:tva.ht10||ht10,
+    tva_10:tva.tva10||tvA10,
+    total_ht_55:tva.ht55||0,
+    tva_55:tva.tva55||0,
+    total_ttc:tva.ttc||pending.total||0,
+    moyen_paiement:'carte',
+    ref_stripe:pending.stripeSessionId||null, // F2 : stripeSessionId passé par l'appelant
+    articles:articles
+  };
+  // saveFacture throw si échec (F5) — l'appelant gère
+  const saved=await saveFacture(facData);
+  window._lastFacture=saved;
+  localStorage.setItem('kbb_last_facture',JSON.stringify(saved));
+  return saved;
 }
 
 // Create facture for employee-validated order (no grouped, 100% TVA 10%)
 async function createFactureSimple(cmdId, montantTTC, clientPrenom){
-  try{
-    const numero=await getNextFactureNumber();
-    const ht10=Math.round(montantTTC/1.10*100)/100;
-    const tva10=Math.round((montantTTC-ht10)*100)/100;
-    const facData={
-      numero_facture:numero,
-      date:new Date().toISOString(),
-      commande_id:cmdId?String(cmdId):'',
-      client_prenom:clientPrenom||'',
-      total_ht_10:ht10, tva_10:tva10,
-      total_ht_55:0, tva_55:0,
-      total_ttc:montantTTC,
-      moyen_paiement:'sur_place',
-      ref_stripe:null,
-      articles:[]
-    };
-    await saveFacture(facData);
-  }catch(e){ console.warn('createFactureSimple:',e); }
+  // F4 : vérifier si une facture existe déjà pour cette commande
+  if(cmdId){
+    const existing=await findFactureByCommandeId(cmdId);
+    if(existing){
+      console.log('createFactureSimple: facture déjà existante pour commande',cmdId,'—',existing.numero_facture);
+      return;
+    }
+  }
+  const numero=await getNextFactureNumber();
+  const ht10=Math.round(montantTTC/1.10*100)/100;
+  const tva10=Math.round((montantTTC-ht10)*100)/100;
+  const facData={
+    numero_facture:numero,
+    date:new Date().toISOString(),
+    commande_id:cmdId?String(cmdId):'',
+    client_prenom:clientPrenom||'',
+    total_ht_10:ht10, tva_10:tva10,
+    total_ht_55:0, tva_55:0,
+    total_ttc:montantTTC,
+    moyen_paiement:'sur_place',
+    ref_stripe:null,
+    articles:[]
+  };
+  // saveFacture throw si échec (F5) — l'appelant gère
+  await saveFacture(facData);
 }
 
 // Generate jsPDF invoice document from facture data (async — loads jsPDF on demand)
@@ -6698,26 +6733,25 @@ async function deleteMyAccount(){
 }
 
 /* ══ TRANSACTIONS COMPTABLES ══ */
+// F5 : throw si l'écriture échoue — l'appelant décide quoi faire
 async function insertTransaction({orderId, items, montantTTC, moyenPaiement, refStripe}){
-  if(!supaOk()) return;
+  if(!supaOk()) throw new Error('Supabase non configuré');
   const ttc=parseFloat(montantTTC)||0;
   if(ttc<=0) return;
   const ht=Math.round(ttc/1.10*100)/100;
   const tva=Math.round((ttc-ht)*100)/100;
   const numeroCommande=orderId?'#KBB-'+String(orderId).padStart(3,'0'):null;
-  try{
-    await supaReq('transactions','POST',{
-      date_heure: new Date().toISOString(),
-      numero_commande: numeroCommande,
-      articles: items||null,
-      montant_ht: ht,
-      tva: tva,
-      montant_ttc: ttc,
-      moyen_paiement: moyenPaiement||'inconnu',
-      ref_stripe: refStripe||null,
-      statut: 'valide'
-    });
-  }catch(e){ console.warn('Transaction insert:',e); }
+  await supaReq('transactions','POST',{
+    date_heure: new Date().toISOString(),
+    numero_commande: numeroCommande,
+    articles: items||null,
+    montant_ht: ht,
+    tva: tva,
+    montant_ttc: ttc,
+    moyen_paiement: moyenPaiement||'inconnu',
+    ref_stripe: refStripe||null,
+    statut: 'valide'
+  });
 }
 
 /* ══ COMPTABILITÉ — DASHBOARD PATRON ══ */
@@ -7398,6 +7432,50 @@ window.addEventListener('pagehide', ()=>{
   console.log('[KBB-DIAG] SESSION BEFORE CLOSE — localStorage kbb_session:', raw ? tel : 'NULL');
 });
 
+// F6 — Récupération des factures orphelines
+// Cas : l'app a été fermée après verify-payment (commande en_attente) mais avant la création de facture.
+// Au démarrage suivant, ?stripe_session n'est plus dans l'URL → handleStripeReturn ne fait rien.
+// On détecte ce cas via kbb_stripe_pending encore présent + commande déjà activée en base.
+async function recoverOrphanedFacture(){
+  if(!supaOk()) return;
+  const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
+  if(!pending) return;
+  const supaId=pending.supabaseOrderId;
+  if(!supaId) return; // pas encore de commande Supabase créée — cas normal avant paiement
+  try{
+    // Vérifier le statut de la commande en base
+    const orders=await supaReq('commandes?id=eq.'+encodeURIComponent(String(supaId))+'&select=id,statut,stripe_session_id');
+    const order=orders&&orders[0];
+    if(!order) return; // commande introuvable — ne rien faire
+    if(order.statut==='pending_payment') return; // paiement pas encore confirmé — normal
+    // La commande est activée — vérifier si la facture existe déjà
+    const existing=await findFactureByCommandeId(supaId);
+    if(existing){
+      // Facture déjà créée — juste nettoyer le pending
+      console.log('recoverOrphanedFacture: facture déjà existante',existing.numero_facture,'— nettoyage pending');
+      localStorage.removeItem('kbb_stripe_pending');
+      return;
+    }
+    // Facture manquante — la créer maintenant
+    console.warn('recoverOrphanedFacture: facture manquante pour commande',supaId,'— récupération');
+    showToast('⏳ Finalisation de votre commande précédente…');
+    const sessionId=order.stripe_session_id||null;
+    const pendingWithSession={...pending,orderId:supaId,stripeSessionId:sessionId};
+    try{ await insertTransaction({orderId:supaId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:sessionId}); }
+    catch(e){ console.error('recoverOrphanedFacture — insertTransaction:',e); }
+    try{
+      await createFactureFromPending(pendingWithSession);
+      showToast('✅ Commande précédente finalisée');
+    }catch(e){
+      console.error('recoverOrphanedFacture — createFactureFromPending:',e);
+      showToast('⚠️ Facture non générée — contactez le restaurant');
+    }
+    localStorage.removeItem('kbb_stripe_pending');
+  }catch(e){
+    console.error('recoverOrphanedFacture:',e);
+  }
+}
+
 window.addEventListener('load', async function(){
   // ── DIAGNOSTIC: état du stockage au tout début du chargement ──
   const _diagRaw = localStorage.getItem('kbb_session');
@@ -7446,6 +7524,9 @@ window.addEventListener('load', async function(){
 
   // Retour depuis Stripe : peut appeler go() — currentPortalClient est déjà défini
   handleStripeReturn();
+
+  // F6 : récupérer une facture orpheline si l'app a été fermée après paiement
+  recoverOrphanedFacture().catch(e=>console.error('recoverOrphanedFacture:',e));
 
   // Précharger les récompenses et l'offre flash (Supabase → visible par tous les clients)
   loadRecompenses().catch(()=>{});
