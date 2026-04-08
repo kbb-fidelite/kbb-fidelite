@@ -5577,6 +5577,12 @@ async function refreshFlashCache(){
 // Rafraîchissement périodique toutes les 60 s (les clients voient l'offre démarrer/s'arrêter)
 setInterval(()=>refreshFlashCache().catch(()=>{}), 60000);
 
+// Récupère le token employé depuis localStorage (émis par verify-pin)
+function _getEmpToken(){
+  try{ const t=JSON.parse(localStorage.getItem('kbb_emp_token')||'null'); return t?.token||null; }
+  catch(e){ return null; }
+}
+
 async function lancerOffreFlash(){
   const msg=document.getElementById('flash-msg').value.trim()||'Offre spéciale !';
   const duree=parseInt(document.getElementById('flash-duree').value)||2;
@@ -5586,17 +5592,22 @@ async function lancerOffreFlash(){
 
   if(supaOk()){
     statusEl.textContent='⏳ Enregistrement…';
+    // Vérifier que le token patron est présent avant d'appeler l'Edge Function
+    const empToken=_getEmpToken();
+    if(!empToken){
+      statusEl.textContent='⚠ Session expirée — ressaisissez votre PIN patron';
+      showToast('Session expirée — ressaisissez votre PIN');
+      return;
+    }
     try{
-      // UPSERT : INSERT avec Prefer merge-duplicates (key est PRIMARY KEY)
-      await fetch(SURL+'/rest/v1/settings',{
+      // Écriture via manage-flash (service_role) — anon ne peut plus écrire dans settings
+      const r=await fetch(SURL+'/functions/v1/manage-flash',{
         method:'POST',
-        headers:{
-          'apikey':SKEY,'Authorization':'Bearer '+SKEY,
-          'Content-Type':'application/json',
-          'Prefer':'resolution=merge-duplicates,return=minimal'
-        },
-        body:JSON.stringify({key:'flash',value:flash,updated_at:new Date().toISOString()})
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+        body:JSON.stringify({action:'set',flash,emp_token:empToken})
       });
+      const d=await r.json();
+      if(!r.ok||!d.ok) throw new Error(d.error||'Erreur manage-flash');
       _flashCache=flash;
       localStorage.setItem('kbb_flash',JSON.stringify(flash)); // fallback local
       document.getElementById('stop-flash-btn').style.display='block';
@@ -5604,12 +5615,12 @@ async function lancerOffreFlash(){
       showToast('⚡ Offre flash lancée ! x'+multi+' pts pendant '+duree+'h');
       await refreshFlashCache();
     }catch(e){
-      statusEl.textContent='⚠ Erreur Supabase — offre locale seulement';
-      showToast('Erreur Supabase lors du lancement');
+      statusEl.textContent='⚠ Erreur — '+e.message;
+      showToast('Erreur lors du lancement : '+e.message);
       console.error('lancerOffreFlash:',e);
     }
   } else {
-    // Sans Supabase : localStorage uniquement (comportement précédent)
+    // Sans Supabase : localStorage uniquement (mode dégradé)
     _flashCache=flash;
     localStorage.setItem('kbb_flash',JSON.stringify(flash));
     document.getElementById('stop-flash-btn').style.display='block';
@@ -5625,10 +5636,22 @@ async function stopOffreFlash(){
   document.getElementById('flash-status').textContent='';
 
   if(supaOk()){
+    const empToken=_getEmpToken();
+    if(!empToken){
+      showToast('Session expirée — ressaisissez votre PIN patron');
+      return;
+    }
     try{
-      await supaReq('settings?key=eq.flash','DELETE');
+      const r=await fetch(SURL+'/functions/v1/manage-flash',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+        body:JSON.stringify({action:'delete',emp_token:empToken})
+      });
+      const d=await r.json();
+      if(!r.ok||!d.ok) throw new Error(d.error||'Erreur manage-flash');
     }catch(e){
-      console.warn('stopOffreFlash DELETE error:',e);
+      console.error('stopOffreFlash:',e);
+      showToast('Erreur lors de l\'arrêt : '+e.message);
     }
   }
   await refreshFlashCache();
