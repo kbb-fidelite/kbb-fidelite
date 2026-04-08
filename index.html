@@ -104,7 +104,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .fidel-lvl-section{margin-bottom:1.25rem;}
 .fidel-lvl-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:.75rem;}
 .fidel-lvl-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-.flvl-card{border-radius:20px;padding:1rem .625rem;text-align:center;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);transition:border-color .2s,background .2s;}
+.flvl-card{border-radius:20px;padding:1rem .625rem;text-align:center;border:0.5px solid rgba(255,255,255,.12);background:rgba(18,18,18,.96);box-shadow:0 8px 28px rgba(0,0,0,.5);transition:border-color .2s,box-shadow .2s;}
 .flvl-card.flvl-active{border-width:2px;}
 .flvl-emoji{font-size:22px;margin-bottom:4px;}
 .flvl-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
@@ -125,7 +125,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .parr-hero-sub{font-size:12px;color:var(--text3);margin-top:4px;}
 .parr-body{flex:1;overflow-y:auto;padding:1.25rem;background:#0d0500;display:flex;flex-direction:column;gap:1rem;}
 /* Code parrain card */
-.parr-code-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:1.25rem;}
+.parr-code-card{background:rgba(18,18,18,.96);border:0.5px solid rgba(255,255,255,.12);border-radius:24px;padding:1.25rem;box-shadow:0 10px 40px rgba(0,0,0,.6);}
 .parr-code-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;}
 .parr-code-val{font-size:22px;font-weight:800;color:var(--fire);letter-spacing:1px;font-family:var(--font-d);}
 .parr-share-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:.875rem;}
@@ -136,7 +136,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .parr-share-btn.share{background:linear-gradient(135deg,var(--fire),var(--fire2));color:#fff;}
 .parr-share-btn .psb-ico{font-size:20px;}
 /* Compteur mensuel */
-.parr-counter{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:1.25rem;}
+.parr-counter{background:rgba(18,18,18,.96);border:0.5px solid rgba(255,255,255,.12);border-radius:24px;padding:1.25rem;box-shadow:0 10px 40px rgba(0,0,0,.6);}
 .parr-counter-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem;}
 .parr-counter-title{font-size:13px;font-weight:700;color:var(--text);}
 .parr-counter-val{font-size:13px;font-weight:700;color:var(--fire);}
@@ -144,8 +144,8 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .parr-counter-fill{height:100%;background:linear-gradient(90deg,var(--fire),var(--gold));border-radius:99px;transition:width .5s ease;}
 .parr-counter-sub{font-size:11px;color:var(--text3);margin-top:.4rem;}
 /* Sections filleuls */
-.parr-section{border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);}
-.parr-section-head{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;background:rgba(255,255,255,.04);}
+.parr-section{border-radius:24px;overflow:hidden;border:0.5px solid rgba(255,255,255,.12);background:rgba(18,18,18,.96);box-shadow:0 10px 40px rgba(0,0,0,.6);}
+.parr-section-head{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;background:rgba(255,255,255,.03);border-bottom:0.5px solid rgba(255,255,255,.08);}
 .parr-section-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
 .parr-section-count{font-size:12px;font-weight:700;border-radius:99px;padding:2px 9px;}
 .parr-section-count.attente{background:rgba(255,184,48,.15);color:var(--gold);}
@@ -735,18 +735,18 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 @keyframes dash-enter{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 @keyframes gnav-dot-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.4);}}
 /* ══ DASHBOARD PREMIUM ══ */
-.dash-hero{position:relative;height:240px;overflow:hidden;flex-shrink:0;}
+.dash-hero{position:relative;height:40vh;min-height:220px;max-height:380px;overflow:hidden;flex-shrink:0;}
 .dash-hero-bg{position:absolute;inset:0;background-image:url('https://mwfezeuaohwbhubaaddm.supabase.co/storage/v1/object/public/images/IMG_9021.PNG');background-size:cover;background-position:center 30%;}
-.dash-hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(13,5,0,.2) 0%,rgba(13,5,0,.75) 70%,rgba(13,5,0,1) 100%);}
+.dash-hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.9) 80%,#000 100%);}
 .dash-hero-topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:flex-end;gap:8px;padding:.9rem 1.1rem;z-index:2;}
-.dash-icon-btn{background:rgba(13,5,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:#F5F0EB;flex-shrink:0;transition:background .15s;}
+.dash-icon-btn{background:rgba(0,0,0,.55);border:0.5px solid rgba(255,255,255,.15);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:#F5F0EB;flex-shrink:0;transition:background .15s;}
 .dash-icon-btn:active{background:rgba(255,107,26,.3);}
 .dash-hero-bottom{position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem 1.1rem;z-index:2;}
 .dash-hero-brand{font-family:'Playfair Display',Georgia,serif;font-size:17px;font-weight:700;color:#FF6B1A;letter-spacing:.5px;line-height:1;margin-bottom:.35rem;}
 .dash-hero-hello{font-family:'Poppins',var(--font),sans-serif;font-size:22px;font-weight:600;color:#F5F0EB;line-height:1.15;letter-spacing:-.3px;}
 .dash-hero-sub{font-family:'Inter',var(--font),sans-serif;font-size:12px;font-weight:300;color:rgba(245,240,235,.6);margin-top:4px;letter-spacing:.2px;}
 /* Loyalty card — style carte bancaire premium */
-.dash-loyalty-card{margin:-22px 1rem 0;background:linear-gradient(135deg,rgba(30,14,2,.95) 0%,rgba(45,20,3,.9) 100%);border:1px solid rgba(255,107,26,.25);border-radius:24px;padding:1.25rem 1.25rem 1.1rem;position:relative;z-index:10;overflow:hidden;animation:dash-enter .4s ease both;}
+.dash-loyalty-card{margin:-22px 1rem 0;background:linear-gradient(135deg,rgba(20,8,0,.98) 0%,rgba(38,16,2,.97) 100%);border:0.5px solid rgba(255,107,26,.3);border-radius:24px;padding:1.25rem 1.25rem 1.15rem;position:relative;z-index:10;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.7),0 0 0 0.5px rgba(255,107,26,.1) inset;animation:dash-enter .4s ease both;}
 .dash-loyalty-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 20%,rgba(255,107,26,.12) 0%,transparent 60%);pointer-events:none;}
 .dash-loyalty-card-shimmer{position:absolute;top:0;left:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);transform:translateX(-100%);animation:dash-shimmer 3.5s ease-in-out infinite;}
 .dash-loyalty-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.75rem;position:relative;z-index:1;}
@@ -762,9 +762,9 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .dash-prog-footer{display:flex;justify-content:space-between;align-items:center;margin-top:.5rem;}
 .dash-prog-sub{font-family:'Inter',sans-serif;font-size:11px;font-weight:300;color:rgba(245,240,235,.5);flex:1;}
 /* Section dernière commande */
-.dash-last-order{margin:1rem 1rem 0;animation:dash-enter .4s .1s ease both;}
+.dash-last-order{margin:1.1rem 1rem 0;animation:dash-enter .4s .1s ease both;}
 .dash-last-order-title{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:rgba(245,240,235,.5);letter-spacing:.8px;text-transform:uppercase;margin-bottom:.625rem;}
-.dash-last-order-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .18s ease;}
+.dash-last-order-card{background:rgba(18,18,18,.96);border:0.5px solid rgba(255,255,255,.12);border-radius:24px;padding:1.25rem;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .18s ease;box-shadow:0 10px 40px rgba(0,0,0,.6);}
 .dash-last-order-card:active{background:rgba(255,107,26,.08);border-color:rgba(255,107,26,.2);transform:scale(.985);}
 .dash-last-order-ico{font-size:28px;flex-shrink:0;}
 .dash-last-order-body{flex:1;min-width:0;}
@@ -772,16 +772,16 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .dash-last-order-meta{font-family:'Inter',sans-serif;font-size:11px;font-weight:300;color:rgba(245,240,235,.5);margin-top:2px;}
 .dash-last-order-btn{background:rgba(255,107,26,.15);border:1px solid rgba(255,107,26,.25);color:#FF6B1A;border-radius:99px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 /* Flash offer */
-.dash-flash{margin:1rem 1rem 0;background:rgba(255,107,26,.08);border:1px solid rgba(255,107,26,.18);border-radius:20px;padding:1rem 1.25rem;display:flex;align-items:center;gap:10px;animation:dash-flash-glow 2.5s ease-in-out infinite,dash-enter .4s .05s ease both;}
+.dash-flash{margin:1.1rem 1rem 0;background:rgba(18,18,18,.96);border:0.5px solid rgba(255,107,26,.25);border-radius:20px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:10px;box-shadow:0 10px 40px rgba(0,0,0,.6);animation:dash-flash-glow 2.5s ease-in-out infinite,dash-enter .4s .05s ease both;}
 .dash-flash-ico{font-size:22px;flex-shrink:0;}
 .dash-flash-body{flex:1;}
 .dash-flash-title{font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;color:#FF6B1A;}
 .dash-flash-sub{font-family:'Inter',sans-serif;font-size:11px;font-weight:300;color:rgba(255,107,26,.65);margin-top:2px;}
 /* Bouton Commander */
-.dash-cmd-wrap{padding:.875rem 1rem .5rem;animation:dash-enter .4s .15s ease both;}
-.dash-cmd-btn{width:100%;display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#FF6B1A 0%,#E8400A 100%);border:none;border-radius:16px;padding:1.1rem 1.4rem;cursor:pointer;text-align:left;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(255,107,26,.35);animation:dash-pulse 3s ease-in-out infinite;transition:transform .1s ease,box-shadow .1s ease;}
-.dash-cmd-btn::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:skewX(-15deg);transition:left .6s ease;}
-.dash-cmd-btn:active{transform:scale(.98);animation:none;box-shadow:0 2px 10px rgba(255,107,26,.25);}
+.dash-cmd-wrap{padding:1rem 1rem .5rem;animation:dash-enter .4s .15s ease both;}
+.dash-cmd-btn{width:100%;display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#FF6B1A 0%,#CC3D00 100%);border:none;border-radius:18px;padding:1.15rem 1.4rem;cursor:pointer;text-align:left;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(255,107,26,.4),0 2px 8px rgba(0,0,0,.4);will-change:transform;animation:dash-pulse 3s ease-in-out infinite;transition:transform .1s ease,box-shadow .1s ease;}
+.dash-cmd-btn::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);transform:skewX(-15deg);transition:left .6s ease;}
+.dash-cmd-btn:active{transform:scale(.98);animation:none;box-shadow:0 4px 16px rgba(255,107,26,.25);}
 .dash-cmd-btn:active::after{left:140%;}
 .dash-cmd-ico{font-size:28px;flex-shrink:0;}
 .dash-cmd-text{flex:1;}
@@ -789,17 +789,26 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .dash-cmd-sub{font-family:'Inter',sans-serif;font-size:12px;font-weight:300;color:rgba(255,255,255,.65);margin-top:3px;}
 .dash-cmd-arrow{margin-left:auto;font-size:26px;font-weight:700;color:rgba(255,255,255,.45);flex-shrink:0;}
 /* Cartes navigation (Fidélité + Parrainage) */
-.dash-cards{display:flex;flex-direction:column;gap:10px;padding:.75rem 1rem 1.25rem;animation:dash-enter .4s .2s ease both;}
-.dash-card{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:1.1rem 1.25rem;cursor:pointer;transition:all .18s ease;position:relative;overflow:hidden;}
-.dash-card:active{background:rgba(255,107,26,.07);border-color:rgba(255,107,26,.18);transform:scale(.985);}
+.dash-cards{display:flex;flex-direction:column;gap:12px;padding:.75rem 1rem 1.5rem;animation:dash-enter .4s .2s ease both;}
+.dash-card{display:flex;align-items:center;gap:14px;background:rgba(18,18,18,.96);border:0.5px solid rgba(255,255,255,.12);border-radius:24px;padding:1.25rem;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease;position:relative;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6);}
+.dash-card:active{transform:scale(.97);box-shadow:0 4px 16px rgba(0,0,0,.5);}
 .dash-card-ico{font-size:22px;flex-shrink:0;}
 .dash-card-body{flex:1;}
 .dash-card-title{font-family:'Poppins',sans-serif;font-size:14px;font-weight:600;color:#F5F0EB;letter-spacing:-.1px;}
 .dash-card-sub{font-family:'Inter',sans-serif;font-size:11px;font-weight:300;color:rgba(245,240,235,.5);margin-top:3px;}
 .dash-card-arrow{font-size:20px;font-weight:700;color:#FF6B1A;flex-shrink:0;}
 /* Note Google */
-.dash-rating{display:flex;align-items:center;justify-content:center;gap:6px;padding:.6rem 1rem .875rem;font-family:'Inter',sans-serif;font-size:11px;color:rgba(245,240,235,.28);letter-spacing:.3px;}
+.dash-rating{display:flex;align-items:center;justify-content:center;gap:6px;padding:.5rem 1rem .5rem;font-family:'Inter',sans-serif;font-size:11px;color:rgba(245,240,235,.28);letter-spacing:.3px;}
 .dash-rating-stars{color:#FFB830;font-size:12px;letter-spacing:1px;}
+/* ══ BLOC STATUT RESTAURANT ══ */
+.dash-status-bar{margin:0 1rem 1.25rem;background:rgba(18,18,18,.96);border:0.5px solid rgba(255,255,255,.1);border-radius:20px;padding:.9rem 1.25rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 28px rgba(0,0,0,.5);}
+.dash-status-left{display:flex;flex-direction:column;gap:4px;}
+.dash-status-loc{font-family:'Inter',sans-serif;font-size:12px;color:rgba(245,240,235,.5);display:flex;align-items:center;gap:5px;}
+.dash-status-state{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#F5F0EB;display:flex;align-items:center;gap:6px;}
+.dash-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dash-status-dot.open{background:#4CAF74;box-shadow:0 0 6px rgba(76,175,116,.6);}
+.dash-status-dot.closed{background:#E84E0F;box-shadow:0 0 6px rgba(232,78,15,.4);}
+.dash-status-hours{font-family:'Inter',sans-serif;font-size:11px;font-weight:300;color:rgba(245,240,235,.4);margin-left:13px;}
 /* ══ BOTTOM NAV BRANDED ══ */
 #global-bottom-nav{display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:#0d0500;border-top:1px solid rgba(255,255,255,.06);z-index:50;height:64px;padding:0 4px;}
 #global-bottom-nav.gnav-visible{display:flex;align-items:stretch;}
@@ -1236,7 +1245,16 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
     </div>
   </div>
 
-  <!-- 7. NOTE GOOGLE -->
+  <!-- 7. STATUT RESTAURANT -->
+  <div class="dash-status-bar" id="dash-status-bar">
+    <div class="dash-status-left">
+      <div class="dash-status-loc">📍 Dole, France</div>
+      <div class="dash-status-state"><span class="dash-status-dot" id="dash-status-dot"></span><span id="dash-status-label">Chargement…</span></div>
+      <div class="dash-status-hours" id="dash-status-hours"></div>
+    </div>
+  </div>
+
+  <!-- 8. NOTE GOOGLE -->
   <div class="dash-rating">
     <span class="dash-rating-stars">★★★★★</span>
     <span>4,8 · 200+ avis Google</span>
@@ -2189,6 +2207,98 @@ function refreshClientSolde(){
   }).catch(()=>{});
 }
 
+/* ── Statut restaurant dynamique (lit depuis settings Supabase) ── */
+let _statusCache=null,_statusTs=0;
+async function refreshDashStatus(){
+  const labelEl=document.getElementById('dash-status-label');
+  const dotEl=document.getElementById('dash-status-dot');
+  const hoursEl=document.getElementById('dash-status-hours');
+  if(!labelEl||!dotEl||!hoursEl) return;
+
+  // Horaires par défaut (JSON stocké dans settings?key=eq.horaires)
+  // Format: {"0":null,"1":{"open":"11:30","close":"22:00"},...,"exceptions":["YYYY-MM-DD"]}
+  // 0=Dim, 1=Lun, ..., 6=Sam
+  const DEFAULT_SCHEDULE={
+    "0":null,
+    "1":{"open":"11:30","close":"22:00"},
+    "2":{"open":"11:30","close":"22:00"},
+    "3":{"open":"11:30","close":"22:00"},
+    "4":{"open":"11:30","close":"22:00"},
+    "5":{"open":"11:30","close":"22:30"},
+    "6":{"open":"11:30","close":"22:30"},
+    "exceptions":[]
+  };
+
+  let schedule=DEFAULT_SCHEDULE;
+  try{
+    // Cache 5 min
+    if(!_statusCache||Date.now()-_statusTs>300000){
+      const rows=await supaReq('settings?key=eq.horaires&select=value');
+      if(rows&&rows.length>0){
+        const v=rows[0].value;
+        schedule=typeof v==='string'?JSON.parse(v):v;
+        _statusCache=schedule;_statusTs=Date.now();
+      }
+    } else {
+      schedule=_statusCache;
+    }
+  }catch(e){ /* fallback sur défaut */ }
+
+  const now=new Date();
+  const todayStr=now.toISOString().slice(0,10);
+  const dayKey=String(now.getDay()); // 0=Dim
+  const hhmm=(d)=>d.getHours()*60+d.getMinutes();
+  const nowMin=hhmm(now);
+  const toMin=(t)=>{ const[h,m]=t.split(':').map(Number);return h*60+m; };
+  const fmt=(t)=>{ const[h,m]=t.split(':');return h+'h'+(m!=='00'?m:''); };
+  const dayNames=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+  // Exceptions (jours fériés ou fermetures exceptionnelles)
+  const exceptions=schedule.exceptions||[];
+  if(exceptions.includes(todayStr)){
+    dotEl.className='dash-status-dot closed';
+    labelEl.textContent='🔴 Fermé aujourd\'hui';
+    hoursEl.textContent='Fermeture exceptionnelle';
+    return;
+  }
+
+  const todayHours=schedule[dayKey];
+  if(!todayHours){
+    dotEl.className='dash-status-dot closed';
+    labelEl.textContent='🔴 Fermé';
+    // Chercher prochain jour ouvert
+    let next=null;
+    for(let i=1;i<=6;i++){
+      const k=String((now.getDay()+i)%7);
+      if(schedule[k]){next={day:dayNames[(now.getDay()+i)%7],hours:schedule[k]};break;}
+    }
+    hoursEl.textContent=next?'Ouvre '+next.day+' à '+fmt(next.hours.open):'';
+    return;
+  }
+
+  const openMin=toMin(todayHours.open);
+  const closeMin=toMin(todayHours.close);
+  if(nowMin>=openMin&&nowMin<closeMin){
+    dotEl.className='dash-status-dot open';
+    labelEl.textContent='Ouvert';
+    hoursEl.textContent='Jusqu\'à '+fmt(todayHours.close);
+  } else if(nowMin<openMin){
+    dotEl.className='dash-status-dot closed';
+    labelEl.textContent='Fermé';
+    hoursEl.textContent='Ouvre à '+fmt(todayHours.open);
+  } else {
+    dotEl.className='dash-status-dot closed';
+    labelEl.textContent='Fermé';
+    // Chercher prochain jour ouvert
+    let next=null;
+    for(let i=1;i<=6;i++){
+      const k=String((now.getDay()+i)%7);
+      if(schedule[k]){next={day:dayNames[(now.getDay()+i)%7],hours:schedule[k]};break;}
+    }
+    hoursEl.textContent=next?'Ouvre '+next.day+' à '+fmt(next.hours.open):'';
+  }
+}
+
 async function dbCreate(client){
   if(supaOk()){
     // Let Supabase auto-generate the id
@@ -2362,7 +2472,7 @@ function go(p){
   if(p==='page-employee'){refreshEmp();loadSettingsUI();}
   if(p==='page-supa-config'){document.getElementById('supa-url').value=SURL;document.getElementById('supa-key').value=SKEY;}
   if(p==='page-client-login'){initLoginPage();}
-  if(p==='page-dashboard'){updateCommandesTile();refreshClientSolde();}
+  if(p==='page-dashboard'){updateCommandesTile();refreshClientSolde();refreshDashStatus().catch(()=>{});}
   if(p==='page-commandes') loadCommandesHistory();
   if(p!=='page-suivi'&&p!=='page-confirmation') stopSuiviPolling();
 }
