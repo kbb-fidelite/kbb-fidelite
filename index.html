@@ -14,7 +14,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>KBB à la braise — Fidélité</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
@@ -727,50 +727,91 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .flash-banner{display:flex;align-items:center;gap:8px;padding:.55rem 1.25rem;background:linear-gradient(90deg,rgba(255,107,43,.18),rgba(255,184,48,.1));border-bottom:1px solid rgba(255,107,43,.3);font-size:12px;font-weight:600;color:var(--text);cursor:pointer;}
 .flash-badge{background:var(--fire);color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:.3px;text-transform:uppercase;flex-shrink:0;}
 
+/* ══ KEYFRAMES DASHBOARD ══ */
+@keyframes dash-pulse{0%,100%{box-shadow:0 6px 28px rgba(255,107,26,.35);}50%{box-shadow:0 8px 40px rgba(255,107,26,.6),0 0 0 6px rgba(255,107,26,.08);}}
+@keyframes dash-shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(250%);}}
+@keyframes dash-bar-in{from{width:0%;}to{width:var(--pct,0%);}}
+@keyframes dash-flash-glow{0%,100%{opacity:1;}50%{opacity:.7;}}
+@keyframes dash-enter{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes gnav-dot-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.4);}}
 /* ══ DASHBOARD PREMIUM ══ */
-.dash-hero{position:relative;height:220px;overflow:hidden;flex-shrink:0;}
-.dash-hero-bg{position:absolute;inset:0;background-image:url('https://mwfezeuaohwbhubaaddm.supabase.co/storage/v1/object/public/images/IMG_9021.PNG');background-size:cover;background-position:center;}
-.dash-hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.95) 100%);}
-.dash-hero-topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:flex-end;gap:8px;padding:.75rem 1rem;z-index:2;}
-.dash-icon-btn{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#fff;flex-shrink:0;}
-.dash-hero-bottom{position:absolute;bottom:0;left:0;right:0;padding:.875rem 1.25rem 1rem;z-index:2;}
-.dash-hero-brand{font-family:Georgia,serif;font-size:20px;font-weight:700;color:#FF6B1A;line-height:1;margin-bottom:.25rem;}
-.dash-hero-hello{font-size:21px;font-weight:700;color:#fff;line-height:1.2;}
-.dash-hero-sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:3px;}
-.dash-pts-card{margin:-20px 1rem 0;background:rgba(255,107,26,.1);border:1px solid rgba(255,107,26,.22);border-radius:16px;padding:1rem 1.25rem .875rem;position:relative;z-index:10;}
-.dash-pts-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.6rem;}
-.dash-pts-value{font-size:38px;font-weight:800;color:#FF6B1A;line-height:1;}
-.dash-pts-unit{font-size:15px;font-weight:600;color:#FF6B1A;opacity:.65;margin-left:4px;}
-.dash-pts-sub{font-size:12px;color:rgba(255,255,255,.45);margin-top:5px;}
-.dash-lvl-badge{background:rgba(255,107,26,.18);border:1px solid rgba(255,107,26,.3);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700;color:#FF6B1A;white-space:nowrap;}
-.dash-prog-track{height:4px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;}
-.dash-prog-fill{height:100%;background:linear-gradient(90deg,#FF6B1A,#FFB830);border-radius:99px;width:0%;transition:width .8s cubic-bezier(.4,0,.2,1);}
-.dash-cmd-wrap{padding:.875rem 1rem .5rem;}
-.dash-cmd-btn{width:100%;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#FF6B1A,#e85a0e);border:none;border-radius:14px;padding:1rem 1.25rem;cursor:pointer;text-align:left;box-shadow:0 6px 24px rgba(255,107,26,.35);}
-.dash-cmd-btn:active{transform:scale(.98);}
-.dash-cmd-ico{font-size:26px;flex-shrink:0;}
-.dash-cmd-title{font-size:16px;font-weight:700;color:#fff;line-height:1.2;}
-.dash-cmd-sub{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;}
-.dash-cmd-arrow{margin-left:auto;font-size:24px;font-weight:700;color:rgba(255,255,255,.5);flex-shrink:0;}
-.dash-cards{display:flex;flex-direction:column;gap:8px;padding:.5rem 1rem 1rem;}
-.dash-card{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:.875rem 1.25rem;cursor:pointer;transition:background .15s;}
-.dash-card:active{background:rgba(255,255,255,.08);}
+.dash-hero{position:relative;height:240px;overflow:hidden;flex-shrink:0;}
+.dash-hero-bg{position:absolute;inset:0;background-image:url('https://mwfezeuaohwbhubaaddm.supabase.co/storage/v1/object/public/images/IMG_9021.PNG');background-size:cover;background-position:center 30%;}
+.dash-hero-overlay{position:absolute;inset:0;background:linear-gradient(170deg,rgba(13,5,0,.15) 0%,rgba(13,5,0,.4) 40%,rgba(13,5,0,.92) 100%);}
+.dash-hero-topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:flex-end;gap:8px;padding:.9rem 1.1rem;z-index:2;}
+.dash-icon-btn{background:rgba(13,5,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:#F5F0EB;flex-shrink:0;transition:background .15s;}
+.dash-icon-btn:active{background:rgba(255,107,26,.3);}
+.dash-hero-bottom{position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem 1.1rem;z-index:2;}
+.dash-hero-brand{font-family:'Playfair Display',Georgia,serif;font-size:17px;font-weight:700;color:#FF6B1A;letter-spacing:.5px;line-height:1;margin-bottom:.35rem;}
+.dash-hero-hello{font-family:'Inter',var(--font),sans-serif;font-size:22px;font-weight:700;color:#F5F0EB;line-height:1.15;letter-spacing:-.3px;}
+.dash-hero-sub{font-family:'Inter',var(--font),sans-serif;font-size:12px;color:rgba(245,240,235,.5);margin-top:4px;letter-spacing:.2px;}
+/* Loyalty card — style carte bancaire premium */
+.dash-loyalty-card{margin:-22px 1rem 0;background:linear-gradient(135deg,rgba(30,14,2,.95) 0%,rgba(45,20,3,.9) 100%);border:1px solid rgba(255,107,26,.25);border-radius:20px;padding:1.1rem 1.25rem 1rem;position:relative;z-index:10;overflow:hidden;animation:dash-enter .4s ease both;}
+.dash-loyalty-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 20%,rgba(255,107,26,.12) 0%,transparent 60%);pointer-events:none;}
+.dash-loyalty-card-shimmer{position:absolute;top:0;left:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);transform:translateX(-100%);animation:dash-shimmer 3.5s ease-in-out infinite;}
+.dash-loyalty-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.75rem;position:relative;z-index:1;}
+.dash-loyalty-pts-wrap{display:flex;align-items:baseline;gap:5px;}
+.dash-loyalty-pts{font-family:'Playfair Display',Georgia,serif;font-size:44px;font-weight:800;color:#FF6B1A;line-height:1;letter-spacing:-1px;}
+.dash-loyalty-unit{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:rgba(255,107,26,.6);letter-spacing:.5px;text-transform:uppercase;}
+.dash-loyalty-sub{font-family:'Inter',sans-serif;font-size:11px;color:rgba(245,240,235,.4);margin-top:4px;letter-spacing:.3px;}
+.dash-lvl-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,107,26,.15);border:1px solid rgba(255,107,26,.3);border-radius:99px;padding:5px 13px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:#FF6B1A;white-space:nowrap;letter-spacing:.3px;}
+.dash-prog-section{position:relative;z-index:1;}
+.dash-prog-label{font-family:'Inter',sans-serif;font-size:10px;color:rgba(245,240,235,.35);letter-spacing:.5px;text-transform:uppercase;margin-bottom:.4rem;}
+.dash-prog-track{height:6px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;}
+.dash-prog-fill{height:100%;background:linear-gradient(90deg,#FF6B1A,#FFB830,#FF6B1A);background-size:200% 100%;border-radius:99px;width:0%;transition:width 1s cubic-bezier(.34,1.56,.64,1);}
+.dash-prog-footer{display:flex;justify-content:space-between;align-items:center;margin-top:.5rem;}
+.dash-prog-sub{font-family:'Inter',sans-serif;font-size:11px;color:rgba(245,240,235,.45);flex:1;}
+/* Section dernière commande */
+.dash-last-order{margin:.875rem 1rem 0;animation:dash-enter .4s .1s ease both;opacity:0;animation-fill-mode:both;}
+.dash-last-order-title{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:rgba(245,240,235,.35);letter-spacing:.8px;text-transform:uppercase;margin-bottom:.5rem;}
+.dash-last-order-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:.875rem 1rem;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .18s ease;}
+.dash-last-order-card:active{background:rgba(255,107,26,.08);border-color:rgba(255,107,26,.2);transform:scale(.985);}
+.dash-last-order-ico{font-size:28px;flex-shrink:0;}
+.dash-last-order-body{flex:1;min-width:0;}
+.dash-last-order-name{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#F5F0EB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dash-last-order-meta{font-family:'Inter',sans-serif;font-size:11px;color:rgba(245,240,235,.4);margin-top:2px;}
+.dash-last-order-btn{background:rgba(255,107,26,.15);border:1px solid rgba(255,107,26,.25);color:#FF6B1A;border-radius:99px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+/* Flash offer */
+.dash-flash{margin:.75rem 1rem 0;background:rgba(255,107,26,.1);border:1px solid rgba(255,107,26,.2);border-radius:14px;padding:.75rem 1rem;display:flex;align-items:center;gap:10px;animation:dash-flash-glow 2.5s ease-in-out infinite,dash-enter .4s .05s ease both;opacity:0;animation-fill-mode:both;}
+.dash-flash-ico{font-size:22px;flex-shrink:0;}
+.dash-flash-body{flex:1;}
+.dash-flash-title{font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#FF6B1A;}
+.dash-flash-sub{font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,107,26,.6);margin-top:2px;}
+/* Bouton Commander */
+.dash-cmd-wrap{padding:.875rem 1rem .5rem;animation:dash-enter .4s .15s ease both;opacity:0;animation-fill-mode:both;}
+.dash-cmd-btn{width:100%;display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#FF6B1A 0%,#e8520a 100%);border:none;border-radius:18px;padding:1.1rem 1.4rem;cursor:pointer;text-align:left;position:relative;overflow:hidden;animation:dash-pulse 3s ease-in-out infinite;}
+.dash-cmd-btn::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:skewX(-15deg);transition:left .6s ease;}
+.dash-cmd-btn:active{transform:scale(.97);animation:none;box-shadow:0 4px 20px rgba(255,107,26,.4);}
+.dash-cmd-btn:active::after{left:140%;}
+.dash-cmd-ico{font-size:28px;flex-shrink:0;}
+.dash-cmd-text{flex:1;}
+.dash-cmd-title{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;color:#fff;line-height:1.2;letter-spacing:.2px;}
+.dash-cmd-sub{font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.65);margin-top:3px;}
+.dash-cmd-arrow{margin-left:auto;font-size:26px;font-weight:700;color:rgba(255,255,255,.45);flex-shrink:0;}
+/* Cartes navigation (Fidélité + Parrainage) */
+.dash-cards{display:flex;flex-direction:column;gap:8px;padding:.5rem 1rem 1rem;animation:dash-enter .4s .2s ease both;opacity:0;animation-fill-mode:both;}
+.dash-card{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:.9rem 1.1rem;cursor:pointer;transition:all .18s ease;position:relative;overflow:hidden;}
+.dash-card:active{background:rgba(255,107,26,.07);border-color:rgba(255,107,26,.18);transform:scale(.985);}
 .dash-card-ico{font-size:22px;flex-shrink:0;}
 .dash-card-body{flex:1;}
-.dash-card-title{font-size:15px;font-weight:700;color:var(--text);}
-.dash-card-sub{font-size:12px;color:rgba(255,255,255,.38);margin-top:2px;}
+.dash-card-title{font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:#F5F0EB;letter-spacing:-.1px;}
+.dash-card-sub{font-family:'Inter',sans-serif;font-size:11px;color:rgba(245,240,235,.35);margin-top:2px;}
 .dash-card-arrow{font-size:20px;font-weight:700;color:#FF6B1A;flex-shrink:0;}
-/* Barre de navigation globale (toutes pages client) */
-#global-bottom-nav{display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:#0d0500;border-top:1px solid rgba(255,107,26,.15);z-index:50;height:65px;}
+/* Note Google */
+.dash-rating{display:flex;align-items:center;justify-content:center;gap:6px;padding:.6rem 1rem .875rem;font-family:'Inter',sans-serif;font-size:11px;color:rgba(245,240,235,.28);letter-spacing:.3px;}
+.dash-rating-stars{color:#FFB830;font-size:12px;letter-spacing:1px;}
+/* ══ BOTTOM NAV BRANDED ══ */
+#global-bottom-nav{display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:#0d0500;border-top:1px solid rgba(255,255,255,.05);z-index:50;height:64px;padding:0 4px;}
 #global-bottom-nav.gnav-visible{display:flex;align-items:stretch;}
-#global-bottom-nav .gnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.32);font-family:var(--font);transition:color .15s;padding:.5rem .25rem;position:relative;}
-#global-bottom-nav .gnav-btn:active{background:rgba(255,107,26,.08);}
-#global-bottom-nav .gnav-ico{font-size:20px;line-height:1;}
-#global-bottom-nav .gnav-lbl{font-size:10px;font-weight:600;letter-spacing:.3px;}
+#global-bottom-nav .gnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:10px;gap:4px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.3);font-family:'Inter',var(--font),sans-serif;transition:color .2s,transform .2s;position:relative;padding-top:10px;}
+#global-bottom-nav .gnav-btn:active{transform:scale(.9);}
+#global-bottom-nav .gnav-ico{font-size:19px;line-height:1;transition:transform .2s cubic-bezier(.34,1.56,.64,1);}
+#global-bottom-nav .gnav-lbl{font-size:9.5px;font-weight:600;letter-spacing:.4px;transition:color .2s;}
 #global-bottom-nav .gnav-btn.active{color:#FF6B1A;}
-.gnav-dot{position:absolute;top:6px;right:calc(50% - 12px);width:7px;height:7px;background:#FF6B1A;border-radius:50%;display:none;}
+#global-bottom-nav .gnav-btn.active .gnav-ico{transform:translateY(-2px);}
+.gnav-dot{position:absolute;top:8px;right:calc(50% - 12px);width:6px;height:6px;background:#FF6B1A;border-radius:50%;display:none;animation:gnav-dot-pulse 1.5s ease-in-out infinite;}
 .gnav-dot.visible{display:block;}
-body.has-gnav .page{padding-bottom:65px;}
+body.has-gnav .page{padding-bottom:64px;}
 
 /* ══ DRINK UPSELL ══ */
 .cart-drink-card{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;background:var(--coal3);border:1px solid rgba(79,195,247,.25);border-radius:var(--radius-sm);margin:.5rem 0 .875rem;cursor:pointer;transition:border-color .15s;}
@@ -1138,12 +1179,13 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
     </div>
   </div>
 
-  <!-- 2. CARTE POINTS FIDÉLITÉ -->
-  <div class="dash-pts-card">
-    <div class="dash-pts-top">
+  <!-- 2. CARTE FIDÉLITÉ PREMIUM -->
+  <div class="dash-loyalty-card" onclick="go('page-fidelite')">
+    <div class="dash-loyalty-card-shimmer"></div>
+    <div class="dash-loyalty-top">
       <div>
-        <div><span class="dash-pts-value" id="dash-cag">0</span><span class="dash-pts-unit"> pts</span></div>
-        <div class="dash-pts-sub" id="dash-cag-sub">Chargement…</div>
+        <div class="dash-loyalty-pts"><span id="dash-cag">0</span><span class="dash-loyalty-unit"> pts</span></div>
+        <div class="dash-loyalty-sub" id="dash-cag-sub">Chargement…</div>
       </div>
       <div class="dash-lvl-badge" id="dash-lvl-badge">🥉 Bronze</div>
     </div>
@@ -1151,16 +1193,22 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
   </div>
 
   <!-- 3. OFFRE FLASH (si active) -->
-  <div class="flash-banner" id="flash-banner" style="display:none;">
-    <span class="flash-badge">Offre flash</span>
-    <span id="flash-banner-text"></span>
+  <div class="dash-flash" id="flash-banner" style="display:none;">
+    <span class="dash-flash-ico">⚡</span>
+    <div class="dash-flash-body">
+      <div class="dash-flash-title" id="dash-flash-title">Offre flash</div>
+      <div class="dash-flash-sub" id="dash-flash-sub"></div>
+    </div>
   </div>
 
-  <!-- 4. BOUTON COMMANDER -->
+  <!-- 4. DERNIÈRE COMMANDE -->
+  <div class="dash-last-order" id="dash-last-order" style="display:none;"></div>
+
+  <!-- 5. BOUTON COMMANDER -->
   <div class="dash-cmd-wrap">
     <button class="dash-cmd-btn" onclick="go('page-menu')">
       <span class="dash-cmd-ico">🥙</span>
-      <div>
+      <div class="dash-cmd-text">
         <div class="dash-cmd-title">Commander maintenant</div>
         <div class="dash-cmd-sub">Voir notre carte complète</div>
       </div>
@@ -1168,7 +1216,7 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
     </button>
   </div>
 
-  <!-- 5. CARTES FIDÉLITÉ ET PARRAINAGE -->
+  <!-- 6. CARTES FIDÉLITÉ ET PARRAINAGE -->
   <div class="dash-cards">
     <div class="dash-card" onclick="go('page-fidelite')">
       <span class="dash-card-ico">🏆</span>
@@ -1186,6 +1234,12 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
       </div>
       <span class="dash-card-arrow">›</span>
     </div>
+  </div>
+
+  <!-- 7. NOTE GOOGLE -->
+  <div class="dash-rating">
+    <span class="dash-rating-stars">★★★★★</span>
+    <span>4,8 · 200+ avis Google</span>
   </div>
 </div>
 
@@ -4273,6 +4327,32 @@ function renderPortal(c){
       <div style="flex:1"><div class="hn">${x.label}</div><div class="hd">${x.date}</div></div>
       <div class="ha ${x.type}">${x.amount}</div>
     </div>`).join('');
+
+  // Dernière commande dashboard
+  renderDashLastOrder(c);
+}
+
+function renderDashLastOrder(c){
+  const el=document.getElementById('dash-last-order');
+  if(!el) return;
+  const tel=c&&(c.telephone||c.tel);
+  const allOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
+  const myOrders=tel?allOrders.filter(o=>o.client_telephone===tel):allOrders;
+  const last=myOrders.filter(o=>o.statut!=='pending_payment').slice(-1)[0];
+  if(!last){el.style.display='none';return;}
+  const items=Array.isArray(last.items)?last.items.map(i=>i.name||i).join(', '):String(last.items||'');
+  const display=items.length>40?items.slice(0,40)+'…':items;
+  const date=last.created_at?new Date(last.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):null;
+  el.style.display='block';
+  el.innerHTML=`<div class="dash-last-order-title">DERNIÈRE COMMANDE</div>
+    <div class="dash-last-order-card" onclick="ouvrirCommandes()">
+      <span class="dash-last-order-ico">🥙</span>
+      <div class="dash-last-order-body">
+        <div class="dash-last-order-name">${display||'Commande KBB'}</div>
+        <div class="dash-last-order-meta">${last.montant?last.montant+'€':''} ${date?'· '+date:''}</div>
+      </div>
+      <button class="dash-last-order-btn" onclick="event.stopPropagation();go('page-menu')">Renouveler</button>
+    </div>`;
 }
 
 function copierCodeParrain(tel){
@@ -5470,10 +5550,12 @@ async function refreshFlashCache(){
     if(el) renderFlash(el);
   });
   const banner=document.getElementById('flash-banner');
-  const bannerText=document.getElementById('flash-banner-text');
-  if(banner&&bannerText){
+  if(banner){
     if(_flashCache){
-      bannerText.textContent='⚡ '+_flashCache.msg+' — x'+_flashCache.multi+' points';
+      const titleEl=document.getElementById('dash-flash-title');
+      const subEl=document.getElementById('dash-flash-sub');
+      if(titleEl) titleEl.textContent=_flashCache.msg;
+      if(subEl) subEl.textContent='×'+_flashCache.multi+' points sur votre prochaine commande';
       banner.style.display='flex';
     } else {
       banner.style.display='none';
