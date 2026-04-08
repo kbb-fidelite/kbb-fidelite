@@ -6731,28 +6731,9 @@ async function exportMyData(){
 }
 
 async function deleteMyAccount(){
-  const sess=getSession();
-  if(!sess){ showToast('Connectez-vous pour supprimer votre compte'); return; }
-  const c=sess.clientData;
-  const prenom=c.prenom||'';
-  const confirmed=confirm(`Supprimer définitivement le compte de ${prenom} ?\n\nCette action est irréversible. Vos points et historique seront effacés.\n\nNote : les données comptables (transactions) sont conservées 10 ans par obligation légale.`);
-  if(!confirmed) return;
-  try{
-    if(supaOk()&&c.id){
-      await supaReq('parrainages?or=(parrain_id.eq.'+encodeURIComponent(c.id)+',filleul_id.eq.'+encodeURIComponent(c.id)+')','DELETE');
-      await supaReq('clients?id=eq.'+encodeURIComponent(c.id),'DELETE');
-    }
-    // Purger localStorage
-    localStorage.removeItem('kbb_session');
-    localStorage.removeItem('kbb_quick_login');
-    localStorage.removeItem('kbb_post_login');
-    const ldb=lLoad().filter(x=>String(x.id)!==String(c.id));
-    lSave(ldb);
-    showToast('Compte supprimé. À bientôt !');
-    setTimeout(()=>{ location.reload(); },1500);
-  }catch(e){
-    showToast('Erreur : '+e.message);
-  }
+  // Suppression temporairement indisponible — les DELETE anon sont bloqués par RLS.
+  // À réactiver via Edge Function service_role dans un prochain sprint.
+  alert('La suppression de compte est temporairement indisponible.\n\nContactez-nous à St2z39100@gmail.com et nous traiterons votre demande sous 72h.');
 }
 
 /* ══ TRANSACTIONS COMPTABLES ══ */
