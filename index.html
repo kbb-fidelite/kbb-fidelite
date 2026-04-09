@@ -2804,101 +2804,107 @@ async function stripePayInPlace(){
 
 async function handleStripeReturn(){
   const p=new URLSearchParams(window.location.search);
-  const sessionId=p.get('stripe_session');
+  const sessionId=p.get('stripe_session'); // injecté par Stripe via {CHECKOUT_SESSION_ID}
 
   if(sessionId){
+    // ── Nettoyage URL immédiat (avant tout await) ─────────────────
     history.replaceState(null,'',window.location.pathname);
 
-    // Récupérer le pending : localStorage → IndexedDB → cookie mini
+    if(!supaOk()){ showToast('Configuration Supabase manquante'); return; }
+
+    // ── Contexte local (optionnel — enrichit l'affichage si disponible) ──
+    // iOS peut avoir vidé le localStorage. On tente les 3 sources mais
+    // on ne bloque JAMAIS sur leur absence : le backend est la source de vérité.
     let pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
     if(!pending){ try{ pending=await idbGet('kbb_stripe_pending'); }catch(_){} }
     if(!pending){
       try{
         const mini=JSON.parse(cookieGet('kbb_sp_mini')||'null');
-        if(mini) pending={supabaseOrderId:mini.supabaseOrderId||null,clientTel:mini.clientTel||null,total:mini.total||0,orderNum:mini.orderNum||null,clientData:null,activeOrder:{},label:'',grouped:[]};
+        if(mini) pending={
+          supabaseOrderId:mini.supabaseOrderId||null, clientTel:mini.clientTel||null,
+          total:mini.total||0, orderNum:mini.orderNum||null,
+          pts_a_crediter:mini.pts_a_crediter||0, levelKey:mini.levelKey||'bronze',
+          label:mini.label||'', clientData:null, activeOrder:{}, grouped:[],
+        };
       }catch(_){}
     }
 
-    // 1. Restaurer la session client immédiatement si on a le pending
+    // ── UX immédiate : restaurer client + page confirmation provisoire ─
     if(pending?.clientData){
       renderPortal(pending.clientData);
       const tel=pending.clientData.telephone||pending.clientData.tel;
       if(tel) dbByTel(tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
     }
-    const ao=pending?.activeOrder||{};
-    if(pending) { setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
-
-    // 2. Afficher confirmation provisoire (numéro définitif après vérification)
     renderConfirmation(pending?.orderNum||null, pending?.label||'', pending?.grouped||[], pending?.total||0);
     go('page-confirmation');
 
-    // 3. Vérifier le paiement côté serveur via le session_id de l'URL (toujours disponible)
-    if(!supaOk()){ showToast('Configuration Supabase manquante'); return; }
+    // ── Appel backend : source de vérité absolue ──────────────────
+    // Le session_id vient de l'URL Stripe — toujours présent, même si iOS a tout vidé.
+    let vData;
     try{
-      const vData=await callEdge('verify-payment',{session_id:sessionId});
-
-      if(!vData.ok){
-        console.error('verify-payment échoué:',vData.error);
-        showToast('⚠️ Vérification paiement échouée — contactez le restaurant');
-        localStorage.removeItem('kbb_stripe_pending');
-        idbDel('kbb_stripe_pending').catch(()=>{}); cookieDel('kbb_sp_mini');
-        return;
-      }
-
-      // 4. Paiement confirmé — ID réel depuis verify-payment
-      const supaId=vData.orderId||(pending?.supabaseOrderId)||null;
-      if(supaId){
-        const realNum='#KBB-'+String(supaId).padStart(3,'0');
-        const numEl=document.getElementById('conf-num');
-        if(numEl) numEl.textContent=realNum;
-        setActiveOrder({...ao,supaId,statut:'en_attente',orderNum:realNum});
-        updateCommandesTile();
-      }
-      const effectiveId=supaId||(pending?.orderId)||null;
-
-      // 5. Si pending perdu (iOS), récupérer les données depuis Supabase via l'orderId
-      let resolvedPending=pending;
-      if(!resolvedPending && effectiveId){
-        try{
-          const rows=await supaReq('commandes?id=eq.'+encodeURIComponent(String(effectiveId))+'&select=id,montant,pts_a_crediter,client_telephone,items');
-          if(rows&&rows[0]){
-            const o=rows[0];
-            resolvedPending={
-              orderId:effectiveId,
-              total:parseFloat(o.montant)||0,
-              pts_a_crediter:o.pts_a_crediter||0,
-              clientTel:o.client_telephone||null,
-              label:'',grouped:[],
-            };
-          }
-        }catch(_){}
-      }
-
-      if(effectiveId){
-        try{ await insertTransaction({orderId:effectiveId,items:resolvedPending?.label||null,montantTTC:resolvedPending?.total||0,moyenPaiement:'carte',refStripe:sessionId}); }
-        catch(e){ console.error('handleStripeReturn — insertTransaction échoué:',e); }
-        const pwSession={...(resolvedPending||{}),orderId:effectiveId,stripeSessionId:sessionId};
-        try{ await createFactureFromPending(pwSession); }
-        catch(e){ console.error('handleStripeReturn — createFactureFromPending échoué:',e); showToast('⚠️ Facture non générée — contactez le restaurant'); }
-      }
-      localStorage.removeItem('kbb_stripe_pending');
-      idbDel('kbb_stripe_pending').catch(()=>{}); cookieDel('kbb_sp_mini');
-      setTimeout(()=>goToSuivi(), 2500);
-
+      vData=await callEdge('verify-payment',{session_id:sessionId});
     }catch(e){
-      console.error('verify-payment call error:',e);
-      showToast('Erreur vérification paiement — réessayez ou contactez le restaurant');
+      console.error('[stripe-return] verify-payment erreur réseau:', e);
+      showToast('Erreur réseau — réessayez ou contactez le restaurant');
+      return;
     }
+
+    if(!vData?.ok){
+      console.error('[stripe-return] verify-payment refus:', vData?.error);
+      showToast('⚠️ Vérification paiement échouée — contactez le restaurant');
+      _stripeCleanup();
+      return;
+    }
+
+    // ── Données commande depuis le backend (pas de SELECT client) ──
+    // vData.commande contient id, montant, pts_a_crediter, client_telephone, etc.
+    const cmd=vData.commande||{};
+    const supaId=vData.orderId||cmd.id||null;
+    const realNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):null;
+
+    // Mettre à jour l'affichage avec le vrai numéro
+    if(realNum){
+      const numEl=document.getElementById('conf-num');
+      if(numEl) numEl.textContent=realNum;
+    }
+    const montant=parseFloat(cmd.montant)||pending?.total||0;
+    setActiveOrder({
+      ...(pending?.activeOrder||{}),
+      supaId, statut:'en_attente', orderNum:realNum,
+    });
+    updateCommandesTile();
+
+    // ── Écritures comptables (transaction + facture) ──────────────
+    if(supaId){
+      try{ await insertTransaction({orderId:supaId,items:pending?.label||null,montantTTC:montant,moyenPaiement:'carte',refStripe:sessionId}); }
+      catch(e){ console.error('[stripe-return] insertTransaction échoué:',e); }
+
+      const pwSession={
+        ...(pending||{}),
+        orderId:supaId, stripeSessionId:sessionId,
+        total:montant,
+      };
+      try{ await createFactureFromPending(pwSession); }
+      catch(e){ console.error('[stripe-return] createFactureFromPending échoué:',e); showToast('⚠️ Facture non générée — contactez le restaurant'); }
+    }
+
+    // ── Nettoyage complet des backups ─────────────────────────────
+    _stripeCleanup();
+    setTimeout(()=>goToSuivi(), 2500);
 
   } else if(p.get('stripe_cancel')==='1'){
     history.replaceState(null,'',window.location.pathname);
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
-    if(pending){
-      if(pending.clientData) renderPortal(pending.clientData);
-      localStorage.removeItem('kbb_stripe_pending');
-    }
+    if(pending?.clientData) renderPortal(pending.clientData);
+    _stripeCleanup();
     showToast('Paiement annulé — votre panier est intact 🛒');
   }
+}
+
+function _stripeCleanup(){
+  localStorage.removeItem('kbb_stripe_pending');
+  idbDel('kbb_stripe_pending').catch(()=>{});
+  cookieDel('kbb_sp_mini');
 }
 
 let pendingIdx=null;
