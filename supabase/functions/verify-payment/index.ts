@@ -1,4 +1,4 @@
-import Stripe from 'https://esm.sh/stripe@14.23.0';
+import Stripe from 'npm:stripe@14.23.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 console.log('!!! FICHIER CHARGE !!!');
@@ -25,11 +25,10 @@ Deno.serve(async (req) => {
 
     console.log('Etape 1: Requête reçue — méthode:', req.method);
     console.log('Auth Header:', req.headers.get('Authorization') ? 'Présent' : 'Absent');
-    console.log('Content-Type:', req.headers.get('content-type') ?? 'absent');
 
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-    console.log('Etape 2: Lecture de la clé Stripe');
+    console.log('Etape 2: Lecture des secrets');
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     const supaUrl   = Deno.env.get('SUPABASE_URL');
     const supaKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY');
@@ -50,7 +49,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'session_id manquant' }), { status: 400, headers: corsHeaders });
     }
 
-    console.log('Etape 4: Tentative Stripe session retrieve — id:', session_id);
+    console.log('Etape 4: Stripe session retrieve — id:', session_id);
     const stripe = new Stripe(stripeKey, { apiVersion: '2024-04-10' });
     let session: Stripe.Checkout.Session;
     try {
@@ -104,7 +103,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, orderId: Number(result.id), commande: sanitize(result) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.warn('Etape 6: FALLBACK INSERT — aucune commande pré-créée');
+    console.warn('Etape 6: FALLBACK INSERT');
     const montant = toNum((session.amount_total ?? 0) / 100);
     const { data: newOrder, error: insertErr } = await supabase
       .from('commandes')
