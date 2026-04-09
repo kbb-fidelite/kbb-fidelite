@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     let session_id = '';
     try { session_id = String((await req.json())?.session_id ?? ''); } catch { /* body vide */ }
 
-    console.log('[VP] session_id reçu :', session_id ? session_id.slice(0, 20) + '…' : 'ABSENT');
+    console.log('[DEBUG] session_id reçu:', session_id?.substring(0, 20), '— longueur:', session_id?.length);
 
     if (!session_id) return res({ error: 'session_id manquant' }, 400);
     if (!session_id.startsWith('cs_')) return res({ error: 'session_id invalide (doit commencer par cs_)' }, 400);
