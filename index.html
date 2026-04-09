@@ -2838,19 +2838,10 @@ async function handleStripeReturn(){
     renderConfirmation(pending?.orderNum||null, pending?.label||'', pending?.grouped||[], pending?.total||0);
     go('page-confirmation');
 
-    // ── Appel backend : source de vérité absolue ──────────────────
-    // Le session_id vient de l'URL Stripe — toujours présent, même si iOS a tout vidé.
-    let vData;
-    try{
-      vData=await callEdge('verify-payment',{session_id:sessionId});
-    }catch(e){
-      console.error('[stripe-return] verify-payment erreur réseau:', e);
-      showToast('Erreur réseau — réessayez ou contactez le restaurant');
-      return;
-    }
-
-    if(!vData?.ok){
-      console.error('[stripe-return] verify-payment refus:', vData?.error);
+    // ── Appel backend avec retry (popup iOS peut bloquer le premier appel) ──
+    const vData=await _verifyPaymentWithRetry(sessionId);
+    if(!vData){
+      console.error('[stripe-return] verify-payment échoué après toutes les tentatives');
       showToast('⚠️ Vérification paiement échouée — contactez le restaurant');
       _stripeCleanup();
       return;
@@ -2899,6 +2890,30 @@ async function handleStripeReturn(){
     _stripeCleanup();
     showToast('Paiement annulé — votre panier est intact 🛒');
   }
+}
+
+// Retry verify-payment jusqu'à 5 fois toutes les 2 s.
+// Nécessaire sur iOS : le popup "Mémoriser la carte" bloque fetch pendant
+// quelques secondes — la première tentative peut échouer ou retourner incomplet.
+async function _verifyPaymentWithRetry(sessionId, maxAttempts=5, delayMs=2000){
+  const numEl=document.getElementById('conf-num');
+  for(let attempt=1; attempt<=maxAttempts; attempt++){
+    try{
+      const vData=await callEdge('verify-payment',{session_id:sessionId});
+      if(vData?.ok && (vData.orderId||vData.commande?.id)){
+        console.log('[stripe-retry] succès tentative',attempt);
+        return vData;
+      }
+      console.warn('[stripe-retry] tentative',attempt,'— incomplet:',vData?.error||'orderId absent');
+    }catch(e){
+      console.warn('[stripe-retry] tentative',attempt,'— erreur réseau:',e.message);
+    }
+    if(attempt<maxAttempts){
+      if(numEl) numEl.textContent='⏳ Vérification…';
+      await new Promise(r=>setTimeout(r,delayMs));
+    }
+  }
+  return null;
 }
 
 function _stripeCleanup(){
