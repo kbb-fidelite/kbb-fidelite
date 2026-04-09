@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     // ── 4. Mettre à jour via service_role (bypass RLS) ───────────
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SERVICE_ROLE_KEY')!
     );
 
     const { data: updated, error } = await supabase
