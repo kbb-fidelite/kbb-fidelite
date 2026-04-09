@@ -11,61 +11,93 @@ const corsHeaders = {
 const SELECT_FIELDS = 'id, statut, montant, pts_a_crediter, client_telephone, items, type, heure_retrait';
 
 function toNum(v: unknown, fallback = 0): number {
-  const n = Number(v);
-  return isNaN(n) ? fallback : n;
+  try { const n = Number(v); return isNaN(n) ? fallback : n; } catch { return fallback; }
 }
 
 function sanitize(o: Record<string, unknown> | null) {
-  if (!o) return null;
-  return { ...o, id: Number(o.id), montant: toNum(o.montant), pts_a_crediter: toNum(o.pts_a_crediter) };
+  if (!o) return {};
+  return {
+    id:             toNum(o.id),
+    statut:         String(o.statut ?? ''),
+    montant:        toNum(o.montant),
+    pts_a_crediter: toNum(o.pts_a_crediter),
+    client_telephone: String(o.client_telephone ?? ''),
+    items:          o.items ?? '[]',
+    type:           String(o.type ?? 'sur_place'),
+    heure_retrait:  o.heure_retrait ?? null,
+  };
 }
 
 Deno.serve(async (req) => {
   try {
+    console.log('=== HANDLER APPELE === méthode:', req.method);
 
-    console.log('Etape 1: Requête reçue — méthode:', req.method);
-    console.log('Auth Header:', req.headers.get('Authorization') ? 'Présent' : 'Absent');
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders });
+    }
 
-    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+    // ── JWT / rôle — log uniquement, jamais bloquant (--no-verify-jwt) ──
+    try {
+      const authHeader = req.headers.get('Authorization') ?? '';
+      console.log('Auth header présent:', authHeader.length > 0);
+      const token = authHeader.replace('Bearer ', '');
+      if (token) {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          console.log('JWT role:', payload.role ?? 'absent');
+        }
+      }
+    } catch (jwtErr) {
+      console.log('JWT decode ignoré:', (jwtErr as Error).message);
+    }
 
-    console.log('Etape 2: Lecture des secrets');
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-    const supaUrl   = Deno.env.get('SUPABASE_URL');
-    const supaKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY');
-    console.log('  STRIPE_SECRET_KEY:', stripeKey ? 'OK len=' + stripeKey.length : 'MANQUANTE ⚠️');
-    console.log('  SUPABASE_URL:', supaUrl ? 'OK' : 'MANQUANTE ⚠️');
-    console.log('  SERVICE_ROLE_KEY:', supaKey ? 'OK len=' + supaKey.length : 'MANQUANTE ⚠️');
+    // ── Secrets ───────────────────────────────────────────────────
+    console.log('Lecture secrets...');
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
+    const supaUrl   = Deno.env.get('SUPABASE_URL') ?? '';
+    const supaKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY') ?? '';
+    console.log('STRIPE_SECRET_KEY:', stripeKey.length > 0 ? 'OK len=' + stripeKey.length : 'VIDE ⚠️');
+    console.log('SUPABASE_URL:', supaUrl.length > 0 ? 'OK' : 'VIDE ⚠️');
+    console.log('SERVICE_ROLE_KEY:', supaKey.length > 0 ? 'OK len=' + supaKey.length : 'VIDE ⚠️');
 
-    if (!stripeKey) return new Response(JSON.stringify({ error: 'STRIPE_SECRET_KEY manquante' }), { status: 400, headers: corsHeaders });
-    if (!supaUrl)   return new Response(JSON.stringify({ error: 'SUPABASE_URL manquante' }), { status: 400, headers: corsHeaders });
-    if (!supaKey)   return new Response(JSON.stringify({ error: 'SERVICE_ROLE_KEY manquante' }), { status: 400, headers: corsHeaders });
+    if (!stripeKey) return new Response(JSON.stringify({ error: 'STRIPE_SECRET_KEY vide' }), { status: 400, headers: corsHeaders });
+    if (!supaUrl)   return new Response(JSON.stringify({ error: 'SUPABASE_URL vide' }), { status: 400, headers: corsHeaders });
+    if (!supaKey)   return new Response(JSON.stringify({ error: 'SERVICE_ROLE_KEY vide' }), { status: 400, headers: corsHeaders });
 
-    console.log('Etape 3: Lecture body');
-    const body = await req.json().catch(() => ({}));
-    const { session_id } = body as { session_id?: string };
-    console.log('  session_id:', session_id ?? 'ABSENT');
+    // ── Body ──────────────────────────────────────────────────────
+    console.log('Lecture body...');
+    let session_id = '';
+    try {
+      const body = await req.json();
+      session_id = String(body?.session_id ?? '');
+    } catch {
+      console.log('Body vide ou non-JSON');
+    }
+    console.log('session_id:', session_id || 'ABSENT');
 
-    if (!session_id || typeof session_id !== 'string') {
+    if (!session_id) {
       return new Response(JSON.stringify({ error: 'session_id manquant' }), { status: 400, headers: corsHeaders });
     }
 
-    console.log('Etape 4: Stripe session retrieve — id:', session_id);
+    // ── Stripe ────────────────────────────────────────────────────
+    console.log('Stripe retrieve...');
     const stripe = new Stripe(stripeKey, { apiVersion: '2024-04-10' });
     let session: Stripe.Checkout.Session;
     try {
       session = await stripe.checkout.sessions.retrieve(session_id);
-      console.log('  Stripe OK — payment_status:', session.payment_status, '| amount:', session.amount_total);
-    } catch (stripeErr) {
-      console.error('  Stripe ERREUR:', (stripeErr as Error).message);
-      return new Response(JSON.stringify({ error: 'Stripe : ' + (stripeErr as Error).message }), { status: 404, headers: corsHeaders });
+      console.log('Stripe OK — payment_status:', session.payment_status, 'amount:', session.amount_total ?? 0);
+    } catch (e) {
+      console.error('Stripe ERREUR:', (e as Error).message);
+      return new Response(JSON.stringify({ error: 'Stripe : ' + (e as Error).message }), { status: 404, headers: corsHeaders });
     }
 
     if (session.payment_status !== 'paid') {
-      console.warn('  paiement non paid:', session.payment_status);
-      return new Response(JSON.stringify({ error: 'Paiement non confirmé : ' + session.payment_status }), { status: 402, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Non payé : ' + session.payment_status }), { status: 402, headers: corsHeaders });
     }
 
-    console.log('Etape 5: SELECT commande Supabase');
+    // ── Supabase SELECT ───────────────────────────────────────────
+    console.log('Supabase SELECT commande...');
     const supabase = createClient(supaUrl, supaKey);
     const { data: orders, error: findErr } = await supabase
       .from('commandes')
@@ -74,19 +106,25 @@ Deno.serve(async (req) => {
       .limit(1);
 
     if (findErr) {
-      console.error('  SELECT ERREUR:', findErr.message, findErr.code);
+      console.error('SELECT ERREUR:', findErr.message);
       throw new Error('SELECT : ' + findErr.message);
     }
-    console.log('  lignes:', orders?.length ?? 0, orders?.[0] ? 'id=' + orders[0].id + ' statut=' + orders[0].statut : '');
+    const found = orders ?? [];
+    console.log('Commandes trouvées:', found.length, found[0] ? 'id=' + found[0].id + ' statut=' + found[0].statut : '');
 
-    if (orders && orders.length > 0 && orders[0].statut !== 'pending_payment') {
-      console.log('  IDEMPOTENT — déjà activée');
-      return new Response(JSON.stringify({ ok: true, orderId: Number(orders[0].id), commande: sanitize(orders[0]), already_processed: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // Idempotence
+    if (found.length > 0 && found[0].statut !== 'pending_payment') {
+      console.log('IDEMPOTENT — retour commande existante');
+      return new Response(
+        JSON.stringify({ ok: true, orderId: toNum(found[0].id), commande: sanitize(found[0]), already_processed: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    if (orders && orders.length > 0) {
-      const order = orders[0];
-      console.log('Etape 6: UPDATE id=', order.id, '→ en_attente');
+    // UPDATE
+    if (found.length > 0) {
+      const order = found[0];
+      console.log('UPDATE commande id=', order.id, '→ en_attente');
       const { data: updated, error: updateErr } = await supabase
         .from('commandes')
         .update({ statut: 'en_attente' })
@@ -95,15 +133,19 @@ Deno.serve(async (req) => {
         .select(SELECT_FIELDS)
         .maybeSingle();
       if (updateErr) {
-        console.error('  UPDATE ERREUR:', updateErr.message, updateErr.code);
+        console.error('UPDATE ERREUR:', updateErr.message);
         throw new Error('UPDATE : ' + updateErr.message);
       }
-      console.log('  UPDATE OK:', updated ? 'activé' : 'race-condition OK');
       const result = updated ?? order;
-      return new Response(JSON.stringify({ ok: true, orderId: Number(result.id), commande: sanitize(result) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      console.log('UPDATE OK — id:', result.id);
+      return new Response(
+        JSON.stringify({ ok: true, orderId: toNum(result.id), commande: sanitize(result) }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.warn('Etape 6: FALLBACK INSERT');
+    // Fallback INSERT
+    console.warn('FALLBACK INSERT — aucune commande pré-créée');
     const montant = toNum((session.amount_total ?? 0) / 100);
     const { data: newOrder, error: insertErr } = await supabase
       .from('commandes')
@@ -111,18 +153,22 @@ Deno.serve(async (req) => {
       .select(SELECT_FIELDS)
       .maybeSingle();
     if (insertErr) {
-      console.error('  INSERT ERREUR:', insertErr.message, insertErr.code);
+      console.error('INSERT ERREUR:', insertErr.message);
       throw new Error('INSERT : ' + insertErr.message);
     }
-    console.log('  INSERT OK id:', newOrder?.id);
-    return new Response(JSON.stringify({ ok: true, orderId: Number(newOrder?.id), commande: sanitize(newOrder) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    console.log('INSERT OK id:', newOrder?.id ?? 'null');
+    return new Response(
+      JSON.stringify({ ok: true, orderId: toNum(newOrder?.id), commande: sanitize(newOrder ?? {}) }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error('ERREUR_DETECTEE:', error);
-    console.error('ERREUR_DETECTEE message:', (error as Error).message);
-    console.error('ERREUR_DETECTEE stack:', (error as Error).stack);
+    const msg   = (error as Error).message ?? String(error);
+    const stack = (error as Error).stack   ?? '';
+    console.error('ERREUR_DETECTEE:', msg);
+    console.error('STACK:', stack);
     return new Response(
-      JSON.stringify({ error: (error as Error).message, stack: (error as Error).stack }),
+      JSON.stringify({ error: msg, stack }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
