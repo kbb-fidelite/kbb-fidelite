@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     console.log('[verify-payment] STEP 1 — lecture des secrets');
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     const supaUrl   = Deno.env.get('SUPABASE_URL');
-    const supaKey   = Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supaKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY');
 
     if (!stripeKey) { console.error('[verify-payment] MANQUANT: STRIPE_SECRET_KEY'); throw new Error('Secret STRIPE_SECRET_KEY non configuré'); }
     if (!supaUrl)   { console.error('[verify-payment] MANQUANT: SUPABASE_URL');       throw new Error('Secret SUPABASE_URL non configuré'); }
