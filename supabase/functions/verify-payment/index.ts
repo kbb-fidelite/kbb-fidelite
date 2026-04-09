@@ -148,9 +148,12 @@ Deno.serve(async (req) => {
     return res(buildResponse(newOrder ?? {}, false));
 
   } catch (err) {
-    const msg = (err as Error).message ?? String(err);
+    const msg   = (err as Error).message ?? String(err);
+    const stack = (err as Error).stack   ?? '';
+    const type  = (err as Error).name    ?? typeof err;
     console.error('[VP] ERREUR FATALE :', msg);
-    return res({ error: msg }, 500);
+    console.error('[VP] STACK :', stack);
+    return res({ error: msg, stack, type, raw: String(err) }, 500);
   }
 });
 
