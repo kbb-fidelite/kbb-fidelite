@@ -2841,47 +2841,32 @@ async function handleStripeReturn(){
     // ── Appel backend avec retry (popup iOS peut bloquer le premier appel) ──
     const vData=await _verifyPaymentWithRetry(sessionId);
     if(!vData){
-      console.error('[stripe-return] verify-payment échoué après toutes les tentatives');
-      showToast('⚠️ Vérification paiement échouée — contactez le restaurant');
-      _stripeCleanup();
+      console.error('[stripe-return] verify-payment échoué après 15 tentatives (30s)');
+      // Afficher un bouton de relance manuelle plutôt qu'un simple toast d'erreur
+      const numEl=document.getElementById('conf-num');
+      if(numEl) numEl.innerHTML='<span style="font-size:.8em;color:#f87">Vérification expirée</span>';
+      const retryBtn=document.createElement('button');
+      retryBtn.className='abtn'; retryBtn.style.cssText='margin-top:1rem;width:100%';
+      retryBtn.textContent='🔄 Réessayer manuellement';
+      retryBtn.onclick=async()=>{
+        retryBtn.disabled=true; retryBtn.textContent='⏳ Vérification…';
+        if(numEl) numEl.textContent='⏳ Vérification…';
+        // Relance un cycle complet de 15 tentatives
+        const vData2=await _verifyPaymentWithRetry(sessionId);
+        if(vData2){
+          retryBtn.remove();
+          await _stripeFinalize(sessionId, vData2, pending);
+        } else {
+          retryBtn.disabled=false; retryBtn.textContent='🔄 Réessayer manuellement';
+          showToast('Échec — contactez le restaurant si votre paiement a été débité');
+        }
+      };
+      // Injecter le bouton sous le numéro de commande
+      numEl?.parentElement?.insertAdjacentElement('afterend', retryBtn);
       return;
     }
 
-    // ── Données commande depuis le backend (pas de SELECT client) ──
-    // vData.commande contient id, montant, pts_a_crediter, client_telephone, etc.
-    const cmd=vData.commande||{};
-    const supaId=vData.orderId||cmd.id||null;
-    const realNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):null;
-
-    // Mettre à jour l'affichage avec le vrai numéro
-    if(realNum){
-      const numEl=document.getElementById('conf-num');
-      if(numEl) numEl.textContent=realNum;
-    }
-    const montant=parseFloat(cmd.montant)||pending?.total||0;
-    setActiveOrder({
-      ...(pending?.activeOrder||{}),
-      supaId, statut:'en_attente', orderNum:realNum,
-    });
-    updateCommandesTile();
-
-    // ── Écritures comptables (transaction + facture) ──────────────
-    if(supaId){
-      try{ await insertTransaction({orderId:supaId,items:pending?.label||null,montantTTC:montant,moyenPaiement:'carte',refStripe:sessionId}); }
-      catch(e){ console.error('[stripe-return] insertTransaction échoué:',e); }
-
-      const pwSession={
-        ...(pending||{}),
-        orderId:supaId, stripeSessionId:sessionId,
-        total:montant,
-      };
-      try{ await createFactureFromPending(pwSession); }
-      catch(e){ console.error('[stripe-return] createFactureFromPending échoué:',e); showToast('⚠️ Facture non générée — contactez le restaurant'); }
-    }
-
-    // ── Nettoyage complet des backups ─────────────────────────────
-    _stripeCleanup();
-    setTimeout(()=>goToSuivi(), 2500);
+    await _stripeFinalize(sessionId, vData, pending);
 
   } else if(p.get('stripe_cancel')==='1'){
     history.replaceState(null,'',window.location.pathname);
@@ -2892,24 +2877,49 @@ async function handleStripeReturn(){
   }
 }
 
-// Retry verify-payment jusqu'à 5 fois toutes les 2 s.
-// Nécessaire sur iOS : le popup "Mémoriser la carte" bloque fetch pendant
-// quelques secondes — la première tentative peut échouer ou retourner incomplet.
-async function _verifyPaymentWithRetry(sessionId, maxAttempts=5, delayMs=2000){
+// Finalise le flux après un verify-payment réussi : UI + écritures + nettoyage.
+async function _stripeFinalize(sessionId, vData, pending){
+  const cmd=vData.commande||{};
+  const supaId=vData.orderId||cmd.id||null;
+  const realNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):null;
+
+  const numEl=document.getElementById('conf-num');
+  if(numEl && realNum) numEl.textContent=realNum;
+
+  const montant=parseFloat(cmd.montant)||pending?.total||0;
+  setActiveOrder({...(pending?.activeOrder||{}),supaId,statut:'en_attente',orderNum:realNum});
+  updateCommandesTile();
+
+  if(supaId){
+    try{ await insertTransaction({orderId:supaId,items:pending?.label||null,montantTTC:montant,moyenPaiement:'carte',refStripe:sessionId}); }
+    catch(e){ console.error('[stripe-finalize] insertTransaction échoué:',e); }
+    const pwSession={...(pending||{}),orderId:supaId,stripeSessionId:sessionId,total:montant};
+    try{ await createFactureFromPending(pwSession); }
+    catch(e){ console.error('[stripe-finalize] createFactureFromPending échoué:',e); showToast('⚠️ Facture non générée — contactez le restaurant'); }
+  }
+
+  _stripeCleanup();
+  setTimeout(()=>goToSuivi(), 2500);
+}
+
+// Retry verify-payment — 15 tentatives × 2 s = 30 s d'attente max.
+// Couvre le temps nécessaire pour fermer le popup iOS "Mémoriser la carte".
+async function _verifyPaymentWithRetry(sessionId, maxAttempts=15, delayMs=2000){
   const numEl=document.getElementById('conf-num');
   for(let attempt=1; attempt<=maxAttempts; attempt++){
+    console.log('[stripe-retry] tentative',attempt+'/'+maxAttempts,'session_id:',sessionId);
     try{
       const vData=await callEdge('verify-payment',{session_id:sessionId});
       if(vData?.ok && (vData.orderId||vData.commande?.id)){
-        console.log('[stripe-retry] succès tentative',attempt);
+        console.log('[stripe-retry] ✅ succès tentative',attempt);
         return vData;
       }
-      console.warn('[stripe-retry] tentative',attempt,'— incomplet:',vData?.error||'orderId absent');
+      console.warn('[stripe-retry] ⚠️ tentative',attempt,'— réponse incomplète:',JSON.stringify(vData));
     }catch(e){
-      console.warn('[stripe-retry] tentative',attempt,'— erreur réseau:',e.message);
+      console.warn('[stripe-retry] ❌ tentative',attempt,'— erreur réseau:',e.message);
     }
     if(attempt<maxAttempts){
-      if(numEl) numEl.textContent='⏳ Vérification…';
+      if(numEl) numEl.textContent='⏳ Vérification… ('+attempt+'/'+maxAttempts+')';
       await new Promise(r=>setTimeout(r,delayMs));
     }
   }
