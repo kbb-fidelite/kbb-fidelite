@@ -134,9 +134,15 @@ Deno.serve(async (req) => {
     );
 
   } catch (err) {
-    console.error('[verify-payment] ERREUR FATALE:', (err as Error).message, err);
+    const msg   = (err as Error).message ?? String(err);
+    const stack = (err as Error).stack   ?? '';
+    let errStr  = msg;
+    try { errStr = JSON.stringify(err, Object.getOwnPropertyNames(err)); } catch (_) { /* ignore */ }
+    console.error('[verify-payment] ERREUR FATALE message:', msg);
+    console.error('[verify-payment] ERREUR FATALE stack:', stack);
+    console.error('[verify-payment] ERREUR FATALE full:', errStr);
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: msg, stack, full: errStr }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
