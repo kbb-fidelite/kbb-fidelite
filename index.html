@@ -2142,6 +2142,53 @@ function computePassages(amount){
 /* ══ SUPABASE ══ */
 let SURL=localStorage.getItem('kbb_surl')||'https://mwfezeuaohwbhubaaddm.supabase.co';
 let SKEY=localStorage.getItem('kbb_skey')||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13ZmV6ZXVhb2h3Ymh1YmFhZGRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwOTEzODUsImV4cCI6MjA4OTY2NzM4NX0.lunGe8ukuiunhqDQ6ydRyDqURP3C4GCdFz0i7POV4jA';
+// ── IndexedDB helpers (backup localStorage iOS) ──────────────────────────────
+function _idbOpen(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open('kbb_store',1);
+    req.onupgradeneeded=e=>e.target.result.createObjectStore('kv');
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+async function idbSet(key,val){
+  const db=await _idbOpen();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction('kv','readwrite');
+    tx.objectStore('kv').put(val,key);
+    tx.oncomplete=()=>res();
+    tx.onerror=e=>rej(e.target.error);
+  });
+}
+async function idbGet(key){
+  const db=await _idbOpen();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction('kv','readonly');
+    const req=tx.objectStore('kv').get(key);
+    req.onsuccess=e=>res(e.target.result??null);
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+async function idbDel(key){
+  const db=await _idbOpen();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction('kv','readwrite');
+    tx.objectStore('kv').delete(key);
+    tx.oncomplete=()=>res();
+    tx.onerror=e=>rej(e.target.error);
+  });
+}
+// ── Cookie helpers (mini-backup <4KB) ────────────────────────────────────────
+function cookieSet(name,val,days){
+  const exp=new Date(Date.now()+days*864e5).toUTCString();
+  document.cookie=name+'='+encodeURIComponent(val)+';expires='+exp+';path=/;SameSite=Lax';
+}
+function cookieGet(name){
+  const m=document.cookie.match('(?:^|; )'+name+'=([^;]*)');
+  return m?decodeURIComponent(m[1]):null;
+}
+function cookieDel(name){cookieSet(name,'',-1);}
+
 function supaOk(){return SURL&&SKEY;}
 
 // ── Client Supabase Auth — instance dédiée à l'authentification (session persistante) ──
@@ -2691,6 +2738,13 @@ async function stripePayOnline(){
       pending.supabaseOrderId=supabaseOrderId;
       localStorage.setItem('kbb_stripe_pending',JSON.stringify(pending));
     }
+    // Backup iOS : sauvegarder dans IndexedDB + cookie avant redirection
+    const finalPending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
+    if(finalPending){
+      idbSet('kbb_stripe_pending',finalPending).catch(()=>{});
+      const mini={supabaseOrderId:finalPending.supabaseOrderId||null,clientTel:finalPending.clientTel||null,total:finalPending.total||0,orderNum:finalPending.orderNum||null};
+      cookieSet('kbb_sp_mini',JSON.stringify(mini),1);
+    }
     window.location.href=url;
   }catch(e){
     btn.disabled=false; btn.textContent='💳 Payer par carte';
@@ -2745,38 +2799,45 @@ async function handleStripeReturn(){
 
   if(sessionId){
     history.replaceState(null,'',window.location.pathname);
-    const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
-    if(!pending) return;
 
-    // 1. Restaurer la session client immédiatement (UX)
-    if(pending.clientData){
+    // Récupérer le pending : localStorage → IndexedDB → cookie mini
+    let pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
+    if(!pending){ try{ pending=await idbGet('kbb_stripe_pending'); }catch(_){} }
+    if(!pending){
+      try{
+        const mini=JSON.parse(cookieGet('kbb_sp_mini')||'null');
+        if(mini) pending={supabaseOrderId:mini.supabaseOrderId||null,clientTel:mini.clientTel||null,total:mini.total||0,orderNum:mini.orderNum||null,clientData:null,activeOrder:{},label:'',grouped:[]};
+      }catch(_){}
+    }
+
+    // 1. Restaurer la session client immédiatement si on a le pending
+    if(pending?.clientData){
       renderPortal(pending.clientData);
       const tel=pending.clientData.telephone||pending.clientData.tel;
       if(tel) dbByTel(tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
     }
-    const ao=pending.activeOrder||{};
-    setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile();
+    const ao=pending?.activeOrder||{};
+    if(pending) { setActiveOrder({...ao,statut:'en_attente'}); updateCommandesTile(); }
 
-    // 2. Afficher confirmation provisoire immédiatement (numéro définitif après vérification)
-    renderConfirmation(pending.orderNum, pending.label, pending.grouped, pending.total);
+    // 2. Afficher confirmation provisoire (numéro définitif après vérification)
+    renderConfirmation(pending?.orderNum||null, pending?.label||'', pending?.grouped||[], pending?.total||0);
     go('page-confirmation');
 
-    // 3. Vérifier le paiement côté serveur — OBLIGATOIRE avant toute activation de commande
-    //    Aucune commande n'est créée ou activée sans confirmation Stripe via verify-payment.
+    // 3. Vérifier le paiement côté serveur via le session_id de l'URL (toujours disponible)
     if(!supaOk()){ showToast('Configuration Supabase manquante'); return; }
     try{
       const vData=await callEdge('verify-payment',{session_id:sessionId});
 
       if(!vData.ok){
-        // Paiement non vérifié — commande reste en pending_payment (invisible en cuisine)
         console.error('verify-payment échoué:',vData.error);
         showToast('⚠️ Vérification paiement échouée — contactez le restaurant');
         localStorage.removeItem('kbb_stripe_pending');
+        idbDel('kbb_stripe_pending').catch(()=>{}); cookieDel('kbb_sp_mini');
         return;
       }
 
       // 4. Paiement confirmé — mettre à jour l'affichage avec l'ID réel
-      const supaId=vData.orderId||pending.supabaseOrderId||null;
+      const supaId=vData.orderId||(pending?.supabaseOrderId)||null;
       if(supaId){
         const realNum='#KBB-'+String(supaId).padStart(3,'0');
         const numEl=document.getElementById('conf-num');
@@ -2784,16 +2845,16 @@ async function handleStripeReturn(){
         setActiveOrder({...ao,supaId,statut:'en_attente',orderNum:realNum});
         updateCommandesTile();
       }
-      const effectiveId=supaId||pending.orderId;
-      // F2 : passer le vrai sessionId comme stripeSessionId pour la facture
-      const pendingWithSession={...pending,orderId:effectiveId,stripeSessionId:sessionId};
-      // F1 : await — ne pas fire-and-forget les écritures comptables
-      // F3 : supprimer le pending APRÈS les écritures (pas avant)
-      try{ await insertTransaction({orderId:effectiveId,items:pending.label||null,montantTTC:pending.total,moyenPaiement:'carte',refStripe:sessionId}); }
-      catch(e){ console.error('handleStripeReturn — insertTransaction échoué:',e); }
-      try{ await createFactureFromPending(pendingWithSession); }
-      catch(e){ console.error('handleStripeReturn — createFactureFromPending échoué:',e); showToast('⚠️ Facture non générée — contactez le restaurant'); }
-      localStorage.removeItem('kbb_stripe_pending'); // F3 : supprimé APRÈS les écritures
+      const effectiveId=supaId||(pending?.orderId)||null;
+      const pendingWithSession=pending?{...pending,orderId:effectiveId,stripeSessionId:sessionId}:{orderId:effectiveId,stripeSessionId:sessionId,total:0,label:null,grouped:[]};
+      if(effectiveId){
+        try{ await insertTransaction({orderId:effectiveId,items:pending?.label||null,montantTTC:pending?.total||0,moyenPaiement:'carte',refStripe:sessionId}); }
+        catch(e){ console.error('handleStripeReturn — insertTransaction échoué:',e); }
+        try{ await createFactureFromPending(pendingWithSession); }
+        catch(e){ console.error('handleStripeReturn — createFactureFromPending échoué:',e); showToast('⚠️ Facture non générée — contactez le restaurant'); }
+      }
+      localStorage.removeItem('kbb_stripe_pending');
+      idbDel('kbb_stripe_pending').catch(()=>{}); cookieDel('kbb_sp_mini');
       setTimeout(()=>goToSuivi(), 2500);
 
     }catch(e){
