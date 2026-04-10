@@ -1970,6 +1970,20 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
       <button class="save-set-btn" id="stop-flash-btn" onclick="stopOffreFlash()" style="display:none;background:var(--coal3);margin-top:6px;">✕ Arrêter l'offre</button>
       <div id="flash-status" style="font-size:12px;color:var(--text3);margin-top:.5rem;text-align:center;"></div>
     </div>
+    <div class="settings-block" style="margin-top:1rem;" id="horaires-block">
+      <h3>🕐 Horaires d'ouverture</h3>
+      <div id="horaires-form">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:.75rem;">Cochez "Fermé" pour les jours de fermeture habituelle.</div>
+        <div id="horaires-days"></div>
+        <div style="margin-top:.75rem;">
+          <label style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Fermetures exceptionnelles</label>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Dates YYYY-MM-DD séparées par des virgules (ex: 2026-05-01, 2026-07-14)</div>
+          <input class="set-inp" type="text" id="horaires-exceptions" placeholder="2026-05-01, 2026-07-14" style="width:100%;box-sizing:border-box;">
+        </div>
+      </div>
+      <button class="save-set-btn" onclick="saveHoraires()" style="background:linear-gradient(135deg,var(--green),#2E8B57);border:none;color:#fff;margin-top:.5rem;">✓ Enregistrer les horaires</button>
+      <div id="horaires-status" style="font-size:12px;color:var(--text3);margin-top:.5rem;text-align:center;"></div>
+    </div>
     <div style="margin-top:1rem;">
       <div class="info-box gold">
         <span style="font-size:16px;flex-shrink:0">⚙️</span>
@@ -5457,7 +5471,7 @@ function etab(n){
   document.querySelectorAll('.epanel').forEach(p=>p.classList.remove('active'));
   document.getElementById('epanel-'+n).classList.add('active');
   if(n==='clients') renderClist();
-  if(n==='reglages') loadSettingsUI();
+  if(n==='reglages'){ loadSettingsUI(); renderHorairesForm().catch(()=>{}); }
   if(n==='dashboard') loadDashboard();
   if(n==='commandes'){ loadEmpCommandes(); startEmpRealtime(); }
   else if(n==='service'){ loadEmpService(); startEmpRealtime(); }
@@ -5968,6 +5982,83 @@ async function stopOffreFlash(){
   }
   await refreshFlashCache();
   showToast('Offre flash arrêtée');
+}
+
+/* ══ HORAIRES — UI PATRON ══ */
+
+const _DAY_NAMES=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+// Charge les horaires depuis Supabase et pré-remplit le formulaire patron
+async function renderHorairesForm(){
+  const container=document.getElementById('horaires-days');
+  const excInput=document.getElementById('horaires-exceptions');
+  if(!container||!excInput) return;
+  let schedule=null;
+  if(supaOk()){
+    try{
+      const rows=await supaReq('settings?key=eq.horaires&select=value').catch(()=>[]);
+      if(rows&&rows.length>0){ const v=rows[0].value; schedule=typeof v==='string'?JSON.parse(v):v; }
+    }catch(e){}
+  }
+  // Valeurs par défaut si pas encore en base
+  if(!schedule) schedule={'0':null,'1':{'open':'11:30','close':'22:00'},'2':{'open':'11:30','close':'22:00'},'3':{'open':'11:30','close':'22:00'},'4':{'open':'11:30','close':'22:00'},'5':{'open':'11:30','close':'22:30'},'6':{'open':'11:30','close':'22:30'},'exceptions':[]};
+  let html='';
+  for(let d=0;d<7;d++){
+    const v=schedule[String(d)];
+    const closed=v===null;
+    const open=closed?'11:30':(v?.open||'11:30');
+    const close=closed?'22:00':(v?.close||'22:00');
+    html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <div style="width:80px;font-size:13px;color:var(--text);flex-shrink:0;">${_DAY_NAMES[d]}</div>
+      <input type="checkbox" id="hor-closed-${d}" ${closed?'checked':''} onchange="document.getElementById('hor-times-${d}').style.display=this.checked?'none':'flex'" style="width:16px;height:16px;accent-color:var(--fire);flex-shrink:0;">
+      <label for="hor-closed-${d}" style="font-size:11px;color:var(--text3);flex-shrink:0;">Fermé</label>
+      <div id="hor-times-${d}" style="display:${closed?'none':'flex'};align-items:center;gap:4px;flex:1;">
+        <input type="time" id="hor-open-${d}" value="${open}" class="set-inp" style="width:80px;font-size:13px;padding:3px 6px;">
+        <span style="font-size:11px;color:var(--text3);">→</span>
+        <input type="time" id="hor-close-${d}" value="${close}" class="set-inp" style="width:80px;font-size:13px;padding:3px 6px;">
+      </div>
+    </div>`;
+  }
+  container.innerHTML=html;
+  excInput.value=(schedule.exceptions||[]).join(', ');
+}
+
+async function saveHoraires(){
+  const statusEl=document.getElementById('horaires-status');
+  if(!statusEl) return;
+  if(!supaOk()){statusEl.textContent='⚠ Supabase non configuré';return;}
+  const empToken=_getEmpToken();
+  if(!empToken){statusEl.textContent='⚠ Session expirée — ressaisissez votre PIN patron';showToast('Session expirée');return;}
+  // Construire l'objet horaires depuis les inputs
+  const schedule={exceptions:[]};
+  for(let d=0;d<7;d++){
+    const closed=document.getElementById('hor-closed-'+d)?.checked;
+    if(closed){ schedule[String(d)]=null; continue; }
+    const open=document.getElementById('hor-open-'+d)?.value||'11:30';
+    const close=document.getElementById('hor-close-'+d)?.value||'22:00';
+    schedule[String(d)]={open,close};
+  }
+  // Exceptions : dates YYYY-MM-DD séparées par virgules
+  const excRaw=document.getElementById('horaires-exceptions')?.value||'';
+  schedule.exceptions=excRaw.split(',').map(s=>s.trim()).filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(s));
+  statusEl.textContent='⏳ Enregistrement…';
+  try{
+    const r=await fetch(SURL+'/functions/v1/update-horaires',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+      body:JSON.stringify({schedule,emp_token:empToken})
+    });
+    const d=await r.json();
+    if(!r.ok||!d.ok) throw new Error(d.error||'Erreur update-horaires');
+    // Invalider le cache local pour que les créneaux se rechargent
+    _statusCache=null; _statusTs=0;
+    statusEl.textContent='✓ Horaires enregistrés';
+    showToast('Horaires mis à jour ✓');
+  }catch(e){
+    statusEl.textContent='⚠ Erreur — '+e.message;
+    showToast('Erreur : '+e.message);
+    console.error('saveHoraires:',e);
+  }
 }
 
 let flashInterval=null;
