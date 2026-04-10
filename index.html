@@ -2299,40 +2299,39 @@ function refreshClientSolde(){
 
 /* ── Statut restaurant dynamique (lit depuis settings Supabase) ── */
 let _statusCache=null,_statusTs=0,_loadingSchedule=false;
+// Horaires par défaut — utilisés si la clé 'horaires' n'existe pas encore dans settings
+// 0=Dim fermé, 1-4=Lun-Jeu 11h30-22h, 5-6=Ven-Sam 11h30-22h30
+const _DEFAULT_SCHEDULE={
+  "0":null,
+  "1":{"open":"11:30","close":"22:00"},
+  "2":{"open":"11:30","close":"22:00"},
+  "3":{"open":"11:30","close":"22:00"},
+  "4":{"open":"11:30","close":"22:00"},
+  "5":{"open":"11:30","close":"22:30"},
+  "6":{"open":"11:30","close":"22:30"},
+  "exceptions":[]
+};
 async function refreshDashStatus(){
   const labelEl=document.getElementById('dash-status-label');
   const dotEl=document.getElementById('dash-status-dot');
   const hoursEl=document.getElementById('dash-status-hours');
   if(!labelEl||!dotEl||!hoursEl) return;
 
-  // Horaires par défaut (JSON stocké dans settings?key=eq.horaires)
-  // Format: {"0":null,"1":{"open":"11:30","close":"22:00"},...,"exceptions":["YYYY-MM-DD"]}
-  // 0=Dim, 1=Lun, ..., 6=Sam
-  const DEFAULT_SCHEDULE={
-    "0":null,
-    "1":{"open":"11:30","close":"22:00"},
-    "2":{"open":"11:30","close":"22:00"},
-    "3":{"open":"11:30","close":"22:00"},
-    "4":{"open":"11:30","close":"22:00"},
-    "5":{"open":"11:30","close":"22:30"},
-    "6":{"open":"11:30","close":"22:30"},
-    "exceptions":[]
-  };
-
-  let schedule=DEFAULT_SCHEDULE;
+  let schedule=_DEFAULT_SCHEDULE;
   try{
     // Cache 5 min
-    if(!_statusCache||Date.now()-_statusTs>300000){
+    if(!_statusCache||_statusCache===false||Date.now()-_statusTs>300000){
       const rows=await supaReq('settings?key=eq.horaires&select=value');
       if(rows&&rows.length>0){
         const v=rows[0].value;
         schedule=typeof v==='string'?JSON.parse(v):v;
-        _statusCache=schedule;_statusTs=Date.now();
       }
+      // Toujours alimenter _statusCache — fallback si clé absente
+      _statusCache=schedule;_statusTs=Date.now();
     } else {
       schedule=_statusCache;
     }
-  }catch(e){ /* fallback sur défaut */ }
+  }catch(e){ _statusCache=_DEFAULT_SCHEDULE;_statusTs=Date.now();schedule=_DEFAULT_SCHEDULE; }
 
   const now=new Date();
   const todayStr=now.toISOString().slice(0,10);
@@ -3403,8 +3402,6 @@ function renderOrderOptions(){
     if(_statusCache===null){
       _loadScheduleForSlots();
       slotsMsg='<div style="padding:.5rem;font-size:13px;color:var(--text3);text-align:center;">⏳ Chargement des horaires…</div>';
-    } else if(_statusCache===false){
-      slotsMsg='<div style="padding:.65rem .75rem;font-size:13px;font-weight:600;color:var(--fire);background:rgba(255,107,43,.08);border-radius:6px;margin-top:.5rem;text-align:center;">⚠️ Horaires non disponibles — contactez le restaurant</div>';
     } else {
       const sr=getPickupTimeSlotsFromSchedule(_statusCache);
       if(sr.closed){
@@ -3510,14 +3507,15 @@ async function _loadScheduleForSlots(){
     if(rows&&rows.length>0){
       const v=rows[0].value;
       _statusCache=typeof v==='string'?JSON.parse(v):v;
-      _statusTs=Date.now();
     } else {
-      // Clé absente : sentinelle pour éviter la boucle infinie
-      _statusCache=false;
+      // Clé absente : utiliser les horaires par défaut pour débloquer les créneaux
+      _statusCache=_DEFAULT_SCHEDULE;
     }
+    _statusTs=Date.now();
   }catch(e){
     console.warn('_loadScheduleForSlots:',e);
-    _statusCache=false; // même sentinelle si réseau KO
+    _statusCache=_DEFAULT_SCHEDULE; // réseau KO → fallback horaires par défaut
+    _statusTs=Date.now();
   }
   _loadingSchedule=false;
   renderOrderOptions();
