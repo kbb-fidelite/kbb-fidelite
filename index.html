@@ -1167,7 +1167,6 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
   <div style="text-align:center;padding:.75rem .5rem 1.25rem;display:flex;justify-content:center;gap:1.5rem;">
     <button onclick="go('page-mentions-legales')" style="background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-decoration:underline;">Mentions légales</button>
     <button onclick="go('page-politique-confidentialite')" style="background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-decoration:underline;">Confidentialité</button>
-    <button onclick="showDiagPanel()" style="background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-decoration:underline;">🔍 Diag</button>
   </div>
 </div>
 
@@ -1178,7 +1177,6 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
     <div class="dash-hero-bg"></div>
     <div class="dash-hero-overlay"></div>
     <div class="dash-hero-topbar">
-      <button onclick="showDiagPanel()" class="dash-icon-btn" title="Diagnostic">🔍</button>
       <button onclick="go('page-pin')" class="dash-icon-btn" title="Espace employé">⚙️</button>
     </div>
     <div class="dash-hero-bottom">
@@ -6183,10 +6181,23 @@ async function renderReglagesRecompenses(){
   }).join('');
 }
 
+async function _callManageRecompenses(body){
+  const empToken=_getEmpToken();
+  if(!empToken){ showToast('Session expirée — ressaisissez votre PIN patron'); throw new Error('Token manquant'); }
+  const r=await fetch(SURL+'/functions/v1/manage-recompenses',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+    body:JSON.stringify({...body,emp_token:empToken})
+  });
+  const d=await r.json();
+  if(!r.ok||!d.ok) throw new Error(d.error||'Erreur manage-recompenses');
+  return d;
+}
+
 async function recompenseToggle(id,actif){
   if(!supaOk()){showToast('Supabase non configuré');return;}
   try{
-    await supaReq('recompenses?id=eq.'+id,'PATCH',{actif:!actif});
+    await _callManageRecompenses({action:'toggle',id});
     _recompensesCache=null;
     await renderReglagesRecompenses();
     showToast(actif?'Récompense désactivée':'Récompense activée ✓');
@@ -6197,7 +6208,7 @@ async function recompenseDelete(id){
   if(!confirm('Supprimer cette récompense ?')) return;
   if(!supaOk()){showToast('Supabase non configuré');return;}
   try{
-    await supaReq('recompenses?id=eq.'+id,'DELETE');
+    await _callManageRecompenses({action:'delete',id});
     _recompensesCache=null;
     await renderReglagesRecompenses();
     showToast('Récompense supprimée');
@@ -6229,7 +6240,7 @@ async function recompenseSave(id){
   if(!nom||pts<1){showToast('Nom et points requis');return;}
   if(!supaOk()){showToast('Supabase non configuré');return;}
   try{
-    await supaReq('recompenses?id=eq.'+id,'PATCH',{nom,points_requis:pts,commande_minimum:min});
+    await _callManageRecompenses({action:'update',id,data:{nom,points_requis:pts,commande_minimum:min}});
     _recompensesCache=null;
     await renderReglagesRecompenses();
     showToast('Récompense modifiée ✓');
@@ -6249,7 +6260,7 @@ async function recompenseAddSave(){
   if(!supaOk()){showToast('Supabase non configuré');return;}
   try{
     const ordre=(_recompensesCache||[]).length+1;
-    await supaReq('recompenses','POST',{nom,points_requis:pts,commande_minimum:min,actif:true,ordre});
+    await _callManageRecompenses({action:'create',data:{nom,points_requis:pts,commande_minimum:min,ordre}});
     _recompensesCache=null;
     document.getElementById('recompense-add-form').style.display='none';
     document.getElementById('rec-add-nom').value='';
@@ -7772,93 +7783,6 @@ function _doHideSplash(){
   }
 }
 
-// ══ DIAGNOSTIC PANEL ══════════════════════════════════════════════
-function _diagEntry(label, val, ok){
-  const color = ok === true ? '#4ade80' : ok === false ? '#f87171' : '#facc15';
-  return `<div style="margin-bottom:6px;"><span style="color:#888;">${label}</span> <span style="color:${color};word-break:break-all;">${val}</span></div>`;
-}
-function _diagSection(title){
-  return `<div style="margin:12px 0 6px;color:#FF6B2B;font-weight:700;border-top:1px solid #333;padding-top:8px;">${title}</div>`;
-}
-function _buildDiagHTML(){
-  let html = '';
-
-  // ── Avant fermeture (lu depuis localStorage kbb_diag_before_close) ──
-  html += _diagSection('📤 SESSION BEFORE CLOSE (dernière fermeture)');
-  const beforeRaw = localStorage.getItem('kbb_diag_before_close');
-  if(beforeRaw){
-    try{
-      const b = JSON.parse(beforeRaw);
-      html += _diagEntry('Horodatage :', b.ts || '?', null);
-      html += _diagEntry('localStorage kbb_session :', b.ls ? '✅ PRÉSENT — tel='+b.lsTel : '❌ ABSENT', b.ls);
-      html += _diagEntry('Cookie kbb_session :', b.cookie ? '✅ PRÉSENT' : '❌ ABSENT', b.cookie);
-    }catch(e){ html += _diagEntry('Erreur lecture log :', e.message, false); }
-  } else {
-    html += _diagEntry('(aucun log disponible — fermez et rouvrez l\'app)', '', null);
-  }
-
-  // ── Au démarrage (lu depuis kbb_diag_after_reload) ──
-  html += _diagSection('📥 SESSION AFTER RELOAD (dernier démarrage)');
-  const afterRaw = localStorage.getItem('kbb_diag_after_reload');
-  if(afterRaw){
-    try{
-      const a = JSON.parse(afterRaw);
-      html += _diagEntry('Horodatage :', a.ts || '?', null);
-      html += _diagEntry('localStorage kbb_session :', a.ls ? '✅ PRÉSENT — tel='+a.lsTel : '❌ ABSENT', a.ls);
-      html += _diagEntry('Cookie kbb_session :', a.cookie ? '✅ PRÉSENT' : '❌ ABSENT', a.cookie);
-      html += _diagEntry('getSession() résultat :', a.getSessionOk ? '✅ session lue, tel='+a.getSessionTel : '❌ null', a.getSessionOk);
-      html += _diagEntry('Fallback IDB déclenché :', a.idbTriggered ? '⚠️ OUI (localStorage était vide)' : 'non', null);
-      if(a.idbTriggered) html += _diagEntry('IDB résultat :', a.idbOk ? '✅ trouvé tel='+a.idbTel : '❌ vide', a.idbOk);
-    }catch(e){ html += _diagEntry('Erreur lecture log :', e.message, false); }
-  } else {
-    html += _diagEntry('(aucun log disponible — rouvrez l\'app une fois)', '', null);
-  }
-
-  // ── État actuel ──
-  html += _diagSection('🔴 ÉTAT MAINTENANT');
-  const nowLs = localStorage.getItem('kbb_session');
-  let nowTel = '?'; try{ nowTel = nowLs ? JSON.parse(nowLs).tel : null; }catch(e){}
-  html += _diagEntry('localStorage kbb_session :', nowLs ? '✅ PRÉSENT — tel='+nowTel : '❌ ABSENT', !!nowLs);
-  html += _diagEntry('Cookie kbb_session :', document.cookie.includes('kbb_session') ? '✅ PRÉSENT' : '❌ ABSENT', document.cookie.includes('kbb_session'));
-  html += _diagEntry('currentPortalClient :', typeof currentPortalClient !== 'undefined' && currentPortalClient ? '✅ défini, tel='+(currentPortalClient.tel||currentPortalClient.telephone) : '❌ null', !!(typeof currentPortalClient !== 'undefined' && currentPortalClient));
-  html += _diagEntry('_authInitialized :', typeof _authInitialized !== 'undefined' ? String(_authInitialized) : '?', null);
-  html += _diagEntry('SW version cache :', 'kbb-v94', null);
-
-  // ── Diagnostic ──
-  html += _diagSection('🧪 Conclusion');
-  const beforeOk = beforeRaw && JSON.parse(beforeRaw||'{}').ls;
-  const afterOk  = afterRaw && JSON.parse(afterRaw||'{}').ls;
-  if(!beforeRaw){ html += _diagEntry('→', 'Fermez l\'app puis rouvrez-la pour voir les données', null); }
-  else if(beforeOk && !afterOk){ html += _diagEntry('→', '🚨 iOS A EFFACÉ localStorage entre fermeture et réouverture !', false); }
-  else if(!beforeOk){ html += _diagEntry('→', '⚠️ Session non présente AVANT fermeture — saveSession() non appelé ?', false); }
-  else if(afterOk){ html += _diagEntry('→', '✅ Session persistée et relue correctement', true); }
-
-  return html;
-}
-function showDiagPanel(){
-  document.getElementById('diag-content').innerHTML = _buildDiagHTML();
-  document.getElementById('diag-panel').style.display = 'block';
-}
-function hideDiagPanel(){
-  document.getElementById('diag-panel').style.display = 'none';
-}
-function refreshDiagPanel(){
-  document.getElementById('diag-content').innerHTML = _buildDiagHTML();
-}
-function clearDiagLog(){
-  localStorage.removeItem('kbb_diag_before_close');
-  localStorage.removeItem('kbb_diag_after_reload');
-  refreshDiagPanel();
-}
-// ══════════════════════════════════════════════════════════════════
-
-window.addEventListener('pagehide', ()=>{
-  const raw = localStorage.getItem('kbb_session');
-  const tel = raw ? (() => { try{ return JSON.parse(raw).tel; }catch(e){ return '?'; } })() : null;
-  const logEntry = { ts: new Date().toISOString(), ls: !!raw, lsTel: tel, cookie: document.cookie.includes('kbb_session') };
-  localStorage.setItem('kbb_diag_before_close', JSON.stringify(logEntry));
-  console.log('[KBB-DIAG] SESSION BEFORE CLOSE — localStorage kbb_session:', raw ? tel : 'NULL');
-});
 
 // F6 — Récupération des factures orphelines
 // Cas : l'app a été fermée après verify-payment (commande en_attente) mais avant la création de facture.
@@ -8063,19 +7987,5 @@ if('serviceWorker' in navigator){
   </button>
 </nav>
 
-<!-- ══ PANNEAU DIAGNOSTIC SESSION ══ -->
-<div id="diag-panel" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.85);overflow-y:auto;padding:16px;">
-  <div style="background:#1a1a1a;border-radius:16px;padding:20px;max-width:430px;margin:0 auto;font-family:monospace;font-size:12px;color:#e0e0e0;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div style="font-size:15px;font-weight:700;color:#FF6B2B;">🔍 Diagnostic Session</div>
-      <button onclick="hideDiagPanel()" style="background:#333;border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;">✕ Fermer</button>
-    </div>
-    <div id="diag-content" style="line-height:1.8;"></div>
-    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
-      <button onclick="refreshDiagPanel()" style="background:#FF6B2B;border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:monospace;">↺ Actualiser</button>
-      <button onclick="clearDiagLog()" style="background:#444;border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:monospace;">🗑 Effacer log</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
