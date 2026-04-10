@@ -1683,6 +1683,17 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
   </div>
 </div>
 
+<!-- MES FACTURES -->
+<div class="page" id="page-factures">
+  <div class="topbar">
+    <button class="tbback" onclick="goBack()">←</button>
+    <div class="tbtitle">Mes factures</div>
+  </div>
+  <div id="factures-hist-content" style="padding:.75rem 1rem 5rem;">
+    <div class="empty"><div class="big">⏳</div><p>Chargement…</p></div>
+  </div>
+</div>
+
 <!-- KDS — Kitchen Display System -->
 <div class="page" id="page-kds">
   <div class="kds-header">
@@ -2273,7 +2284,7 @@ function refreshClientSolde(){
 }
 
 /* ── Statut restaurant dynamique (lit depuis settings Supabase) ── */
-let _statusCache=null,_statusTs=0;
+let _statusCache=null,_statusTs=0,_loadingSchedule=false;
 async function refreshDashStatus(){
   const labelEl=document.getElementById('dash-status-label');
   const dotEl=document.getElementById('dash-status-dot');
@@ -2485,9 +2496,9 @@ let _authInitialized = false;
 
 const _AUTH_PAGES=['page-menu','page-fidel','page-parrainage'];
 // Pages client sur lesquelles la barre de navigation globale est visible
-const _GNAV_PAGES=['page-dashboard','page-fidelite','page-parrainage','page-menu','page-cart','page-confirmation','page-suivi','page-commandes','page-client-portal'];
+const _GNAV_PAGES=['page-dashboard','page-fidelite','page-parrainage','page-menu','page-cart','page-confirmation','page-suivi','page-commandes','page-factures','page-client-portal'];
 // Page active → bouton actif dans la barre
-const _GNAV_MAP={'page-dashboard':'gnav-home','page-fidelite':'gnav-home','page-parrainage':'gnav-home','page-menu':'gnav-menu','page-cart':'gnav-menu','page-confirmation':'gnav-commandes','page-suivi':'gnav-commandes','page-commandes':'gnav-factures','page-client-portal':'gnav-profil'};
+const _GNAV_MAP={'page-dashboard':'gnav-home','page-fidelite':'gnav-home','page-parrainage':'gnav-home','page-menu':'gnav-menu','page-cart':'gnav-menu','page-confirmation':'gnav-commandes','page-suivi':'gnav-commandes','page-commandes':'gnav-commandes','page-factures':'gnav-factures','page-client-portal':'gnav-profil'};
 
 function updateBottomNav(p){
   const nav=document.getElementById('global-bottom-nav');
@@ -2530,6 +2541,7 @@ function go(p){
   if(p==='page-client-login'){initLoginPage();}
   if(p==='page-dashboard'){updateCommandesTile();refreshClientSolde();refreshDashStatus().catch(()=>{});}
   if(p==='page-commandes') loadCommandesHistory();
+  if(p==='page-factures') loadFacturesHistory();
   if(p!=='page-suivi'&&p!=='page-confirmation') stopSuiviPolling();
 }
 
@@ -3371,7 +3383,21 @@ function renderOrderOptions(){
     </div>`;
     return;
   }
-  const slots=getPickupTimeSlots();
+  const needsTime=orderMode==='click_collect'||orderMode==='reservation';
+  let slots=[],slotsMsg='';
+  if(needsTime){
+    if(!_statusCache){
+      _loadScheduleForSlots();
+      slotsMsg='<div style="padding:.5rem;font-size:13px;color:var(--text3);text-align:center;">⏳ Chargement des horaires…</div>';
+    } else {
+      const sr=getPickupTimeSlotsFromSchedule(_statusCache);
+      if(sr.closed){
+        slotsMsg=`<div style="padding:.65rem .75rem;font-size:13px;font-weight:600;color:var(--fire);background:rgba(255,107,43,.08);border-radius:6px;margin-top:.5rem;text-align:center;">🔒 ${sr.reason}</div>`;
+      } else {
+        slots=sr.slots;
+      }
+    }
+  }
   section.innerHTML=`
     <div class="order-mode-section">
       <div class="order-mode-title">Comment souhaitez-vous commander ?</div>
@@ -3395,22 +3421,18 @@ function renderOrderOptions(){
       ${orderMode==='reservation'?`
         <div class="order-detail-box">
           <div class="order-detail-label">Heure d'arrivée prévue</div>
-          <div class="time-slots">
-            ${slots.map(t=>`<div class="time-slot ${selectedPickupTime===t?'selected':''}" onclick="selectPickupTime('${t}')">${t}</div>`).join('')}
-          </div>
+          ${slots.length?`<div class="time-slots">${slots.map(t=>`<div class="time-slot ${selectedPickupTime===t?'selected':''}" onclick="selectPickupTime('${t}')">${t}</div>`).join('')}</div>`:slotsMsg}
         </div>
       `:''}
       ${orderMode==='click_collect'?`
         <div class="order-detail-box">
           <div class="order-detail-label">Heure de retrait souhaitée</div>
-          <div class="time-slots">
-            ${slots.map(t=>`<div class="time-slot ${selectedPickupTime===t?'selected':''}" onclick="selectPickupTime('${t}')">${t}</div>`).join('')}
-          </div>
+          ${slots.length?`<div class="time-slots">${slots.map(t=>`<div class="time-slot ${selectedPickupTime===t?'selected':''}" onclick="selectPickupTime('${t}')">${t}</div>`).join('')}</div>`:slotsMsg}
         </div>
       `:''}
       ${orderMode?`
         <button class="order-submit-btn" onclick="submitClientOrder()"
-          ${((orderMode==='click_collect'||orderMode==='reservation')&&!selectedPickupTime)?'disabled':''}>
+          ${((orderMode==='click_collect'||orderMode==='reservation')&&(!selectedPickupTime||slotsMsg))?'disabled':''}>
           Envoyer ma commande →
         </button>
       `:''}
@@ -3427,18 +3449,56 @@ function selectPickupTime(t){
   renderOrderOptions();
 }
 
-function getPickupTimeSlots(){
-  const slots=[];
+// Génère les créneaux valides en filtrant selon les horaires d'ouverture Supabase
+function getPickupTimeSlotsFromSchedule(schedule){
   const now=new Date();
+  const dayKey=String(now.getDay()); // 0=Dim, 1=Lun…6=Sam
+  const todayStr=now.toISOString().slice(0,10); // YYYY-MM-DD
+  // Fermeture exceptionnelle
+  if((schedule.exceptions||[]).includes(todayStr)){
+    return {closed:true,reason:'Fermeture exceptionnelle — revenez une autre fois',slots:[]};
+  }
+  const daySchedule=schedule[dayKey];
+  if(!daySchedule){
+    return {closed:true,reason:'Nous sommes fermés ce jour — choisissez une autre date',slots:[]};
+  }
+  const [openH,openM]=daySchedule.open.split(':').map(Number);
+  const [closeH,closeM]=daySchedule.close.split(':').map(Number);
+  const openMin=openH*60+openM;
+  const closeMin=closeH*60+closeM;
+  // Premier créneau : maintenant + 15 min arrondi au quart d'heure
   let start=new Date(now.getTime()+15*60*1000);
   const rem=15-(start.getMinutes()%15);
   if(rem<15) start=new Date(start.getTime()+rem*60*1000);
   start.setSeconds(0,0);
-  for(let i=0;i<8;i++){
+  const slots=[];
+  for(let i=0;i<48;i++){
     const t=new Date(start.getTime()+i*15*60*1000);
+    const slotMin=t.getHours()*60+t.getMinutes();
+    if(slotMin<openMin) continue;
+    if(slotMin>closeMin-15) break; // arrêt 15 min avant fermeture
     slots.push(t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0'));
   }
-  return slots;
+  if(!slots.length){
+    return {closed:true,reason:'Le restaurant est fermé pour aujourd\'hui — revenez demain',slots:[]};
+  }
+  return {closed:false,reason:'',slots};
+}
+
+// Charge les horaires depuis Supabase puis re-rend les options de commande
+async function _loadScheduleForSlots(){
+  if(_loadingSchedule) return;
+  _loadingSchedule=true;
+  try{
+    const rows=await supaReq('settings?key=eq.horaires&select=value').catch(()=>[]);
+    if(rows&&rows.length>0){
+      const v=rows[0].value;
+      _statusCache=typeof v==='string'?JSON.parse(v):v;
+      _statusTs=Date.now();
+    }
+  }catch(e){ console.warn('_loadScheduleForSlots:',e); }
+  _loadingSchedule=false;
+  renderOrderOptions();
 }
 
 async function submitClientOrder(){
@@ -7355,22 +7415,6 @@ async function loadCommandesHistory(){
       <div class="dash-card"><div class="dash-val gold" style="font-size:18px;">${total.toFixed(0)}€</div><div class="dash-lbl">Total dépensé</div></div>
       <div class="dash-card"><div class="dash-val" style="font-size:18px;color:var(--fire);">${nbRecompenses}</div><div class="dash-lbl">Récompenses</div></div>
     </div>`;
-    // Factures section
-    if(factures&&factures.length){
-      html+=`<div class="cmd-section-title">📄 Mes factures (${factures.length})</div>
-      <div style="background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:.875rem;overflow:hidden;">`;
-      factures.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(f=>{
-        html+=`<div style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border-bottom:1px solid var(--border2);">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:700;color:var(--text);">${f.numero_facture||'FAC-???'}</div>
-            <div style="font-size:11px;color:var(--text3);">${_fmtDateCmd(f.date)}</div>
-          </div>
-          <div style="font-family:var(--font-d);font-size:15px;color:var(--text);flex-shrink:0;">${parseFloat(f.total_ttc||0).toFixed(2).replace('.',',')}€</div>
-          <button class="cmd-btn" onclick="downloadFacturePDF(${JSON.stringify(f).replace(/'/g,'&#39;')})">📄</button>
-        </div>`;
-      });
-      html+='</div>';
-    }
     // Orders list
     html+=`<div class="cmd-section-title">🍖 Historique (${commandes.length})</div>`;
     html+=commandes.map(c=>_renderCmdCard(c, factureByCmd[String(c.id)]||null)).join('');
@@ -7378,6 +7422,45 @@ async function loadCommandesHistory(){
   }catch(e){
     el.innerHTML='<div class="empty"><p>Erreur: '+e.message+'</p></div>';
     console.error('loadCommandesHistory:',e);
+  }
+}
+
+async function loadFacturesHistory(){
+  const el=document.getElementById('factures-hist-content');
+  if(!el) return;
+  const tel=currentPortalClient?.telephone||currentPortalClient?.tel;
+  if(!tel||!supaOk()){
+    el.innerHTML='<div class="empty"><p>Connectez-vous pour voir vos factures</p></div>';
+    return;
+  }
+  el.innerHTML='<div class="empty"><div class="big">⏳</div><p>Chargement…</p></div>';
+  try{
+    const commandes=await supaReq('commandes?select=id&client_telephone=eq.'+encodeURIComponent(tel)+'&order=created_at.desc&limit=60').catch(()=>[]);
+    if(!commandes||!commandes.length){
+      el.innerHTML='<div class="empty"><p>Aucune facture pour le moment<br><span style="font-size:12px;color:var(--text3);">Vos factures apparaîtront ici après vos commandes</span></p></div>';
+      return;
+    }
+    const ids=commandes.map(c=>String(c.id)).filter(Boolean);
+    const factures=await supaReq('factures?select=*&commande_id=in.('+ids.join(',')+')'+'&order=date.desc').catch(()=>[]);
+    if(!factures||!factures.length){
+      el.innerHTML='<div class="empty"><p>Aucune facture disponible<br><span style="font-size:12px;color:var(--text3);">Les factures sont générées après confirmation du paiement</span></p></div>';
+      return;
+    }
+    let html=`<div style="font-size:12px;color:var(--text3);margin-bottom:.75rem;">${factures.length} facture${factures.length>1?'s':''}</div>`;
+    factures.forEach(f=>{
+      html+=`<div style="background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:.875rem 1rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);">${f.numero_facture||'FAC-???'}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${_fmtDateCmd(f.date)}</div>
+        </div>
+        <div style="font-family:var(--font-d);font-size:16px;color:var(--text);font-weight:700;flex-shrink:0;">${parseFloat(f.total_ttc||0).toFixed(2).replace('.',',')}€</div>
+        <button class="cmd-btn" onclick="downloadFacturePDF(${JSON.stringify(f).replace(/'/g,'&#39;')})">📄 PDF</button>
+      </div>`;
+    });
+    el.innerHTML=html;
+  }catch(e){
+    el.innerHTML='<div class="empty"><p>Erreur: '+e.message+'</p></div>';
+    console.error('loadFacturesHistory:',e);
   }
 }
 
@@ -7873,7 +7956,7 @@ if('serviceWorker' in navigator){
     <span class="gnav-lbl">Commandes</span>
     <span class="gnav-dot" id="gnav-commandes-dot"></span>
   </button>
-  <button class="gnav-btn" id="gnav-factures" onclick="go('page-commandes')">
+  <button class="gnav-btn" id="gnav-factures" onclick="go('page-factures')">
     <span class="gnav-ico">🧾</span>
     <span class="gnav-lbl">Factures</span>
   </button>
