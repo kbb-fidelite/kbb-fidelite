@@ -822,6 +822,16 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .gnav-dot.visible{display:block;}
 body.has-gnav .page{padding-bottom:64px;}
 
+/* ══ PWA INSTALL BANNER ══ */
+#pwa-banner{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:430px;background:#1a0a00;border:1px solid rgba(255,107,43,.22);border-bottom:none;border-radius:14px 14px 0 0;padding:.875rem 1rem .8rem;z-index:49;transition:transform .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 -6px 28px rgba(0,0,0,.55);}
+body.has-gnav #pwa-banner{bottom:64px;}
+#pwa-banner.visible{transform:translateX(-50%) translateY(0);}
+.pwa-banner-row{display:flex;align-items:flex-start;gap:.75rem;}
+.pwa-banner-txt{flex:1;font-size:13px;color:rgba(255,255,255,.72);line-height:1.45;}
+.pwa-banner-txt strong{color:#fff;display:block;font-size:13.5px;font-weight:700;margin-bottom:3px;}
+.pwa-banner-close{flex-shrink:0;background:none;border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:.3rem .55rem;color:rgba(255,255,255,.45);font-size:14px;cursor:pointer;line-height:1;font-family:var(--font);}
+.pwa-banner-actions{margin-top:.625rem;display:flex;gap:.5rem;}
+.pwa-banner-install{background:#FF6B2B;color:#fff;border:none;border-radius:8px;padding:.5rem 1.25rem;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;}
 /* ══ DRINK UPSELL ══ */
 .cart-drink-card{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;background:var(--coal3);border:1px solid rgba(79,195,247,.25);border-radius:var(--radius-sm);margin:.5rem 0 .875rem;cursor:pointer;transition:border-color .15s;}
 .cart-drink-card:active{border-color:rgba(79,195,247,.55);}
@@ -1162,6 +1172,9 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
   <div class="home-hero-actions">
     <button class="home-landing-btn primary" onclick="go('page-qr')">Nouveau client 🔥</button>
     <button class="home-landing-btn secondary" onclick="go('page-client-login')">J'ai déjà un compte</button>
+    <div id="pwa-home-btn-wrap" style="display:none;text-align:center;margin-top:.5rem;">
+      <button onclick="_pwaShowFromButton()" style="background:none;border:1px solid rgba(255,107,43,.5);border-radius:10px;padding:.55rem 1.4rem;color:#FF6B2B;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;width:100%;">📲 Installer l'appli KBB</button>
+    </div>
   </div>
   <div class="supa-status" id="supa-status"></div>
   <div style="text-align:center;padding:.75rem .5rem 1.25rem;display:flex;justify-content:center;gap:1.5rem;">
@@ -7095,6 +7108,101 @@ async function downloadAllFacturesPDF(from,to){
   showToast('PDF téléchargé 📄');
 }
 
+/* ══ PWA INSTALL ══ */
+let _pwaPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+});
+
+function _pwaIsInstalled(){
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+
+function _pwaDismissed(){
+  const ts = parseInt(localStorage.getItem('kbb_pwa_dismissed') || '0');
+  return ts > 0 && Date.now() - ts < 7 * 24 * 60 * 60 * 1000;
+}
+
+function _pwaPlatform(){
+  if(_pwaIsInstalled()) return null;
+  if(_pwaDismissed()) return null;
+  if(window._kioskMode) return null;
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /Android/.test(ua);
+  const isChrome = /Chrome/.test(ua) && !/Edg|OPR|SamsungBrowser/.test(ua);
+  if(isIOS && !window.navigator.standalone) return 'ios';
+  if(isAndroid && isChrome && _pwaPrompt) return 'android';
+  return null;
+}
+
+function _pwaMaybeShowBanner(){
+  const plat = _pwaPlatform();
+  if(!plat) return;
+  const banner = document.getElementById('pwa-banner');
+  const inner  = document.getElementById('pwa-banner-inner');
+  if(!banner || !inner) return;
+  if(plat === 'android'){
+    inner.innerHTML =
+      '<div class="pwa-banner-row">'
+        +'<div class="pwa-banner-txt"><strong>📲 Installez l\'appli KBB</strong>Commandez plus vite depuis votre écran d\'accueil !</div>'
+        +'<button class="pwa-banner-close" onclick="_pwaDismiss()" aria-label="Fermer">✕</button>'
+      +'</div>'
+      +'<div class="pwa-banner-actions">'
+        +'<button class="pwa-banner-install" onclick="_pwaInstall()">Installer</button>'
+      +'</div>';
+  } else {
+    inner.innerHTML =
+      '<div class="pwa-banner-row">'
+        +'<div class="pwa-banner-txt"><strong>📲 Installez l\'appli KBB</strong>Appuyez sur <span style="font-size:15px;vertical-align:middle;">⎙</span> puis <em>« Sur l\'écran d\'accueil »</em></div>'
+        +'<button class="pwa-banner-close" onclick="_pwaDismiss()" aria-label="Fermer">✕</button>'
+      +'</div>';
+  }
+  requestAnimationFrame(() => banner.classList.add('visible'));
+}
+
+function _pwaDismiss(){
+  localStorage.setItem('kbb_pwa_dismissed', String(Date.now()));
+  const banner = document.getElementById('pwa-banner');
+  if(banner) banner.classList.remove('visible');
+}
+
+async function _pwaInstall(){
+  if(!_pwaPrompt) return;
+  _pwaPrompt.prompt();
+  const { outcome } = await _pwaPrompt.userChoice;
+  _pwaPrompt = null;
+  if(outcome === 'accepted') _pwaDismiss();
+}
+
+function _pwaShowFromButton(){
+  if(_pwaIsInstalled()){
+    showToast('L\'appli est déjà installée sur votre écran d\'accueil ✓');
+    return;
+  }
+  const plat = _pwaPlatform();
+  if(!plat){
+    showToast('Installation non disponible sur ce navigateur — utilisez Chrome (Android) ou Safari (iPhone)');
+    return;
+  }
+  if(plat === 'android') _pwaInstall();
+  else _pwaMaybeShowBanner();
+}
+
+function _pwaUpdateHomeBtn(){
+  const wrap = document.getElementById('pwa-home-btn-wrap');
+  if(!wrap) return;
+  if(_pwaIsInstalled() || window._kioskMode) return;
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /Android/.test(ua);
+  const isChrome = /Chrome/.test(ua) && !/Edg|OPR|SamsungBrowser/.test(ua);
+  if(isIOS || (isAndroid && isChrome)) wrap.style.display = '';
+}
+
 /* ══ RGPD — CONSENTEMENT ══ */
 function rgpdBannerCheck(){
   if(!localStorage.getItem('kbb_rgpd_consent')){
@@ -7915,7 +8023,11 @@ window.addEventListener('load', async function(){
 
   clearTimeout(safetyTimer);
   hideSplash();
-  if(!window._kioskMode) rgpdBannerCheck();
+  if(!window._kioskMode){
+    rgpdBannerCheck();
+    _pwaUpdateHomeBtn();
+    setTimeout(_pwaMaybeShowBanner, 2000);
+  }
 });
 </script>
 <script>
@@ -7940,6 +8052,11 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<!-- ══ BANDEAU INSTALLATION PWA ══ -->
+<div id="pwa-banner">
+  <div id="pwa-banner-inner"></div>
+</div>
+
 <!-- Bandeau consentement RGPD -->
 <div class="rgpd-banner" id="rgpd-banner" style="display:none;">
   <div class="rgpd-banner-txt">En utilisant KBB à la braise, vous acceptez notre <button onclick="go('page-politique-confidentialite')" style="background:none;border:none;color:var(--fire);font-size:12px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline;">politique de confidentialité</button>. Vos données sont utilisées uniquement pour la gestion de votre fidélité.</div>
