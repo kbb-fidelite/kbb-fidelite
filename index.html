@@ -3386,9 +3386,11 @@ function renderOrderOptions(){
   const needsTime=orderMode==='click_collect'||orderMode==='reservation';
   let slots=[],slotsMsg='';
   if(needsTime){
-    if(!_statusCache){
+    if(_statusCache===null){
       _loadScheduleForSlots();
       slotsMsg='<div style="padding:.5rem;font-size:13px;color:var(--text3);text-align:center;">⏳ Chargement des horaires…</div>';
+    } else if(_statusCache===false){
+      slotsMsg='<div style="padding:.65rem .75rem;font-size:13px;font-weight:600;color:var(--fire);background:rgba(255,107,43,.08);border-radius:6px;margin-top:.5rem;text-align:center;">⚠️ Horaires non disponibles — contactez le restaurant</div>';
     } else {
       const sr=getPickupTimeSlotsFromSchedule(_statusCache);
       if(sr.closed){
@@ -3495,8 +3497,14 @@ async function _loadScheduleForSlots(){
       const v=rows[0].value;
       _statusCache=typeof v==='string'?JSON.parse(v):v;
       _statusTs=Date.now();
+    } else {
+      // Clé absente : sentinelle pour éviter la boucle infinie
+      _statusCache=false;
     }
-  }catch(e){ console.warn('_loadScheduleForSlots:',e); }
+  }catch(e){
+    console.warn('_loadScheduleForSlots:',e);
+    _statusCache=false; // même sentinelle si réseau KO
+  }
   _loadingSchedule=false;
   renderOrderOptions();
 }
