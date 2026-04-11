@@ -1129,6 +1129,29 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
 .cmd-btn{font-size:11px;font-weight:700;padding:5px 12px;border-radius:99px;border:1px solid var(--border2);background:var(--coal3);color:var(--text2);cursor:pointer;font-family:var(--font);white-space:nowrap;}
 .cmd-btn.primary{background:var(--fire);border-color:var(--fire);color:#fff;}
 .cmd-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:.875rem 0 .5rem;}
+/* ══ DASHBOARD STATS PRO ══ */
+.dash-period-bar{display:flex;gap:6px;padding:.75rem 0 .5rem;flex-wrap:wrap;}
+.dash-period-btn{flex:1;min-width:60px;padding:.45rem .5rem;background:var(--coal3);border:1px solid var(--border2);color:var(--text3);border-radius:var(--radius-xs);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+.dash-period-btn.active{background:var(--fire);border-color:var(--fire);color:#fff;}
+.dash-custom-range{display:flex;gap:6px;align-items:center;margin-bottom:.5rem;}
+.kpi-delta{display:inline-flex;align-items:center;font-size:10px;font-weight:700;border-radius:99px;padding:2px 7px;}
+.ca-chart-wrap{width:100%;margin-bottom:1rem;}
+.ca-chart{display:flex;align-items:flex-end;height:64px;gap:2px;}
+.ca-bar-col{flex:1;height:100%;display:flex;align-items:flex-end;}
+.ca-bar{width:100%;background:linear-gradient(to top,var(--fire),var(--gold));border-radius:2px 2px 0 0;}
+.dash-heatmap-outer{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:1rem;}
+.dash-heatmap{display:flex;gap:3px;}
+.dash-hm-day-labels{display:flex;flex-direction:column;gap:3px;padding-top:20px;margin-right:1px;}
+.dash-hm-day-lbl{height:20px;display:flex;align-items:center;font-size:9px;color:var(--text3);font-weight:700;width:22px;flex-shrink:0;}
+.dash-hm-col{display:flex;flex-direction:column;gap:3px;flex-shrink:0;}
+.dash-hm-hour-lbl{font-size:9px;color:var(--text3);height:20px;display:flex;align-items:center;justify-content:center;width:26px;}
+.dash-hm-cell{width:26px;height:20px;border-radius:3px;background:rgba(255,107,43,0);border:1px solid rgba(255,255,255,.04);}
+.dash-lvl-badge{display:inline;font-size:10px;font-weight:700;border-radius:99px;padding:1px 6px;}
+.dash-lvl-or{background:rgba(255,184,48,.15);color:var(--gold);}
+.dash-lvl-argent{background:rgba(192,192,192,.15);color:#C0C0C0;}
+.dash-lvl-bronze{background:rgba(205,127,50,.15);color:#CD7F32;}
+.dash-prod-bar{background:var(--coal4);border-radius:99px;height:6px;overflow:hidden;margin-top:3px;}
+.dash-prod-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--green),var(--gold));}
 </style>
 </head>
 <body>
@@ -6844,239 +6867,469 @@ function renderParrainageSection(parrainages,clients,cmdByClient,cmdByTel){
   return h;
 }
 
+/* ══ DASHBOARD STATS PRO ══ */
+let _dashPeriod='30d',_dashCustomFrom='',_dashCustomTo='';
+
+function _dashFmt(n){return parseFloat(n||0).toFixed(2).replace('.',',')+'\u20AC';}
+
+function _dashDelta(curr,prev){
+  if(!prev||prev===0)return '';
+  const pct=Math.round((curr-prev)/prev*100);
+  const pos=pct>=0;
+  return '<span class="kpi-delta" style="background:'+(pos?'rgba(76,175,116,.15)':'rgba(255,107,43,.15)')+';color:'+(pos?'var(--green)':'var(--fire)')+';">'+(pos?'+':'')+pct+'%</span>';
+}
+
+function _parseItems(cmd){
+  try{
+    const a=typeof cmd.items==='string'?JSON.parse(cmd.items):(cmd.items||[]);
+    return Array.isArray(a)?a.filter(i=>!i.isSuppl&&i.name):[];
+  }catch{return [];}
+}
+
+function _validCmds(cmds){return (cmds||[]).filter(c=>!['pending_payment','annule'].includes(c.statut));}
+
+function _niveau(pts){const p=parseInt(pts||0);return p>=500?'or':p>=200?'argent':'bronze';}
+
+function _dashDates(){
+  const now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const todayEnd=new Date(today.getTime()+86400000);
+  let from,to,prevFrom,prevTo;
+  if(_dashPeriod==='today'){
+    from=today;to=todayEnd;
+    prevFrom=new Date(today.getTime()-86400000);prevTo=today;
+  }else if(_dashPeriod==='7d'){
+    from=new Date(today.getTime()-6*86400000);to=todayEnd;
+    prevFrom=new Date(today.getTime()-13*86400000);prevTo=from;
+  }else if(_dashPeriod==='custom'&&_dashCustomFrom&&_dashCustomTo){
+    from=new Date(_dashCustomFrom);to=new Date(_dashCustomTo+'T23:59:59');
+    const dur=to-from;prevFrom=new Date(from-dur);prevTo=from;
+  }else{
+    from=new Date(today.getTime()-29*86400000);to=todayEnd;
+    prevFrom=new Date(today.getTime()-59*86400000);prevTo=from;
+  }
+  return{from,to,prevFrom,prevTo,
+    fromISO:from.toISOString(),toISO:to.toISOString(),
+    prevFromISO:prevFrom.toISOString(),prevToISO:prevTo.toISOString()};
+}
+
+function _dashPeriodBar(){
+  const btns=[['today',"Auj."],['7d','7j'],['30d','30j'],['custom','Perso.']];
+  return '<div class="dash-period-bar">'+btns.map(([k,l])=>'<button class="dash-period-btn'+(_dashPeriod===k?' active':'')+'" onclick="_setDashPeriod(\''+k+'\')">'+l+'</button>').join('')+'</div>';
+}
+
+function _dashCustomBar(){
+  if(_dashPeriod!=='custom')return '';
+  const today=new Date().toISOString().slice(0,10);
+  const mStart=today.slice(0,8)+'01';
+  return '<div class="dash-custom-range">'
+    +'<input type="date" id="dash-from" value="'+(_dashCustomFrom||mStart)+'" onchange="_dashCustomFrom=this.value" style="background:var(--coal3);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-xs);padding:.4rem .6rem;font-family:var(--font);font-size:12px;color-scheme:dark;flex:1;">'
+    +'<span style="color:var(--text3);">→</span>'
+    +'<input type="date" id="dash-to" value="'+(_dashCustomTo||today)+'" onchange="_dashCustomTo=this.value" style="background:var(--coal3);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-xs);padding:.4rem .6rem;font-family:var(--font);font-size:12px;color-scheme:dark;flex:1;">'
+    +'<button onclick="_applyCustomRange()" style="padding:.4rem .85rem;background:var(--fire);color:#fff;border:none;border-radius:var(--radius-xs);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;">OK</button>'
+    +'</div>';
+}
+
+function _setDashPeriod(p){_dashPeriod=p;loadDashboard();}
+function _applyCustomRange(){
+  const f=document.getElementById('dash-from');
+  const t=document.getElementById('dash-to');
+  if(f)_dashCustomFrom=f.value;if(t)_dashCustomTo=t.value;
+  if(_dashCustomFrom&&_dashCustomTo)loadDashboard();
+}
+
 async function loadDashboard(){
   const el=document.getElementById('dashboard-content');
-  el.innerHTML='<div class="empty"><div class="big">⏳</div><p>Chargement...</p></div>';
+  el.innerHTML=_dashPeriodBar()+_dashCustomBar()+'<div style="text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px;">⏳ Chargement des statistiques…</div>';
+  if(!supaOk()){el.querySelector('div[style*="Chargement"]').textContent='Non connecté à Supabase';return;}
   try{
-    const clients=await dbAll();
+    const dates=_dashDates();
     const now=new Date();
     const todayStr=now.toISOString().split('T')[0];
     const monthStr=now.toISOString().slice(0,7);
 
-    // Get commandes from Supabase
-    let commandes=[];
-    if(supaOk()){
-      try{ commandes=await supaReq('commandes?select=*&order=created_at.desc'); }catch(e){}
+    // ── Fetch parallèle ──────────────────────────────────────────────────────
+    const [cmds, prevCmds, clients, factures] = await Promise.all([
+      supaReq('commandes?select=*&created_at=gte.'+dates.fromISO+'&created_at=lte.'+dates.toISO+'&order=created_at.asc').catch(()=>[]),
+      supaReq('commandes?select=id,montant,statut,type,client_telephone&created_at=gte.'+dates.prevFromISO+'&created_at=lte.'+dates.prevToISO).catch(()=>[]),
+      dbAll().catch(()=>[]),
+      supaReq('factures?select=*&date=gte.'+dates.fromISO+'&date=lte.'+dates.toISO+'&order=date.asc').catch(()=>[]),
+    ]);
+
+    const valid=_validCmds(cmds);
+    const prevValid=_validCmds(prevCmds);
+
+    // ── 1. CA ──────────────────────────────────────────────────────────────
+    const ca=valid.reduce((s,c)=>s+parseFloat(c.montant||0),0);
+    const prevCa=prevValid.reduce((s,c)=>s+parseFloat(c.montant||0),0);
+    const panier=valid.length>0?ca/valid.length:0;
+    const prevPanier=prevValid.length>0?prevCa/prevValid.length:0;
+
+    // CA année en cours (fetch léger)
+    const yearISO=new Date().getFullYear()+'-01-01T00:00:00.000Z';
+    const anneeCmd=await supaReq('commandes?select=montant,statut&created_at=gte.'+yearISO).catch(()=>[]);
+    const caAnnee=_validCmds(anneeCmd).reduce((s,c)=>s+parseFloat(c.montant||0),0);
+
+    // Courbe CA par jour
+    const caByDay={};
+    valid.forEach(c=>{const d=c.created_at.slice(0,10);caByDay[d]=(caByDay[d]||0)+parseFloat(c.montant||0);});
+    const diffDays=Math.min(Math.max(1,Math.round((dates.to-dates.from)/86400000)),90);
+    const days=[];
+    for(let i=0;i<diffDays;i++){
+      const d=new Date(dates.from.getTime()+i*86400000);
+      const key=d.toISOString().slice(0,10);
+      days.push({key,ca:caByDay[key]||0,label:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})});
     }
+    const maxDayCA=Math.max(1,...days.map(d=>d.ca));
 
-    // Get parrainages from Supabase
-    let parrainages=[];
-    if(supaOk()){
-      try{ parrainages=await supaReq('parrainages?select=*&order=date_inscription.desc'); }catch(e){}
-    }
+    // ── 2. Canal ──────────────────────────────────────────────────────────
+    const byCanal={sur_place:{count:0,total:0},click_collect:{count:0,total:0},reservation:{count:0,total:0}};
+    valid.forEach(c=>{const t=c.type||'sur_place';if(byCanal[t]){byCanal[t].count++;byCanal[t].total+=parseFloat(c.montant||0);}});
+    const CANAL_LBL={sur_place:'Sur place 🪑',click_collect:'Click & Collect 📦',reservation:'Réservation 📅'};
 
-    // Index commandes by client_id AND telephone for fraud detection
-    const cmdByClient={};
-    const cmdByTel={};
-    commandes.forEach(x=>{
-      const cid=String(x.client_id||'');
-      if(cid&&cid!=='null'&&cid!=='0'){if(!cmdByClient[cid])cmdByClient[cid]=[];cmdByClient[cid].push(x);}
-      const tel=String(x.client_telephone||'');
-      if(tel&&tel!=='null'){if(!cmdByTel[tel])cmdByTel[tel]=[];cmdByTel[tel].push(x);}
+    // ── 3. Heures de pointe ───────────────────────────────────────────────
+    const heureCount={};const heatmap={};let maxHeatmap=0;
+    const midiCmds=[];const soirCmds=[];let midiCA=0,soirCA=0;
+    valid.forEach(c=>{
+      if(!c.created_at)return;
+      const d=new Date(c.created_at);
+      const h=d.getHours();
+      const dow=(d.getDay()+6)%7; // 0=Lun … 6=Dim
+      heureCount[h]=(heureCount[h]||0)+1;
+      const hk=dow+'-'+h;heatmap[hk]=(heatmap[hk]||0)+1;
+      if(heatmap[hk]>maxHeatmap)maxHeatmap=heatmap[hk];
+      const m=parseFloat(c.montant||0);
+      if(h>=10&&h<16){midiCmds.push(c);midiCA+=m;}
+      else if(h>=16){soirCmds.push(c);soirCA+=m;}
+    });
+    const maxH=Math.max(1,...Object.values(heureCount));
+    const topHeures=Object.entries(heureCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    // ── 4. Produits ────────────────────────────────────────────────────────
+    const prodCounts={};const supplCounts={};const sauceCounts={};
+    const menuPriceMap={};
+    if(window.MENU_DATA)MENU_DATA.forEach(m=>{menuPriceMap[m.name]=m.price;});
+    valid.forEach(c=>{
+      _parseItems(c).forEach(item=>{
+        prodCounts[item.name]=(prodCounts[item.name]||0)+1;
+        (item.suppls||[]).forEach(s=>{supplCounts[s]=(supplCounts[s]||0)+1;});
+        (item.sauces||[]).forEach(s=>{sauceCounts[s]=(sauceCounts[s]||0)+1;});
+      });
+    });
+    const prodSorted=Object.entries(prodCounts).sort((a,b)=>b[1]-a[1]);
+    const maxProd=Math.max(1,prodSorted[0]?.[1]||1);
+    const top5prods=prodSorted.slice(0,5);
+    const flop5prods=[...prodSorted].reverse().slice(0,5);
+    const top5suppls=Object.entries(supplCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const top5sauces=Object.entries(sauceCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    // ── 5. Clients & Fidélité ─────────────────────────────────────────────
+    const niveaux={bronze:0,argent:0,or:0};
+    clients.forEach(c=>{niveaux[_niveau(c.points)]++;});
+    const totalClients=clients.length;
+    const newThisMonth=clients.filter(c=>c.created_at&&c.created_at.startsWith(monthStr)).length;
+    const prevMoisStr=new Date(new Date().setMonth(new Date().getMonth()-1)).toISOString().slice(0,7);
+    const newPrevMonth=clients.filter(c=>c.created_at&&c.created_at.startsWith(prevMoisStr)).length;
+
+    const clientCA={};const clientOrders={};
+    valid.forEach(c=>{
+      const tel=c.client_telephone;
+      if(tel){clientCA[tel]=(clientCA[tel]||0)+parseFloat(c.montant||0);clientOrders[tel]=(clientOrders[tel]||0)+1;}
+    });
+    const withMultiple=Object.values(clientOrders).filter(n=>n>=2).length;
+    const withOrders=Object.keys(clientOrders).length;
+    const retention=withOrders>0?Math.round(withMultiple/withOrders*100):0;
+    const totalCAWithClient=Object.values(clientCA).reduce((s,v)=>s+v,0);
+    const clv=withOrders>0?totalCAWithClient/withOrders:0;
+
+    const top10clients=Object.entries(clientCA).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([tel,cca])=>{
+      const cl=clients.find(c=>c.telephone===tel);
+      return{tel,ca:cca,orders:clientOrders[tel]||0,nom:cl?(cl.prenom+' '+cl.nom):tel,pts:parseInt(cl?.points||0)};
     });
 
-    // CA du jour
-    const cmdToday=commandes.filter(x=>x.created_at&&x.created_at.startsWith(todayStr));
-    const caJour=cmdToday.reduce((s,x)=>s+parseFloat(x.montant||0),0);
+    const thirtyAgo=new Date(Date.now()-30*86400000);
+    const inactifs=clients.filter(c=>!c.derniere_visite||new Date(c.derniere_visite)<thirtyAgo)
+      .sort((a,b)=>parseInt(b.points||0)-parseInt(a.points||0)).slice(0,8);
 
-    // CA du mois
-    const cmdMois=commandes.filter(x=>x.created_at&&x.created_at.startsWith(monthStr));
-    const caMois=cmdMois.reduce((s,x)=>s+parseFloat(x.montant||0),0);
-
-    // Cagnottes distribuées ce mois
-    const cagnotteMois=cmdMois.reduce((s,x)=>s+parseFloat(x.points_gagnes||0),0);
-
-    // Top 5 clients par cagnotte
-    const top5=[...clients].sort((a,b)=>parseFloat(b.cagnotte||0)-parseFloat(a.cagnotte||0)).slice(0,5);
-
-    // Heures de pointe (grouper par heure)
-    const heures={};
-    commandes.forEach(x=>{
-      if(x.created_at){
-        const h=new Date(x.created_at).getHours();
-        heures[h]=(heures[h]||0)+1;
-      }
-    });
-    const maxH=Math.max(1,...Object.values(heures));
-    const topHeures=Object.entries(heures).sort((a,b)=>b[1]-a[1]).slice(0,5);
-
-    // Peak hour by day of week
-    const dayHourMap={};
-    commandes.forEach(x=>{
-      if(!x.created_at)return;
-      const d=new Date(x.created_at);
-      const day=d.getDay();const h=d.getHours();
-      if(!dayHourMap[day])dayHourMap[day]={};
-      dayHourMap[day][h]=(dayHourMap[day][h]||0)+1;
-    });
-    const DAY_FR=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-    const peakByDay=[1,2,3,4,5,6,0].map(d=>{
-      const hrs=dayHourMap[d]||{};
-      const top=Object.entries(hrs).sort((a,b)=>b[1]-a[1])[0];
-      return{day:DAY_FR[d],hour:top?parseInt(top[0]):null,count:top?top[1]:0};
-    });
-
-    // Fidélité — points distribués vs échangés
-    const ptsMoisDistrib=Math.round(cmdMois.reduce((s,x)=>s+parseFloat(x.points_gagnes||0),0));
-    const ptsTotalDistrib=Math.round(commandes.reduce((s,x)=>s+parseFloat(x.points_gagnes||0),0));
-    const ptsBalance=Math.round(clients.reduce((s,x)=>s+parseFloat(x.cagnotte||0),0));
-    const ptsEchangesTot=Math.max(0,ptsTotalDistrib-ptsBalance);
-    // Récompenses échangées ce mois depuis les commandes (reward_pts>0 = récompense utilisée)
-    const cmdAvecReward=commandes.filter(x=>x.created_at&&x.created_at.startsWith(monthStr)&&parseInt(x.reward_pts||0)>0);
+    // Récompenses utilisées dans la période
     const rewardByNom={};
-    cmdAvecReward.forEach(x=>{
-      const nom=x.reward_nom||'Récompense';
-      rewardByNom[nom]=(rewardByNom[nom]||0)+1;
+    valid.filter(c=>parseInt(c.reward_pts||0)>0).forEach(c=>{
+      const n=c.reward_nom||'Récompense';rewardByNom[n]=(rewardByNom[n]||0)+1;
     });
-    const rewardCostEst=Math.round(ptsEchangesTot/100*7.5);
-    const inactifs30=clients.filter(x=>joursDepuisDerniereVisite(x)>=30)
-      .sort((a,b)=>parseFloat(b.cagnotte||0)-parseFloat(a.cagnotte||0));
 
-    const rankClass=i=>i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    const rankIcon=i=>i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+    // ── 6. Parrainage ─────────────────────────────────────────────────────
+    const filleuls=clients.filter(c=>c.parrain_tel);
+    const parrainSet=new Set(filleuls.map(c=>c.parrain_tel));
+    const filleulsAvecCmd=filleuls.filter(c=>clientCA[c.telephone]||clientOrders[c.telephone]);
+    const conversionParr=filleuls.length>0?Math.round(filleulsAvecCmd.length/filleuls.length*100):0;
+    const parrainCounts={};
+    filleuls.forEach(c=>{parrainCounts[c.parrain_tel]=(parrainCounts[c.parrain_tel]||0)+1;});
+    const top5parrains=Object.entries(parrainCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([tel,n])=>{
+      const cl=clients.find(c=>c.telephone===tel);
+      return{tel,n,nom:cl?(cl.prenom+' '+cl.nom):tel};
+    });
+    const parrainageValides=filleuls.filter(c=>c.parrain_status==='valide').length;
 
-    el.innerHTML=`
-      <div class="dash-grid">
-        <div class="dash-card fire">
-          <div class="dash-val">${caJour.toFixed(2)}€</div>
-          <div class="dash-lbl">CA aujourd\'hui</div>
-        </div>
-        <div class="dash-card fire">
-          <div class="dash-val">${caMois.toFixed(2)}€</div>
-          <div class="dash-lbl">CA ce mois</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val green">${clients.length}</div>
-          <div class="dash-lbl">Clients inscrits</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val gold">${Math.round(cagnotteMois)}</div>
-          <div class="dash-lbl">Points distribués</div>
-        </div>
-        <div class="dash-card full">
-          <div class="dash-val">${commandes.length}</div>
-          <div class="dash-lbl">Commandes totales</div>
-        </div>
-      </div>
-      <div class="dash-section">🏆 Top 5 clients fidèles</div>
-      ${top5.length?top5.map((cl,i)=>`
-        <div class="top-client">
-          <div class="top-rank ${rankClass(i)}">${rankIcon(i)}</div>
-          <div class="top-info">
-            <div class="top-name">${cl.prenom} ${cl.nom}</div>
-            <div class="top-sub">${cl.passages||0} passages</div>
-          </div>
-          <div class="top-cag">${Math.floor(parseFloat(cl.cagnotte||0))} pts</div>
-        </div>`).join(''):'<div class="empty"><p>Aucun client encore</p></div>'}
-      <div class="dash-section">⏰ Heures de pointe</div>
-      ${topHeures.length?topHeures.map(([h,n])=>`
-        <div class="heure-bar-wrap">
-          <div class="heure-label"><span>${h}h00 - ${parseInt(h)+1}h00</span><span>${n} commande${n>1?'s':''}</span></div>
-          <div class="heure-bar-bg"><div class="heure-bar-fill" style="width:${Math.round(n/maxH*100)}%"></div></div>
-        </div>`).join(''):'<div class="empty"><p>Pas encore de données</p></div>'}
-      <div class="dash-section">📈 Clients</div>
-      <div class="dash-grid">
-        <div class="dash-card">
-          <div class="dash-val gold">${clients.filter(x=>joursDepuisDerniereVisite(x)<=7).length}</div>
-          <div class="dash-lbl">Actifs 7 jours</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val" style="color:var(--gold)">${clients.filter(x=>{const j=joursDepuisDerniereVisite(x);return j>=30&&j<45;}).length}</div>
-          <div class="dash-lbl">Inactifs 30-44j</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val" style="color:var(--fire)">${clients.filter(x=>joursDepuisDerniereVisite(x)>=45).length}</div>
-          <div class="dash-lbl">Inactifs 45j+</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val green">${clients.filter(x=>isAnniversaire(x.date_naissance)).length}</div>
-          <div class="dash-lbl">Anniversaires auj.</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val">${clients.filter(x=>x.parrain_tel&&x.parrain_status==='en_attente_commande').length}</div>
-          <div class="dash-lbl">Filleuls en attente</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val" style="color:var(--fire)">${(()=>{const tot=clients.reduce((s,x)=>s+parseFloat(x.cagnotte||0),0);return Math.round(tot/100*8.5)+'€';})()}</div>
-          <div class="dash-lbl">Coût cagnottes estimé</div>
-        </div>
-      </div>
-      <div class="dash-section">🎯 Programme fidélité</div>
-      <div class="dash-grid" style="margin-bottom:.75rem;">
-        <div class="dash-card">
-          <div class="dash-val gold">${ptsMoisDistrib}</div>
-          <div class="dash-lbl">Pts distribués ce mois</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val" style="color:var(--fire)">${ptsEchangesTot}</div>
-          <div class="dash-lbl">Pts échangés (total)</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val green">${ptsBalance}</div>
-          <div class="dash-lbl">Solde total clients</div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-val" style="color:var(--fire)">${rewardCostEst}€</div>
-          <div class="dash-lbl">Coût réel récompenses</div>
-        </div>
-      </div>
-      ${Object.keys(rewardByNom).length?`<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Récompenses échangées ce mois</div>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem;">
-        ${Object.entries(rewardByNom).sort((a,b)=>b[1]-a[1]).map(([nom,n])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .75rem;background:rgba(255,184,48,.07);border:1px solid rgba(255,184,48,.18);border-radius:var(--radius-sm);font-size:12px;"><span style="color:var(--text);font-weight:600;">🎁 ${nom}</span><span style="color:var(--gold);font-weight:700;">${n}×</span></div>`).join('')}
-      </div>`:''}
-      <div style="font-size:11px;color:var(--text3);margin-bottom:.75rem;">Ratio pts échangés / distribués : <strong style="color:var(--text)">${ptsTotalDistrib>0?Math.round(ptsEchangesTot/ptsTotalDistrib*100):0}%</strong></div>
-      ${inactifs30.length?(()=>{
-        let ih='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Clients inactifs 30j+ à relancer ('+inactifs30.length+')</div>';
-        ih+='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:.75rem;">';
-        inactifs30.slice(0,8).forEach(x=>{
-          const j=joursDepuisDerniereVisite(x);
-          const col=j>=45?'var(--fire)':'var(--gold)';
-          ih+='<div style="display:flex;justify-content:space-between;align-items:center;padding:.45rem .75rem;background:var(--coal4);border-radius:var(--radius-sm);font-size:12px;">'
-            +'<span style="font-weight:600;color:var(--text)">'+x.prenom+' '+x.nom+'</span>'
-            +'<span style="color:var(--text3);">'+(x.tel||x.telephone||'')+'</span>'
-            +'<span style="color:'+col+';font-weight:700;">'+j+'j</span>'
-            +'<span style="color:var(--gold);font-size:11px;">'+Math.floor(parseFloat(x.cagnotte||0))+' pts</span>'
-            +'</div>';
-        });
-        if(inactifs30.length>8) ih+='<div style="font-size:11px;color:var(--text3);text-align:center;padding:.25rem 0;">+'+(inactifs30.length-8)+' autres clients inactifs</div>';
-        ih+='</div>';
-        return ih;
-      })():''}
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Pic horaire par jour de la semaine</div>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem;">
-      ${(()=>{return peakByDay.map(({day,hour,count})=>hour!==null
-        ?'<div style="display:flex;align-items:center;gap:.6rem;font-size:12px;"><span style="width:28px;font-weight:700;color:var(--text3);">'+day+'</span><span style="color:var(--text);font-weight:600;">'+hour+'h00 – '+(hour+1)+'h00</span><span style="color:var(--text3);">('+count+' cmd'+(count>1?'s':'')+')</span></div>'
-        :'<div style="display:flex;align-items:center;gap:.6rem;font-size:12px;"><span style="width:28px;font-weight:700;color:var(--text3);">'+day+'</span><span style="color:var(--text3);">—</span></div>'
-      ).join('');})()}
-      </div>
-      <div class="dash-section">🤝 Parrainage</div>
-      ${renderParrainageSection(parrainages,clients,cmdByClient,cmdByTel)}
-      <div class="dash-section">💼 Comptabilité</div>
-      <div id="compta-content">
-        <div class="compta-period">
-          <input type="date" id="compta-from" value="${new Date().toISOString().slice(0,7)+'-01'}" />
-          <input type="date" id="compta-to" value="${new Date().toISOString().slice(0,10)}" />
-          <button onclick="loadComptaSection(document.getElementById('compta-from').value,document.getElementById('compta-to').value)">Filtrer</button>
-        </div>
-        <div id="compta-results" style="margin-top:.5rem;"></div>
-      </div>
-      <div class="dash-section">📟 Tablettes kiosque</div>
-      <div style="display:flex;flex-direction:column;gap:.75rem;padding:.25rem 0 .5rem;">
-        <a href="${location.origin+location.pathname}?mode=kiosque#cuisine" style="display:flex;align-items:center;gap:.85rem;padding:1rem 1.1rem;background:rgba(226,75,74,.1);border:1.5px solid rgba(226,75,74,.3);border-radius:var(--radius-sm);text-decoration:none;color:var(--text);" onclick="event.preventDefault();window.open(this.href,'_blank')">
-          <span style="font-size:26px">🔥</span>
-          <div><div style="font-weight:800;font-size:15px">Écran Cuisine</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Ouvre en mode kiosque plein écran paysage</div></div>
-        </a>
-        <a href="${location.origin+location.pathname}?mode=kiosque#comptoir" style="display:flex;align-items:center;gap:.85rem;padding:1rem 1.1rem;background:rgba(76,175,116,.1);border:1.5px solid rgba(76,175,116,.3);border-radius:var(--radius-sm);text-decoration:none;color:var(--text);" onclick="event.preventDefault();window.open(this.href,'_blank')">
-          <span style="font-size:26px">🍽️</span>
-          <div><div style="font-weight:800;font-size:15px">Écran Comptoir</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Ouvre en mode kiosque plein écran paysage</div></div>
-        </a>
-        <div style="font-size:11px;color:var(--text3);text-align:center;padding:.25rem 0">Sur la tablette : ouvrir le lien → installer la PWA → lancer depuis l\'écran d\'accueil</div>
-      </div>
-      <div style="text-align:center;margin-top:1rem;">
-        <button onclick="loadDashboard()" style="padding:.5rem 1rem;background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer;">↻ Actualiser</button>
-      </div>`;
-    // Charger la section comptabilité (ne peut pas être dans le template literal)
-    loadComptaSection(now.toISOString().slice(0,7)+'-01', now.toISOString().slice(0,10));
+    // ── RENDU ─────────────────────────────────────────────────────────────
+    let html=_dashPeriodBar()+_dashCustomBar();
+
+    // Section 1 — CA
+    html+='<div class="dash-section">💰 Chiffre d\'affaires</div>';
+    html+='<div class="dash-grid" style="gap:8px;margin-bottom:.75rem;">';
+    html+='<div class="dash-card" style="text-align:left;padding:.85rem 1rem;">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.3rem;">CA période</div>'
+      +'<div style="font-family:var(--font-d);font-size:30px;color:var(--fire);line-height:1;">'+_dashFmt(ca)+'</div>'
+      +'<div style="margin-top:.3rem;">'+_dashDelta(ca,prevCa)+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-top:.25rem;">'+valid.length+' commande'+(valid.length>1?'s':'')+'</div>'
+      +'</div>';
+    html+='<div class="dash-card" style="text-align:left;padding:.85rem 1rem;">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.3rem;">Panier moyen</div>'
+      +'<div style="font-family:var(--font-d);font-size:30px;color:var(--gold);line-height:1;">'+_dashFmt(panier)+'</div>'
+      +'<div style="margin-top:.3rem;">'+_dashDelta(panier,prevPanier)+'</div>'
+      +'</div>';
+    html+='</div>';
+    html+='<div class="dash-card full" style="margin-bottom:.75rem;padding:.75rem 1rem;grid-column:1/-1;">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.2rem;">CA année '+new Date().getFullYear()+'</div>'
+      +'<div style="font-family:var(--font-d);font-size:22px;color:var(--text);">'+_dashFmt(caAnnee)+'</div>'
+      +'</div>';
+    if(days.length>1){
+      let chartHtml='<div class="ca-chart">';
+      days.forEach(d=>{chartHtml+='<div class="ca-bar-col" title="'+d.label+': '+_dashFmt(d.ca)+'"><div class="ca-bar" style="height:'+( d.ca>0?Math.max(4,Math.round(d.ca/maxDayCA*100)):0)+'%;"></div></div>';});
+      chartHtml+='</div>';
+      html+='<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Évolution CA ('+days.length+'j)</div>';
+      html+='<div class="ca-chart-wrap">'+chartHtml;
+      html+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px;"><span>'+days[0].label+'</span><span>'+days[days.length-1].label+'</span></div></div>';
+    }
+
+    // Section 2 — Canal
+    html+='<div class="dash-section">📡 Répartition par canal</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;">';
+    Object.entries(byCanal).forEach(([type,{count,total}])=>{
+      const pm=count>0?total/count:0;
+      const pct=ca>0?Math.round(total/ca*100):0;
+      html+='<div class="dash-card" style="display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;">'
+        +'<div style="flex:1;"><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;">'+CANAL_LBL[type]+'</div>'
+        +'<div style="font-size:11px;color:var(--text3);">'+count+' cmd · panier '+_dashFmt(pm)+'</div></div>'
+        +'<div style="text-align:right;"><div style="font-family:var(--font-d);font-size:20px;color:var(--fire);">'+_dashFmt(total)+'</div>'
+        +'<div style="font-size:11px;color:var(--text3);">'+pct+'% du CA</div></div>'
+        +'</div>';
+    });
+    html+='</div>';
+
+    // Section 3 — Heures de pointe
+    html+='<div class="dash-section">⏰ Heures de pointe</div>';
+    html+='<div style="display:flex;gap:8px;margin-bottom:.75rem;">';
+    html+='<div class="dash-card" style="flex:1;text-align:center;padding:.75rem;">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.2rem;">Midi (10-16h)</div>'
+      +'<div style="font-family:var(--font-d);font-size:22px;color:var(--gold);">'+midiCmds.length+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+_dashFmt(midiCA)+'</div></div>';
+    html+='<div class="dash-card" style="flex:1;text-align:center;padding:.75rem;">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.2rem;">Soir (16-23h)</div>'
+      +'<div style="font-family:var(--font-d);font-size:22px;color:var(--fire);">'+soirCmds.length+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+_dashFmt(soirCA)+'</div></div>';
+    html+='</div>';
+    if(topHeures.length){
+      html+='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:.75rem;">';
+      topHeures.forEach(([h,n])=>{
+        html+='<div class="heure-bar-wrap">'
+          +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">'
+          +'<span style="color:var(--text);font-weight:600;">'+h+'h00 – '+(parseInt(h)+1)+'h00</span>'
+          +'<span style="color:var(--text3);">'+n+' cmd'+(n>1?'s':'')+'</span></div>'
+          +'<div class="heure-bar-bg"><div class="heure-bar-fill" style="width:'+Math.round(n/maxH*100)+'%"></div></div></div>';
+      });
+      html+='</div>';
+    }
+    // Heatmap
+    const DAYS7=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+    html+='<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.4rem;">Carte de chaleur heure×jour</div>';
+    html+='<div class="dash-heatmap-outer"><div class="dash-heatmap">';
+    html+='<div class="dash-hm-day-labels">';
+    DAYS7.forEach(d=>{html+='<div class="dash-hm-day-lbl">'+d+'</div>';});
+    html+='</div>';
+    for(let hi=0;hi<14;hi++){
+      const hour=10+hi;
+      html+='<div class="dash-hm-col"><div class="dash-hm-hour-lbl">'+hour+'h</div>';
+      for(let di=0;di<7;di++){
+        const v=heatmap[di+'-'+hour]||0;
+        const alpha=maxHeatmap>0?(v/maxHeatmap).toFixed(2):'0';
+        html+='<div class="dash-hm-cell" title="'+DAYS7[di]+' '+hour+'h: '+v+' cmd" style="background:rgba(255,107,43,'+alpha+');"></div>';
+      }
+      html+='</div>';
+    }
+    html+='</div></div>';
+
+    // Section 4 — Produits
+    html+='<div class="dash-section">🍽️ Top / Flop produits</div>';
+    if(prodSorted.length===0){
+      html+='<div class="empty" style="padding:.75rem;"><p>Aucun article analysé sur la période</p></div>';
+    }else{
+      html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.4rem;">Top 5 plus commandés</div>';
+      html+='<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem;">';
+      top5prods.forEach(([name,cnt],i)=>{
+        const price=menuPriceMap[name]||0;
+        html+='<div style="display:flex;align-items:center;gap:.6rem;">'
+          +'<span style="font-size:13px;width:20px;text-align:center;font-weight:700;color:var(--text3);">'+(i+1)+'</span>'
+          +'<div style="flex:1;">'
+          +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">'
+          +'<span style="color:var(--text);font-weight:600;">'+name+'</span>'
+          +'<span style="color:var(--text3);">'+cnt+'× · '+_dashFmt(price*cnt)+'</span></div>'
+          +'<div class="dash-prod-bar"><div class="dash-prod-fill" style="width:'+Math.round(cnt/maxProd*100)+'%;"></div></div>'
+          +'</div></div>';
+      });
+      html+='</div>';
+      html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.4rem;">Flop 5 moins commandés</div>';
+      html+='<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem;">';
+      flop5prods.forEach(([name,cnt])=>{
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .75rem;background:var(--coal4);border-radius:var(--radius-xs);font-size:12px;">'
+          +'<span style="color:var(--text2);">'+name+'</span>'
+          +'<span style="color:var(--fire);font-weight:700;">'+cnt+'× seulement</span></div>';
+      });
+      html+='</div>';
+      if(top5suppls.length){
+        html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.4rem;">Suppléments les plus ajoutés</div>';
+        html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:.75rem;">';
+        top5suppls.forEach(([s,n])=>{html+='<div style="font-size:11px;background:rgba(255,184,48,.1);border:1px solid rgba(255,184,48,.25);border-radius:99px;padding:3px 10px;color:var(--gold);"><strong>'+n+'×</strong> '+s+'</div>';});
+        html+='</div>';
+      }
+      if(top5sauces.length){
+        html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.4rem;">Sauces les plus choisies</div>';
+        html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:1rem;">';
+        top5sauces.forEach(([s,n])=>{html+='<div style="font-size:11px;background:rgba(76,175,116,.1);border:1px solid rgba(76,175,116,.25);border-radius:99px;padding:3px 10px;color:var(--green);"><strong>'+n+'×</strong> '+s+'</div>';});
+        html+='</div>';
+      }
+    }
+
+    // Section 5 — Clients & Fidélité
+    html+='<div class="dash-section">👥 Clients & Fidélité</div>';
+    html+='<div class="dash-grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.75rem;">';
+    html+='<div class="dash-card" style="padding:.75rem;text-align:center;">'
+      +'<div style="font-family:var(--font-d);font-size:26px;color:var(--fire);">'+totalClients+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Inscrits</div></div>';
+    html+='<div class="dash-card" style="padding:.75rem;text-align:center;">'
+      +'<div style="font-family:var(--font-d);font-size:26px;color:var(--green);">'+newThisMonth+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Nouveaux mois</div>'
+      +'<div style="margin-top:2px;">'+_dashDelta(newThisMonth,newPrevMonth)+'</div></div>';
+    html+='<div class="dash-card" style="padding:.75rem;text-align:center;">'
+      +'<div style="font-family:var(--font-d);font-size:26px;color:var(--gold);">'+withOrders+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Actifs période</div></div>';
+    html+='</div>';
+    html+='<div class="dash-grid" style="gap:8px;margin-bottom:.75rem;">';
+    html+='<div class="dash-card" style="text-align:left;padding:.85rem 1rem;">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.2rem;">Rétention</div>'
+      +'<div style="font-family:var(--font-d);font-size:28px;color:'+(retention>=50?'var(--green)':'var(--gold)')+';">'+retention+'%</div>'
+      +'<div style="font-size:11px;color:var(--text3);">clients 2+ commandes</div></div>';
+    html+='<div class="dash-card" style="text-align:left;padding:.85rem 1rem;">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.2rem;">CLV période</div>'
+      +'<div style="font-family:var(--font-d);font-size:28px;color:var(--fire);">'+_dashFmt(clv)+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">CA moyen / client</div></div>';
+    html+='</div>';
+    // Niveaux
+    html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.4rem;">Répartition niveaux (tous clients)</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:.75rem;">';
+    [{k:'or',l:'Or 👑',c:'var(--gold)'},{k:'argent',l:'Argent ⭐',c:'#C0C0C0'},{k:'bronze',l:'Bronze 🥉',c:'#CD7F32'}].forEach(({k,l,c})=>{
+      const n=niveaux[k];const pct=totalClients>0?Math.round(n/totalClients*100):0;
+      html+='<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">'
+        +'<span style="color:'+c+';font-weight:700;">'+l+'</span>'
+        +'<span style="color:var(--text3);">'+n+' clients · '+pct+'%</span></div>'
+        +'<div class="heure-bar-bg"><div class="heure-bar-fill" style="width:'+pct+'%;background:'+c+';border-radius:99px;"></div></div></div>';
+    });
+    html+='</div>';
+    // Top 10 clients
+    if(top10clients.length){
+      html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.4rem;">Top 10 clients (CA période)</div>';
+      html+='<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem;">';
+      top10clients.forEach(({nom,ca:cca,orders,pts},i)=>{
+        const lvl=_niveau(pts);
+        html+='<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;background:var(--coal4);border-radius:var(--radius-xs);">'
+          +'<span style="font-size:12px;font-weight:700;color:var(--text3);width:18px;">'+(i+1)+'</span>'
+          +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+nom+'</div>'
+          +'<div style="font-size:10px;color:var(--text3);">'+orders+' cmd · <span class="dash-lvl-badge dash-lvl-'+lvl+'">'+lvl+'</span></div></div>'
+          +'<div style="font-family:var(--font-d);font-size:17px;color:var(--fire);flex-shrink:0;">'+_dashFmt(cca)+'</div></div>';
+      });
+      html+='</div>';
+    }
+    // Récompenses utilisées
+    if(Object.keys(rewardByNom).length){
+      html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.4rem;">Récompenses utilisées (période)</div>';
+      html+='<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:.75rem;">';
+      Object.entries(rewardByNom).sort((a,b)=>b[1]-a[1]).forEach(([nom,n])=>{
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .75rem;background:rgba(255,184,48,.07);border:1px solid rgba(255,184,48,.18);border-radius:var(--radius-sm);font-size:12px;">'
+          +'<span style="color:var(--text);font-weight:600;">🎁 '+nom+'</span>'
+          +'<span style="color:var(--gold);font-weight:700;">'+n+'×</span></div>';
+      });
+      html+='</div>';
+    }
+    // Inactifs
+    if(inactifs.length){
+      html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.4rem;">Inactifs 30j+ à relancer ('+inactifs.length+')</div>';
+      html+='<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:1rem;">';
+      inactifs.forEach(c=>{
+        const j=c.derniere_visite?Math.round((Date.now()-new Date(c.derniere_visite))/86400000):999;
+        html+='<div style="display:flex;align-items:center;gap:.5rem;padding:.45rem .75rem;background:var(--coal4);border-radius:var(--radius-xs);font-size:12px;">'
+          +'<span style="font-weight:600;color:var(--text);flex:1;">'+c.prenom+' '+c.nom+'</span>'
+          +'<span style="color:var(--text3);font-size:11px;">'+c.telephone+'</span>'
+          +'<span style="color:'+(j>45?'var(--fire)':'var(--gold)')+';font-weight:700;">'+(j<999?j+'j':'jamais')+'</span>'
+          +'</div>';
+      });
+      html+='</div>';
+    }
+
+    // Section 6 — Parrainage
+    html+='<div class="dash-section">🤝 Parrainage</div>';
+    html+='<div class="dash-grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.75rem;">';
+    html+='<div class="dash-card" style="padding:.75rem;text-align:center;">'
+      +'<div style="font-family:var(--font-d);font-size:26px;color:var(--gold);">'+parrainSet.size+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Parrains</div></div>';
+    html+='<div class="dash-card" style="padding:.75rem;text-align:center;">'
+      +'<div style="font-family:var(--font-d);font-size:26px;color:var(--green);">'+filleuls.length+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Filleuls</div></div>';
+    html+='<div class="dash-card" style="padding:.75rem;text-align:center;">'
+      +'<div style="font-family:var(--font-d);font-size:26px;color:'+(conversionParr>=50?'var(--green)':'var(--fire)')+';">'+conversionParr+'%</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Conversion</div></div>';
+    html+='</div>';
+    html+='<div class="dash-grid" style="gap:8px;margin-bottom:.75rem;">';
+    html+='<div class="dash-card" style="text-align:center;padding:.75rem;">'
+      +'<div style="font-family:var(--font-d);font-size:22px;color:var(--text);">'+filleulsAvecCmd.length+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Filleuls actifs</div></div>';
+    html+='<div class="dash-card" style="text-align:center;padding:.75rem;">'
+      +'<div style="font-family:var(--font-d);font-size:22px;color:var(--fire);">'+parrainageValides+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Validés</div></div>';
+    html+='</div>';
+    if(top5parrains.length){
+      html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:.4rem;">Top parrains</div>';
+      html+='<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:1rem;">';
+      top5parrains.forEach(({nom,n},i)=>{
+        html+='<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;background:var(--coal4);border-radius:var(--radius-xs);">'
+          +'<span style="font-size:14px;">'+['🥇','🥈','🥉','4.','5.'][i]+'</span>'
+          +'<span style="flex:1;font-size:12px;font-weight:600;color:var(--text);">'+nom+'</span>'
+          +'<span style="font-size:12px;color:var(--gold);font-weight:700;">'+n+' filleul'+(n>1?'s':'')+'</span></div>';
+      });
+      html+='</div>';
+    }
+
+    // Section 7 — TVA & Export
+    html+='<div class="dash-section">🧾 TVA & Export comptable</div>';
+    html+='<div class="compta-period">'
+      +'<input type="date" id="compta-from" value="'+dates.fromISO.slice(0,10)+'" style="color-scheme:dark;"/>'
+      +'<input type="date" id="compta-to" value="'+dates.toISO.slice(0,10)+'" style="color-scheme:dark;"/>'
+      +'<button onclick="loadComptaSection(document.getElementById(\'compta-from\').value,document.getElementById(\'compta-to\').value)">Filtrer</button>'
+      +'</div><div id="compta-results"></div>';
+
+    // Tablettes kiosque
+    html+='<div class="dash-section">📟 Tablettes kiosque</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:.75rem;padding:.25rem 0 .5rem;">'
+      +'<a href="'+location.origin+location.pathname+'?mode=kiosque#cuisine" style="display:flex;align-items:center;gap:.85rem;padding:1rem 1.1rem;background:rgba(226,75,74,.1);border:1.5px solid rgba(226,75,74,.3);border-radius:var(--radius-sm);text-decoration:none;color:var(--text);" onclick="event.preventDefault();window.open(this.href,\'_blank\')">'
+      +'<span style="font-size:26px">🔥</span><div><div style="font-weight:800;font-size:15px">Écran Cuisine</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Ouvre en mode kiosque plein écran paysage</div></div></a>'
+      +'<a href="'+location.origin+location.pathname+'?mode=kiosque#comptoir" style="display:flex;align-items:center;gap:.85rem;padding:1rem 1.1rem;background:rgba(76,175,116,.1);border:1.5px solid rgba(76,175,116,.3);border-radius:var(--radius-sm);text-decoration:none;color:var(--text);" onclick="event.preventDefault();window.open(this.href,\'_blank\')">'
+      +'<span style="font-size:26px">🍽️</span><div><div style="font-weight:800;font-size:15px">Écran Comptoir</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Ouvre en mode kiosque plein écran paysage</div></div></a>'
+      +'</div>';
+    html+='<div style="text-align:center;padding:1rem 0 .5rem;">'
+      +'<button onclick="loadDashboard()" style="padding:.5rem 1.25rem;background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer;">↻ Actualiser</button>'
+      +'</div>';
+
+    el.innerHTML=html;
+    loadComptaSection(dates.fromISO.slice(0,10),dates.toISO.slice(0,10));
   }catch(e){
     el.innerHTML='<div class="empty"><div class="big">❌</div><p>Erreur: '+e.message+'</p></div>';
   }
