@@ -507,6 +507,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .time-slot.slot-full{opacity:.38;text-decoration:line-through;cursor:not-allowed;pointer-events:none;border-style:dashed;}
 .slot-avail{font-size:10px;font-weight:700;color:#4CAF74;white-space:nowrap;}
 .slot-avail.slot-low{color:#FF8C42;}
+.slot-avail.slot-full-lbl{color:#E53935;}
 .time-slot.selected .slot-avail{color:rgba(255,255,255,.8);}
 .order-submit-btn{width:100%;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:var(--radius);padding:1rem;color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:.5rem;}
 .order-submit-btn:disabled{opacity:.4;cursor:not-allowed;}
@@ -3473,8 +3474,16 @@ function renderOrderOptions(){
     const avail=Math.max(0,cap-booked);
     const full=booked>=cap;
     const sel=selectedPickupTime===t;
-    const hint=full?'Complet':avail<=2?`${avail} place${avail>1?'s':''}`:null;
-    const hintCls=full?'':avail<=2?'slot-low':'';
+    let hint, hintCls;
+    if(full){
+      hint='Complet'; hintCls='slot-full-lbl';
+    } else if(cap===999){
+      hint=null; hintCls=''; // capacité inconnue (données pas encore chargées)
+    } else if(avail<=2){
+      hint=`${avail} place${avail>1?'s':''} restante${avail>1?'s':''}`; hintCls='slot-low';
+    } else {
+      hint=`${avail} places disponibles`; hintCls='';
+    }
     return `<div class="time-slot${full?' slot-full':''}${sel?' selected':''}" ${full?'':'onclick="selectPickupTime(\''+t+'\')"'}>
       ${t}${hint?`<span class="slot-avail ${hintCls}">${hint}</span>`:''}
     </div>`;
