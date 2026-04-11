@@ -2047,6 +2047,11 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
       <button class="save-set-btn" onclick="saveHoraires()" style="background:linear-gradient(135deg,var(--green),#2E8B57);border:none;color:#fff;margin-top:.5rem;">✓ Enregistrer les horaires</button>
       <div id="horaires-status" style="font-size:12px;color:var(--text3);margin-top:.5rem;text-align:center;"></div>
     </div>
+    <div class="settings-block" style="margin-top:1rem;">
+      <h3>🗑️ Cache local</h3>
+      <p style="font-size:12px;color:var(--text3);margin:.2rem 0 .75rem;">Efface les commandes en cache et les données temporaires stockées sur cet appareil. Les données Supabase et la session patron ne sont pas affectées.</p>
+      <button class="save-set-btn" onclick="viderCacheLocal()" style="background:var(--coal3);border:1px solid var(--border2);color:var(--text2);">🗑️ Vider le cache local</button>
+    </div>
     <div style="margin-top:1rem;">
       <div class="info-box gold">
         <span style="font-size:16px;flex-shrink:0">⚙️</span>
@@ -2173,6 +2178,18 @@ function savePins(){
   if(comptoir){PIN_COMPTOIR=comptoir;localStorage.setItem('kbb_pin_comptoir',comptoir);}
   ['new-pin-emp','new-pin-patron','new-pin-cuisine','new-pin-comptoir'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   showToast('PIN mis à jour ✓');
+}
+
+function viderCacheLocal(){
+  const PRESERVE = ['kbb_emp_token','kbb_session','kbb_pin_comptoir','kbb_skey','kbb_pwa_dismissed'];
+  const toDelete = [];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k && !PRESERVE.includes(k)) toDelete.push(k);
+  }
+  toDelete.forEach(k=>localStorage.removeItem(k));
+  showToast(`Cache vidé (${toDelete.length} entrées supprimées) — rechargement…`);
+  setTimeout(()=>location.reload(),1200);
 }
 
 function saveSettings(){
