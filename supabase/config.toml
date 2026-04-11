@@ -14,3 +14,9 @@ port = 54322
 
 [functions.create-checkout]
 verify_jwt = false
+
+[functions.verify-presence-code]
+verify_jwt = false
+
+[functions.get-presence-code]
+verify_jwt = false
