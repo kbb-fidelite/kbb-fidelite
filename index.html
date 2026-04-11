@@ -4671,7 +4671,7 @@ function saveSession(c){
     connecte:true, clientData:c
   };
   localStorage.setItem('kbb_session', JSON.stringify(data));
-  console.log('[KBB-DIAG] saveSession — écrit localStorage kbb_session, tel='+data.tel);
+
   // Backup cookie 1 an
   const exp=new Date(); exp.setFullYear(exp.getFullYear()+1);
   document.cookie='kbb_session='+encodeURIComponent(JSON.stringify(data))+';expires='+exp.toUTCString()+';path=/;SameSite=Lax';
@@ -4684,11 +4684,10 @@ function saveSession(c){
 function getSession(){
   try{
     const s=localStorage.getItem('kbb_session');
-    if(s){ const d=JSON.parse(s); if(d&&d.connecte&&d.clientData){ console.log('[KBB-DIAG] getSession — trouvé dans localStorage, tel='+d.tel); return d; } }
+    if(s){ const d=JSON.parse(s); if(d&&d.connecte&&d.clientData){ return d; } }
     const m=document.cookie.match(/kbb_session=([^;]+)/);
-    if(m){ const d=JSON.parse(decodeURIComponent(m[1])); if(d&&d.connecte&&d.clientData){ console.log('[KBB-DIAG] getSession — trouvé dans cookie, tel='+d.tel); localStorage.setItem('kbb_session',JSON.stringify(d)); return d; } }
+    if(m){ const d=JSON.parse(decodeURIComponent(m[1])); if(d&&d.connecte&&d.clientData){ localStorage.setItem('kbb_session',JSON.stringify(d)); return d; } }
   }catch(e){}
-  console.log('[KBB-DIAG] getSession — RIEN trouvé (localStorage vide + cookie vide)');
   return null;
 }
 
@@ -4696,17 +4695,14 @@ function getSession(){
 async function getSessionAsync(){
   const sync=getSession();
   if(sync) return sync;
-  console.log('[KBB-DIAG] getSessionAsync — localStorage+cookie vides, tentative IDB...');
   try{
     const d=await _idbGet('kbb_session');
     if(d&&d.connecte&&d.clientData){
-      console.log('[KBB-DIAG] getSessionAsync — trouvé dans IDB, tel='+d.tel);
       // Restaurer dans localStorage pour les lectures synchrones suivantes
       localStorage.setItem('kbb_session',JSON.stringify(d));
       return d;
     }
-    console.log('[KBB-DIAG] getSessionAsync — IDB aussi vide, session introuvable');
-  }catch(e){ console.log('[KBB-DIAG] getSessionAsync — erreur IDB:', e); }
+  }catch(e){ console.error('getSessionAsync IDB:', e); }
   return null;
 }
 
@@ -8323,12 +8319,6 @@ async function recoverOrphanedFacture(){
 }
 
 window.addEventListener('load', async function(){
-  // ── DIAGNOSTIC: état du stockage au tout début du chargement ──
-  const _diagRaw = localStorage.getItem('kbb_session');
-  let _diagLsTel = null; try{ _diagLsTel = _diagRaw ? JSON.parse(_diagRaw).tel : null; }catch(e){}
-  const _diagAfter = { ts: new Date().toISOString(), ls: !!_diagRaw, lsTel: _diagLsTel, cookie: document.cookie.includes('kbb_session'), getSessionOk: false, getSessionTel: null, idbTriggered: false, idbOk: false, idbTel: null };
-  console.log('[KBB-DIAG] SESSION AFTER RELOAD — localStorage kbb_session:', _diagRaw ? 'PRÉSENT tel='+_diagLsTel : 'NULL');
-  console.log('[KBB-DIAG] SESSION AFTER RELOAD — cookie kbb_session:', document.cookie.includes('kbb_session') ? 'PRÉSENT' : 'NULL');
 
   // ══ ÉTAPE 1 — SYNCHRONE, BLOQUANTE ══
   // Détection kiosque + lecture session : currentPortalClient doit être défini
