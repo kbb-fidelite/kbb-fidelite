@@ -1129,6 +1129,199 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
 .cmd-btn{font-size:11px;font-weight:700;padding:5px 12px;border-radius:99px;border:1px solid var(--border2);background:var(--coal3);color:var(--text2);cursor:pointer;font-family:var(--font);white-space:nowrap;}
 .cmd-btn.primary{background:var(--fire);border-color:var(--fire);color:#fff;}
 .cmd-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:.875rem 0 .5rem;}
+
+/* ══ KBB PREMIUM DESIGN v2 — no blur, no backdrop-filter, iOS optimisé ══ */
+
+/* — Variables or brossé — */
+:root{
+  --gold-brushed:linear-gradient(180deg,#6B4A0A 0%,#C8860A 8%,#FFD040 18%,#FFE566 28%,#FFB830 38%,#8B6914 50%,#FFD040 62%,#FFB830 72%,#C8860A 85%,#FFD700 92%,#8B5A14 100%);
+  --gold-shine:linear-gradient(135deg,#8B6914 0%,#FFE566 22%,#FFB830 50%,#C8860A 78%,#FFD040 100%);
+}
+
+/* — Fond charbon texturé — grain sans blur — */
+body{
+  background-image:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.008) 0px,rgba(255,255,255,.008) 1px,transparent 1px,transparent 4px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.005) 0px,rgba(255,255,255,.005) 1px,transparent 1px,transparent 7px);
+}
+
+/* — Spots de braise incandescente — */
+.kbb-ember-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.kbb-emb{position:absolute;border-radius:50%;}
+.kbb-emb-1{width:420px;height:420px;top:-110px;left:-130px;background:radial-gradient(circle at center,rgba(255,107,43,.07) 0%,transparent 65%);animation:emb-pulse-a 7s ease-in-out infinite;}
+.kbb-emb-2{width:380px;height:380px;bottom:8%;right:-110px;background:radial-gradient(circle at center,rgba(255,184,48,.05) 0%,transparent 65%);animation:emb-pulse-a 9s ease-in-out 3.2s infinite;}
+.kbb-emb-3{width:260px;height:260px;top:40%;left:22%;background:radial-gradient(circle at center,rgba(255,107,43,.04) 0%,transparent 65%);animation:emb-pulse-b 11s ease-in-out 6s infinite;}
+.kbb-emb-4{width:190px;height:190px;top:18%;right:8%;background:radial-gradient(circle at center,rgba(255,80,10,.05) 0%,transparent 70%);animation:emb-pulse-b 8s ease-in-out 1.5s infinite;}
+@keyframes emb-pulse-a{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+@keyframes emb-pulse-b{0%,100%{opacity:.3;transform:scale(1.06)}50%{opacity:.8;transform:scale(.93)}}
+
+/* — Overlay photo: dégradé enrichi — */
+.home-landing-overlay{
+  background:linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(10,3,0,.52) 55%,rgba(14,5,0,.78) 100%) !important;
+}
+
+/* — Logo KBB: or brossé métallique — */
+.home-landing-logo{
+  background:linear-gradient(180deg,#FFE870 0%,#FFD040 14%,#FF9A00 28%,#FFB830 48%,#C8860A 65%,#FFD040 82%,#FFE566 100%) !important;
+  -webkit-background-clip:text !important;
+  background-clip:text !important;
+  -webkit-text-fill-color:transparent !important;
+  filter:drop-shadow(0 3px 14px rgba(0,0,0,.88)) drop-shadow(0 0 22px rgba(255,140,0,.22)) !important;
+}
+
+/* — BOUTON HOME PRIMARY: feu intense — */
+.home-landing-btn.primary{
+  background:linear-gradient(158deg,#FF7838 0%,#FF4510 38%,#C82200 100%) !important;
+  box-shadow:0 0 20px rgba(255,107,43,.36),0 6px 28px rgba(200,34,0,.48) !important;
+  animation:home-fire-pulse 3.2s ease-in-out infinite !important;
+  will-change:transform;
+  position:relative;overflow:hidden;
+}
+@keyframes home-fire-pulse{
+  0%,100%{box-shadow:0 0 18px rgba(255,107,43,.34),0 6px 24px rgba(200,34,0,.46);}
+  50%{box-shadow:0 0 34px rgba(255,107,43,.58),0 6px 34px rgba(200,34,0,.62),0 0 65px rgba(255,107,43,.18);}
+}
+
+/* — CARTE FIDÉLITÉ HOLOGRAPHIQUE — */
+.dash-loyalty-card{
+  background:linear-gradient(148deg,#0c0501 0%,#1d0b03 28%,#0e0601 54%,#1b0903 80%,#0c0501 100%) !important;
+  border:none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,215,0,.2),
+    inset 0 -1px 0 rgba(255,80,10,.1),
+    inset 1px 0 0 rgba(255,215,0,.08),
+    inset -1px 0 0 rgba(255,215,0,.08),
+    0 0 0 1px rgba(200,134,10,.42),
+    0 16px 54px rgba(0,0,0,.88),
+    0 4px 20px rgba(0,0,0,.6) !important;
+}
+/* Texture métal brossé horizontal */
+.dash-loyalty-card::before{
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.016) 0px,rgba(255,255,255,.016) 1px,transparent 1px,transparent 3px),
+    radial-gradient(ellipse at 78% 18%,rgba(255,184,48,.11) 0%,transparent 55%) !important;
+}
+/* Shimmer holographique iridescent */
+.dash-loyalty-card-shimmer{
+  position:absolute !important;
+  inset:0 !important;
+  left:0 !important;
+  width:72% !important;
+  height:100% !important;
+  background:linear-gradient(
+    108deg,
+    transparent 14%,
+    rgba(255,60,150,.07) 26%,
+    rgba(80,200,255,.09) 38%,
+    rgba(170,90,255,.07) 50%,
+    rgba(255,200,50,.08) 64%,
+    transparent 78%
+  ) !important;
+  transform:translateX(-120%) !important;
+  animation:kbb-holo 4.8s cubic-bezier(.4,0,.6,1) 2s infinite !important;
+  z-index:2 !important;
+  pointer-events:none !important;
+}
+@keyframes kbb-holo{
+  0%{transform:translateX(-120%);opacity:0;}
+  8%{opacity:1;}
+  88%{opacity:1;}
+  100%{transform:translateX(240%);opacity:0;}
+}
+
+/* Badge niveau — métal poli — */
+#dash-lvl-badge{
+  background:var(--gold-shine) !important;
+  color:#1a0800 !important;
+  font-weight:800 !important;
+  font-size:11px !important;
+  border:none !important;
+  box-shadow:0 2px 10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(0,0,0,.3) !important;
+  text-shadow:0 1px 0 rgba(255,255,255,.25) !important;
+}
+
+/* Barre progression or brossé */
+.dash-prog-fill{
+  background:linear-gradient(90deg,#8B6914 0%,#FFD040 22%,#FFE566 50%,#FFB830 78%,#C8860A 100%) !important;
+  box-shadow:0 0 10px rgba(255,184,48,.55),0 0 3px rgba(255,215,0,.7) !important;
+}
+
+/* — BOUTON COMMANDER: 3 couches de glow + ring — */
+.dash-cmd-btn{
+  background:linear-gradient(158deg,#FF7A35 0%,#FF4B0C 33%,#D62800 65%,#9E1200 100%) !important;
+  border:none !important;
+  box-shadow:
+    0 0 24px rgba(255,107,43,.44),
+    0 0 50px rgba(255,107,43,.2),
+    0 8px 28px rgba(180,40,0,.55),
+    0 2px 8px rgba(0,0,0,.5) !important;
+  will-change:transform;
+  animation:fire-breathe 2.8s ease-in-out infinite !important;
+  transition:transform .12s ease,box-shadow .12s ease !important;
+}
+.dash-cmd-btn:active{
+  transform:scale(.97) !important;
+  animation:none !important;
+  box-shadow:0 4px 14px rgba(180,40,0,.42),0 2px 8px rgba(0,0,0,.5) !important;
+}
+@keyframes fire-breathe{
+  0%,100%{
+    box-shadow:0 0 22px rgba(255,107,43,.42),0 0 46px rgba(255,107,43,.18),
+               0 8px 28px rgba(180,40,0,.5),0 2px 8px rgba(0,0,0,.5);
+  }
+  50%{
+    box-shadow:0 0 38px rgba(255,107,43,.66),0 0 78px rgba(255,107,43,.32),0 0 115px rgba(255,107,43,.12),
+               0 8px 28px rgba(180,40,0,.56),0 2px 8px rgba(0,0,0,.5);
+  }
+}
+/* Ring pulsant autour du bouton Commander */
+.dash-cmd-btn::before{
+  content:'' !important;
+  position:absolute !important;
+  inset:-4px !important;
+  border-radius:22px !important;
+  border:1.5px solid rgba(255,120,40,.45) !important;
+  background:transparent !important;
+  animation:fire-ring 2.8s ease-in-out infinite !important;
+  pointer-events:none !important;
+}
+@keyframes fire-ring{
+  0%,100%{opacity:.5;transform:scale(1);}
+  50%{opacity:0;transform:scale(1.026);}
+}
+
+/* — PARTICULES BRAISE flottantes — */
+.kbb-ember{
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+  width:var(--sz,3px);
+  height:var(--sz,3px);
+  background:var(--col,#FFB830);
+  bottom:55%;
+  left:var(--x,50%);
+  opacity:0;
+  animation:kbb-ember-rise var(--dur,1.8s) ease-out var(--delay,0s) infinite;
+  will-change:transform;
+}
+@keyframes kbb-ember-rise{
+  0%{transform:translateY(0) translateX(0) scale(1);opacity:0;}
+  10%{opacity:.95;}
+  75%{opacity:.5;}
+  100%{transform:translateY(-72px) translateX(var(--drift,6px)) scale(.22);opacity:0;}
+}
+
+/* — BOTTOM NAV premium subtil — */
+#global-bottom-nav{
+  background:linear-gradient(180deg,rgba(13,7,2,.97) 0%,rgba(7,3,1,.99) 100%) !important;
+  border-top-color:rgba(200,134,10,.1) !important;
+  box-shadow:0 -1px 0 rgba(255,215,0,.05) !important;
+}
+.bottom-nav{
+  background:linear-gradient(180deg,rgba(13,7,2,.97) 0%,rgba(7,3,1,.99) 100%) !important;
+  border-top-color:rgba(200,134,10,.1) !important;
+}
+
 /* ══ DASHBOARD STATS PRO ══ */
 .dash-period-bar{display:flex;gap:6px;padding:.75rem 0 .5rem;flex-wrap:wrap;}
 .dash-period-btn{flex:1;min-width:60px;padding:.45rem .5rem;background:var(--coal3);border:1px solid var(--border2);color:var(--text3);border-radius:var(--radius-xs);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
@@ -1155,6 +1348,13 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
 </style>
 </head>
 <body>
+<!-- Spots de braise ambiants — derrière tout le contenu -->
+<div class="kbb-ember-bg" aria-hidden="true">
+  <div class="kbb-emb kbb-emb-1"></div>
+  <div class="kbb-emb kbb-emb-2"></div>
+  <div class="kbb-emb kbb-emb-3"></div>
+  <div class="kbb-emb kbb-emb-4"></div>
+</div>
 <div id="splash">
   <div class="spl-bg"></div>
   <div class="spl-embers">
@@ -1232,7 +1432,13 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
   </div>
   <!-- Boutons sous la photo -->
   <div class="home-hero-actions">
-    <button class="home-landing-btn primary" onclick="go('page-qr')">Nouveau client 🔥</button>
+    <button class="home-landing-btn primary" onclick="go('page-qr')">
+      <span class="kbb-ember" style="--x:18%;--delay:.2s;--dur:2.0s;--drift:-8px;--sz:3px;--col:#FFB830" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:38%;--delay:.8s;--dur:1.8s;--drift:7px;--sz:2px;--col:#FFD040" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:60%;--delay:.4s;--dur:2.1s;--drift:-5px;--sz:4px;--col:#FF9A30" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:82%;--delay:1.2s;--dur:1.7s;--drift:9px;--sz:2px;--col:#FFB830" aria-hidden="true"></span>
+      Nouveau client 🔥
+    </button>
     <button class="home-landing-btn secondary" onclick="go('page-client-login')">J'ai déjà un compte</button>
     <div id="pwa-home-btn-wrap" style="display:none;text-align:center;margin-top:.5rem;">
       <button onclick="_pwaShowFromButton()" style="background:none;border:1px solid rgba(255,107,43,.5);border-radius:10px;padding:.55rem 1.4rem;color:#FF6B2B;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;width:100%;">📲 Installer l'appli KBB</button>
@@ -1289,6 +1495,15 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
   <!-- 5. BOUTON COMMANDER -->
   <div class="dash-cmd-wrap">
     <button class="dash-cmd-btn" onclick="go('page-menu')">
+      <!-- Particules braise flottantes -->
+      <span class="kbb-ember" style="--x:12%;--delay:.0s;--dur:1.9s;--drift:-9px;--sz:3px;--col:#FFB830" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:24%;--delay:.5s;--dur:2.2s;--drift:6px;--sz:2px;--col:#FF8030" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:38%;--delay:.9s;--dur:1.7s;--drift:-5px;--sz:4px;--col:#FFD040" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:53%;--delay:1.3s;--dur:2.0s;--drift:8px;--sz:2px;--col:#FF6B2B" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:67%;--delay:.7s;--dur:1.8s;--drift:-7px;--sz:3px;--col:#FFB830" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:80%;--delay:1.6s;--dur:2.3s;--drift:9px;--sz:2px;--col:#FFE566" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:44%;--delay:1.9s;--dur:1.6s;--drift:-4px;--sz:2px;--col:#FF9A30" aria-hidden="true"></span>
+      <span class="kbb-ember" style="--x:91%;--delay:2.2s;--dur:2.1s;--drift:-6px;--sz:3px;--col:#FFD040" aria-hidden="true"></span>
       <span class="dash-cmd-ico">🥙</span>
       <div class="dash-cmd-text">
         <div class="dash-cmd-title">Commander maintenant</div>
