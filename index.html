@@ -569,7 +569,22 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .suivi-num-sub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-top:3px;}
 .suivi-rt-hint{font-size:11px;color:var(--green);text-align:center;padding:.4rem 1.25rem 0;display:flex;align-items:center;justify-content:center;gap:5px;}
 /* ══ SUIVI COMMANDE ══ */
-.suivi-hero{padding:1.25rem 1.25rem .75rem;text-align:center;}
+.suivi-hero{padding:1.25rem 1.25rem .5rem;text-align:center;}
+.suivi-items-list{display:flex;flex-direction:column;gap:7px;margin-top:.6rem;text-align:left;}
+.suivi-item-row{background:var(--coal3);border:1px solid var(--border2);border-radius:9px;padding:.55rem .75rem;}
+.suivi-item-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.4;}
+.suivi-item-qty{background:var(--fire);color:#fff;border-radius:99px;font-size:11px;font-weight:800;padding:1px 6px;margin-right:3px;}
+.suivi-item-sub{font-size:11.5px;color:var(--text3);}
+.suivi-item-opts{display:flex;flex-wrap:wrap;gap:3px;margin-top:.3rem;}
+.suivi-opt-tag{font-size:11px;padding:2px 7px;border-radius:5px;font-weight:600;}
+.suivi-opt-tag.rm{background:rgba(255,100,50,.12);color:#FF7043;}
+.suivi-opt-tag.sc{background:rgba(255,107,43,.1);color:#FF8C42;}
+.suivi-opt-tag.sp{background:rgba(76,175,116,.1);color:#4CAF74;}
+.suivi-opt-tag.rw{background:rgba(255,184,48,.12);color:#FFB830;}
+.suivi-progress{padding:.5rem 1.25rem .25rem;}
+.suivi-progress-bar{height:6px;background:rgba(255,255,255,.08);border-radius:10px;overflow:hidden;margin-bottom:.4rem;}
+.suivi-progress-fill{height:100%;background:linear-gradient(90deg,#FF6B1A,#FFB347);border-radius:10px;transition:width .8s ease-out;}
+.suivi-progress-steps{display:flex;justify-content:space-between;}
 .suivi-order-num{font-size:13px;color:var(--text2);margin-bottom:.25rem;}
 .suivi-items{font-size:12px;color:var(--text3);line-height:1.5;}
 .suivi-timeline{display:flex;flex-direction:column;gap:0;padding:1.25rem 1.25rem 0;}
@@ -7518,6 +7533,49 @@ function showRTNotif(msg){
 }
 
 /* ══ SUIVI COMMANDE ══ */
+
+// Rendu des articles pour la page suivi côté client (lisible, pas KDS)
+function _renderSuiviItems(itemsStr, rewardNom){
+  let arr=[];
+  try{
+    arr=typeof itemsStr==='string'?JSON.parse(itemsStr):(Array.isArray(itemsStr)?itemsStr:[]);
+    if(!Array.isArray(arr)) throw new Error();
+  }catch(e){
+    // Ancien format texte brut
+    return '<div class="suivi-items-list">'+(itemsStr||'').split(',').map(s=>s.trim()).filter(Boolean)
+      .map(s=>`<div class="suivi-item-row"><div class="suivi-item-name">• ${s}</div></div>`).join('')+'</div>';
+  }
+  // Grouper les doublons (même article + mêmes options)
+  const grouped=[];
+  arr.forEach(it=>{
+    const key=JSON.stringify({n:it.name,p:it.pain,rm:it.removed,sc:it.sauces,ss:it.sansSauce,sp:it.suppls,m:it.menu,t:it.taille});
+    const ex=grouped.find(g=>g._k===key);
+    if(ex) ex._qty++;
+    else grouped.push({...it,_qty:1,_k:key});
+  });
+  let html='<div class="suivi-items-list">';
+  grouped.forEach(it=>{
+    html+=`<div class="suivi-item-row">`;
+    html+=`<div class="suivi-item-name">`;
+    if(it._qty>1) html+=`<span class="suivi-item-qty">${it._qty}×</span> `;
+    html+=`${it.icon||'🍴'} ${it.name}`;
+    if(it.taille) html+=` <span class="suivi-item-sub">(${it.taille})</span>`;
+    if(it.pain) html+=` <span class="suivi-item-sub">— ${it.pain==='galette'?'Galette':'Pain'}</span>`;
+    if(it.menu) html+=` <span class="suivi-item-sub">+ Menu</span>`;
+    html+='</div>';
+    const tags=[];
+    if(it.removed?.length) it.removed.forEach(r=>tags.push(`<span class="suivi-opt-tag rm">❌ Sans ${r}</span>`));
+    if(it.sansSauce) tags.push(`<span class="suivi-opt-tag rm">🚫 Sans sauce</span>`);
+    else if(it.sauces?.length) it.sauces.forEach(s=>tags.push(`<span class="suivi-opt-tag sc">🥫 ${s}</span>`));
+    if(it.suppls?.length) it.suppls.forEach(s=>tags.push(`<span class="suivi-opt-tag sp">➕ ${s}</span>`));
+    if(tags.length) html+=`<div class="suivi-item-opts">${tags.join('')}</div>`;
+    html+=`</div>`;
+  });
+  if(rewardNom) html+=`<div class="suivi-item-row"><div class="suivi-item-name">🎁 ${rewardNom}</div><div class="suivi-item-opts"><span class="suivi-opt-tag rw">Récompense fidélité</span></div></div>`;
+  html+='</div>';
+  return html;
+}
+
 function getActiveOrder(){try{return JSON.parse(localStorage.getItem('kbb_active_order')||'null');}catch(e){return null;}}
 function setActiveOrder(o){if(o)localStorage.setItem('kbb_active_order',JSON.stringify(o));else localStorage.removeItem('kbb_active_order');}
 
@@ -7839,7 +7897,7 @@ function renderSuivi(){
       ${o.orderNum?`<div class="suivi-num-card"><div class="suivi-num-big">${o.orderNum}</div><div class="suivi-num-sub">Numéro de commande</div></div>`:''}
       <div style="text-align:center;font-size:13px;color:var(--text2);padding:.4rem 1.25rem 0;">${lbl}</div>`;
   }
-  if(itemsEl) itemsEl.textContent=o.items;
+  if(itemsEl) itemsEl.innerHTML=_renderSuiviItems(o.items, o.reward_nom||null);
 
   // 4 étapes
   const STEPS=[
@@ -7848,8 +7906,13 @@ function renderSuivi(){
     {id:'pret',       icon:'✅', label:'Prête !',           sub:'Venez récupérer votre commande'},
     {id:'archive',    icon:'🎉', label:'Récupérée',        sub:'Bon appétit !'}
   ];
-  const idx=STEPS.findIndex(s=>s.id===o.statut);
-  timeline.innerHTML=STEPS.map((s,i)=>{
+  const idx=Math.max(0,STEPS.findIndex(s=>s.id===o.statut));
+  const pct=Math.round(idx/(STEPS.length-1)*100);
+  const progressBar=`<div class="suivi-progress">
+    <div class="suivi-progress-bar"><div class="suivi-progress-fill" style="width:${pct}%"></div></div>
+    <div class="suivi-progress-steps">${STEPS.map((s,i)=>`<div style="font-size:16px;opacity:${i<=idx?1:.25};transition:opacity .4s;">${s.icon}</div>`).join('')}</div>
+  </div>`;
+  timeline.innerHTML=progressBar+STEPS.map((s,i)=>{
     const done=i<idx, active=i===idx, cls=done?'done':active?'active':'inactive';
     return`<div class="suivi-step ${cls}">
       <div class="suivi-icon">${s.icon}</div>
