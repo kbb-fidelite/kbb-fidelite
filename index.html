@@ -3733,18 +3733,26 @@ async function _verifyPresenceCode(){
 // ── Fonctions affichage code comptoir ────────────────────────────────────────
 
 async function loadCptPresenceCode(){
-  if(!empToken) return;
+  const tok=_getEmpToken();
+  const digits=document.getElementById('cpt-code-digits');
+  const cd=document.getElementById('cpt-code-countdown');
+  if(!tok){
+    // Pas de token : accès via PIN local hors-ligne — afficher message explicite
+    if(digits) digits.textContent='—';
+    if(cd) cd.innerHTML='<span style="color:#E53935">Reconnectez-vous via le clavier PIN pour afficher le code</span>';
+    return;
+  }
+  if(cd) cd.textContent='Chargement…';
   try{
-    const data=await callEdge('get-presence-code',{emp_token:empToken});
-    if(!data?.code) return;
-    const digits=document.getElementById('cpt-code-digits');
+    const data=await callEdge('get-presence-code',{emp_token:tok});
+    if(!data?.code) throw new Error('Réponse invalide');
     if(digits) digits.textContent=data.code.split('').join(' ');
     _cptCodeExpiresAt=Date.now()+(data.expires_in*1000);
     _startCptCodeCountdown();
   }catch(e){
     console.warn('loadCptPresenceCode:',e);
-    const digits=document.getElementById('cpt-code-digits');
-    if(digits) digits.textContent='—';
+    if(digits) digits.textContent='⚠';
+    if(cd) cd.innerHTML='<span style="color:#E53935">Erreur de chargement — '+e.message+'</span>';
   }
 }
 
