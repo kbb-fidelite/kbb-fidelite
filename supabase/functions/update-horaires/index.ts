@@ -42,7 +42,10 @@ async function verifyEmpToken(
   }
 }
 
+const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+
 // Valide la structure du JSON horaires avant écriture
+// Accepte le nouveau format {services:[{open,close},...]} et l'ancien {open,close}
 function isValidSchedule(s: unknown): boolean {
   if (!s || typeof s !== 'object' || Array.isArray(s)) return false;
   const obj = s as Record<string, unknown>;
@@ -52,8 +55,30 @@ function isValidSchedule(s: unknown): boolean {
     if (v === null) continue; // fermé ce jour
     if (typeof v !== 'object' || Array.isArray(v)) return false;
     const d = v as Record<string, unknown>;
-    if (typeof d.open !== 'string' || typeof d.close !== 'string') return false;
-    if (!/^\d{2}:\d{2}$/.test(d.open) || !/^\d{2}:\d{2}$/.test(d.close)) return false;
+
+    if ('services' in d) {
+      // Nouveau format : {services: [{open,close}, ...]}
+      const svcs = d.services;
+      if (!Array.isArray(svcs) || svcs.length === 0 || svcs.length > 2) return false;
+      for (const svc of svcs as unknown[]) {
+        if (!svc || typeof svc !== 'object' || Array.isArray(svc)) return false;
+        const sv = svc as Record<string, unknown>;
+        if (typeof sv.open !== 'string' || typeof sv.close !== 'string') return false;
+        if (!/^\d{2}:\d{2}$/.test(sv.open) || !/^\d{2}:\d{2}$/.test(sv.close)) return false;
+        if (toMin(sv.close as string) <= toMin(sv.open as string)) return false;
+      }
+      // Si 2 services : le service 2 doit commencer après la fin du service 1
+      if (svcs.length === 2) {
+        const sv1 = svcs[0] as Record<string, string>;
+        const sv2 = svcs[1] as Record<string, string>;
+        if (toMin(sv2.open) <= toMin(sv1.close)) return false;
+      }
+    } else {
+      // Ancien format : {open,close} — rétrocompatibilité
+      if (typeof d.open !== 'string' || typeof d.close !== 'string') return false;
+      if (!/^\d{2}:\d{2}$/.test(d.open) || !/^\d{2}:\d{2}$/.test(d.close)) return false;
+      if (toMin(d.close as string) <= toMin(d.open as string)) return false;
+    }
   }
   if (!Array.isArray(obj.exceptions)) return false;
   for (const ex of obj.exceptions as unknown[]) {

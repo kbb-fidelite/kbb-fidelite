@@ -1984,7 +1984,7 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
     <div class="settings-block" style="margin-top:1rem;" id="horaires-block">
       <h3>🕐 Horaires d'ouverture</h3>
       <div id="horaires-form">
-        <div style="font-size:12px;color:var(--text3);margin-bottom:.75rem;">Cochez "Fermé" pour les jours de fermeture habituelle.</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:.75rem;">Chaque jour peut avoir un ou deux services (midi + soir). Cochez "Journée continue" s'il n'y a pas de coupure.</div>
         <div id="horaires-days"></div>
         <div style="margin-top:.75rem;">
           <label style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Fermetures exceptionnelles</label>
@@ -2311,17 +2311,24 @@ function refreshClientSolde(){
 /* ── Statut restaurant dynamique (lit depuis settings Supabase) ── */
 let _statusCache=null,_statusTs=0,_loadingSchedule=false;
 // Horaires par défaut — utilisés si la clé 'horaires' n'existe pas encore dans settings
-// 0=Dim fermé, 1-4=Lun-Jeu 11h30-22h, 5-6=Ven-Sam 11h30-22h30
+// 0=Dim fermé, 1=Lun fermé, 2-6=Mar-Sam deux services : midi 11h30-14h00 et soir 18h00-22h00
 const _DEFAULT_SCHEDULE={
   "0":null,
-  "1":{"open":"11:30","close":"22:00"},
-  "2":{"open":"11:30","close":"22:00"},
-  "3":{"open":"11:30","close":"22:00"},
-  "4":{"open":"11:30","close":"22:00"},
-  "5":{"open":"11:30","close":"22:30"},
-  "6":{"open":"11:30","close":"22:30"},
+  "1":null,
+  "2":{"services":[{"open":"11:30","close":"14:00"},{"open":"18:00","close":"22:00"}]},
+  "3":{"services":[{"open":"11:30","close":"14:00"},{"open":"18:00","close":"22:00"}]},
+  "4":{"services":[{"open":"11:30","close":"14:00"},{"open":"18:00","close":"22:00"}]},
+  "5":{"services":[{"open":"11:30","close":"14:00"},{"open":"18:00","close":"22:00"}]},
+  "6":{"services":[{"open":"11:30","close":"14:00"},{"open":"18:00","close":"22:00"}]},
   "exceptions":[]
 };
+// Normalise un jour en tableau de services (compat ancien format {open,close})
+function _dayServices(v){
+  if(!v) return [];
+  if(v.services) return v.services;
+  if(v.open) return [{open:v.open,close:v.close}];
+  return [];
+}
 async function refreshDashStatus(){
   const labelEl=document.getElementById('dash-status-label');
   const dotEl=document.getElementById('dash-status-dot');
@@ -2363,39 +2370,38 @@ async function refreshDashStatus(){
   }
 
   const todayHours=schedule[dayKey];
+  const findNextDay=()=>{
+    for(let i=1;i<=6;i++){
+      const k=String((now.getDay()+i)%7);
+      const svcs=_dayServices(schedule[k]);
+      if(svcs.length) return {day:dayNames[(now.getDay()+i)%7],open:svcs[0].open};
+    }
+    return null;
+  };
   if(!todayHours){
     dotEl.className='dash-status-dot closed';
     labelEl.textContent='🔴 Fermé';
-    // Chercher prochain jour ouvert
-    let next=null;
-    for(let i=1;i<=6;i++){
-      const k=String((now.getDay()+i)%7);
-      if(schedule[k]){next={day:dayNames[(now.getDay()+i)%7],hours:schedule[k]};break;}
-    }
-    hoursEl.textContent=next?'Ouvre '+next.day+' à '+fmt(next.hours.open):'';
+    const n=findNextDay();
+    hoursEl.textContent=n?'Ouvre '+n.day+' à '+fmt(n.open):'';
     return;
   }
 
-  const openMin=toMin(todayHours.open);
-  const closeMin=toMin(todayHours.close);
-  if(nowMin>=openMin&&nowMin<closeMin){
+  const services=_dayServices(todayHours);
+  const currentSvc=services.find(s=>nowMin>=toMin(s.open)&&nowMin<toMin(s.close));
+  if(currentSvc){
     dotEl.className='dash-status-dot open';
     labelEl.textContent='Ouvert';
-    hoursEl.textContent='Jusqu\'à '+fmt(todayHours.close);
-  } else if(nowMin<openMin){
-    dotEl.className='dash-status-dot closed';
-    labelEl.textContent='Fermé';
-    hoursEl.textContent='Ouvre à '+fmt(todayHours.open);
+    hoursEl.textContent='Jusqu\'à '+fmt(currentSvc.close);
   } else {
     dotEl.className='dash-status-dot closed';
     labelEl.textContent='Fermé';
-    // Chercher prochain jour ouvert
-    let next=null;
-    for(let i=1;i<=6;i++){
-      const k=String((now.getDay()+i)%7);
-      if(schedule[k]){next={day:dayNames[(now.getDay()+i)%7],hours:schedule[k]};break;}
+    const nextSvc=services.find(s=>nowMin<toMin(s.open));
+    if(nextSvc){
+      hoursEl.textContent='Ouvre à '+fmt(nextSvc.open);
+    } else {
+      const n=findNextDay();
+      hoursEl.textContent=n?'Ouvre '+n.day+' à '+fmt(n.open):'';
     }
-    hoursEl.textContent=next?'Ouvre '+next.day+' à '+fmt(next.hours.open):'';
   }
 }
 
@@ -3474,11 +3480,11 @@ function selectPickupTime(t){
 }
 
 // Génère les créneaux valides en filtrant selon les horaires d'ouverture Supabase
+// Supporte 1 ou 2 services par jour (avec coupure entre midi et soir)
 function getPickupTimeSlotsFromSchedule(schedule){
   const now=new Date();
-  const dayKey=String(now.getDay()); // 0=Dim, 1=Lun…6=Sam
-  const todayStr=now.toISOString().slice(0,10); // YYYY-MM-DD
-  // Fermeture exceptionnelle
+  const dayKey=String(now.getDay());
+  const todayStr=now.toISOString().slice(0,10);
   if((schedule.exceptions||[]).includes(todayStr)){
     return {closed:true,reason:'Fermeture exceptionnelle — revenez une autre fois',slots:[]};
   }
@@ -3486,22 +3492,22 @@ function getPickupTimeSlotsFromSchedule(schedule){
   if(!daySchedule){
     return {closed:true,reason:'Nous sommes fermés ce jour — choisissez une autre date',slots:[]};
   }
-  const [openH,openM]=daySchedule.open.split(':').map(Number);
-  const [closeH,closeM]=daySchedule.close.split(':').map(Number);
-  const openMin=openH*60+openM;
-  const closeMin=closeH*60+closeM;
-  // Premier créneau : maintenant + 15 min arrondi au quart d'heure
+  const toMin=t=>{ const[h,m]=t.split(':').map(Number);return h*60+m; };
+  const services=_dayServices(daySchedule);
+  // Premier créneau : maintenant + 15 min arrondi au quart d'heure suivant
   let start=new Date(now.getTime()+15*60*1000);
   const rem=15-(start.getMinutes()%15);
   if(rem<15) start=new Date(start.getTime()+rem*60*1000);
   start.setSeconds(0,0);
+  const lastClose=Math.max(...services.map(s=>toMin(s.close)));
   const slots=[];
   for(let i=0;i<48;i++){
     const t=new Date(start.getTime()+i*15*60*1000);
     const slotMin=t.getHours()*60+t.getMinutes();
-    if(slotMin<openMin) continue;
-    if(slotMin>closeMin-15) break; // arrêt 15 min avant fermeture
-    slots.push(t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0'));
+    if(slotMin>lastClose) break;
+    // Créneau valide uniquement s'il tombe dans un service (15 min avant fermeture du service)
+    const ok=services.some(s=>slotMin>=toMin(s.open)&&slotMin<=toMin(s.close)-15);
+    if(ok) slots.push(t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0'));
   }
   if(!slots.length){
     return {closed:true,reason:'Le restaurant est fermé pour aujourd\'hui — revenez demain',slots:[]};
@@ -6009,22 +6015,40 @@ async function renderHorairesForm(){
       if(rows&&rows.length>0){ const v=rows[0].value; schedule=typeof v==='string'?JSON.parse(v):v; }
     }catch(e){}
   }
-  // Valeurs par défaut si pas encore en base
-  if(!schedule) schedule={'0':null,'1':{'open':'11:30','close':'22:00'},'2':{'open':'11:30','close':'22:00'},'3':{'open':'11:30','close':'22:00'},'4':{'open':'11:30','close':'22:00'},'5':{'open':'11:30','close':'22:30'},'6':{'open':'11:30','close':'22:30'},'exceptions':[]};
+  if(!schedule) schedule=_DEFAULT_SCHEDULE;
   let html='';
   for(let d=0;d<7;d++){
     const v=schedule[String(d)];
-    const closed=v===null;
-    const open=closed?'11:30':(v?.open||'11:30');
-    const close=closed?'22:00':(v?.close||'22:00');
-    html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-      <div style="width:80px;font-size:13px;color:var(--text);flex-shrink:0;">${_DAY_NAMES[d]}</div>
-      <input type="checkbox" id="hor-closed-${d}" ${closed?'checked':''} onchange="document.getElementById('hor-times-${d}').style.display=this.checked?'none':'flex'" style="width:16px;height:16px;accent-color:var(--fire);flex-shrink:0;">
-      <label for="hor-closed-${d}" style="font-size:11px;color:var(--text3);flex-shrink:0;">Fermé</label>
-      <div id="hor-times-${d}" style="display:${closed?'none':'flex'};align-items:center;gap:4px;flex:1;">
-        <input type="time" id="hor-open-${d}" value="${open}" class="set-inp" style="width:80px;font-size:13px;padding:3px 6px;">
-        <span style="font-size:11px;color:var(--text3);">→</span>
-        <input type="time" id="hor-close-${d}" value="${close}" class="set-inp" style="width:80px;font-size:13px;padding:3px 6px;">
+    const isClosed=v===null;
+    const svcs=isClosed?[]:_dayServices(v);
+    const isCont=svcs.length<=1;
+    const s1o=svcs[0]?.open||'11:30';
+    const s1c=svcs[0]?.close||'14:00';
+    const s2o=svcs[1]?.open||'18:00';
+    const s2c=svcs[1]?.close||'22:00';
+    html+=`<div style="border:1px solid var(--border2);border-radius:8px;padding:.5rem .75rem;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:${isClosed?'0':'.5rem'};">
+        <div style="width:90px;font-size:13px;font-weight:600;color:var(--text);flex-shrink:0;">${_DAY_NAMES[d]}</div>
+        <input type="checkbox" id="hor-closed-${d}" ${isClosed?'checked':''} onchange="document.getElementById('hor-times-${d}').style.display=this.checked?'none':'block'" style="width:15px;height:15px;accent-color:var(--fire);">
+        <label for="hor-closed-${d}" style="font-size:12px;color:var(--text3);">Fermé</label>
+      </div>
+      <div id="hor-times-${d}" style="display:${isClosed?'none':'block'};">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:.4rem;">
+          <input type="checkbox" id="hor-cont-${d}" ${isCont?'checked':''} onchange="document.getElementById('hor-svc2-${d}').style.display=this.checked?'none':'flex'" style="width:14px;height:14px;accent-color:var(--fire);">
+          <label for="hor-cont-${d}" style="font-size:11px;color:var(--text3);">Journée continue (pas de coupure)</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:.3rem;">
+          <span style="font-size:11px;color:var(--text3);width:80px;flex-shrink:0;">Service midi</span>
+          <input type="time" id="hor-s1o-${d}" value="${s1o}" class="set-inp" style="width:76px;font-size:12px;padding:3px 4px;">
+          <span style="font-size:11px;color:var(--text3);">→</span>
+          <input type="time" id="hor-s1c-${d}" value="${s1c}" class="set-inp" style="width:76px;font-size:12px;padding:3px 4px;">
+        </div>
+        <div id="hor-svc2-${d}" style="display:${isCont?'none':'flex'};align-items:center;gap:5px;">
+          <span style="font-size:11px;color:var(--text3);width:80px;flex-shrink:0;">Service soir</span>
+          <input type="time" id="hor-s2o-${d}" value="${s2o}" class="set-inp" style="width:76px;font-size:12px;padding:3px 4px;">
+          <span style="font-size:11px;color:var(--text3);">→</span>
+          <input type="time" id="hor-s2c-${d}" value="${s2c}" class="set-inp" style="width:76px;font-size:12px;padding:3px 4px;">
+        </div>
       </div>
     </div>`;
   }
@@ -6038,14 +6062,21 @@ async function saveHoraires(){
   if(!supaOk()){statusEl.textContent='⚠ Supabase non configuré';return;}
   const empToken=_getEmpToken();
   if(!empToken){statusEl.textContent='⚠ Session expirée — ressaisissez votre PIN patron';showToast('Session expirée');return;}
-  // Construire l'objet horaires depuis les inputs
+  // Construire l'objet horaires depuis les inputs (format à services)
   const schedule={exceptions:[]};
   for(let d=0;d<7;d++){
     const closed=document.getElementById('hor-closed-'+d)?.checked;
     if(closed){ schedule[String(d)]=null; continue; }
-    const open=document.getElementById('hor-open-'+d)?.value||'11:30';
-    const close=document.getElementById('hor-close-'+d)?.value||'22:00';
-    schedule[String(d)]={open,close};
+    const cont=document.getElementById('hor-cont-'+d)?.checked;
+    const s1o=document.getElementById('hor-s1o-'+d)?.value||'11:30';
+    const s1c=document.getElementById('hor-s1c-'+d)?.value||'14:00';
+    if(cont){
+      schedule[String(d)]={services:[{open:s1o,close:s1c}]};
+    } else {
+      const s2o=document.getElementById('hor-s2o-'+d)?.value||'18:00';
+      const s2c=document.getElementById('hor-s2c-'+d)?.value||'22:00';
+      schedule[String(d)]={services:[{open:s1o,close:s1c},{open:s2o,close:s2c}]};
+    }
   }
   // Exceptions : dates YYYY-MM-DD séparées par virgules
   const excRaw=document.getElementById('horaires-exceptions')?.value||'';
