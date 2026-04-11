@@ -3913,6 +3913,10 @@ async function _submitSurPlaceDirect({total,grouped,itemsArr,itemsText,clientTel
     const effectiveId=supaId||localId;
     try{ await insertTransaction({orderId:effectiveId,items:label||null,montantTTC:total,moyenPaiement:'en_caisse',refStripe:null}); }
     catch(e){ console.error('_submitSurPlaceDirect insertTransaction:',e); }
+    if(supaId){
+      try{ await createFactureSimple(supaId, total, currentPortalClient?.prenom||''); }
+      catch(e){ console.error('_submitSurPlaceDirect createFactureSimple:',e); }
+    }
   }
 
   const realNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):'#KBB-???';
