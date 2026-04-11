@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
         code_soumis: submitted,
         success: false,
         bloque: true,
-      }).catch(() => null);
+      });
       console.warn(`verify-presence-code: RATE_LIMIT tel=${tel} tentatives=${recentAttempts}`);
       return json({ error: 'Trop de tentatives — réessayez dans 1 minute', code: 'TROP_DE_TENTATIVES' }, 429);
     }
@@ -111,13 +111,14 @@ Deno.serve(async (req) => {
     const validCodes = await Promise.all(validSlots.map(s => generateCode(secret, s)));
     const isValid    = validCodes.includes(submitted);
 
-    // Logger la tentative
-    await supabase.from('presence_attempts').insert({
+    // Logger la tentative (non bloquant — erreur ignorée si table absente)
+    const { error: logErr } = await supabase.from('presence_attempts').insert({
       client_tel: tel,
       code_soumis: submitted,
       success: isValid,
       bloque: false,
-    }).catch(e => console.error('presence_attempts insert:', e));
+    });
+    if (logErr) console.warn('presence_attempts log:', logErr.message);
 
     if (!isValid) {
       // Distinguer code invalide vs code expiré (slot trop vieux)
