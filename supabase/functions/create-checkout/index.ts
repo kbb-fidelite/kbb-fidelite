@@ -136,6 +136,48 @@ Deno.serve(async (req) => {
 
     if (serverCents < 50) throw new Error('Montant minimum non atteint');
 
+    // ── Vérification capacité créneau ─────────────────────────────
+    // Uniquement pour click_collect et reservation avec une heure définie
+    if (heureRetrait && (orderType === 'click_collect' || orderType === 'reservation')) {
+      const supabase = createClient(supaUrl, supaKey);
+
+      // Lire la capacité max configurée par le patron
+      const { data: capRow } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'capacite_creneau')
+        .maybeSingle();
+      const capacite = Math.max(1, parseInt(String(capRow?.value ?? 5)) || 5);
+
+      // Compter les commandes actives sur ce créneau aujourd'hui
+      // Exclure les pending_payment de plus de 30 min (paiements abandonnés)
+      const today = new Date().toISOString().slice(0, 10);
+      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+      const { count } = await supabase
+        .from('commandes')
+        .select('id', { count: 'exact', head: true })
+        .eq('heure_retrait', heureRetrait)
+        .gte('created_at', today + 'T00:00:00.000Z')
+        .lt('created_at', today + 'T23:59:59.999Z')
+        .not('statut', 'in', '(annule,archive)')
+        .or(`statut.neq.pending_payment,created_at.gte.${thirtyMinAgo}`);
+
+      console.log(`create-checkout: créneau ${heureRetrait} — ${count}/${capacite} réservations`);
+
+      if ((count ?? 0) >= capacite) {
+        // Calculer le créneau suivant (+15 min)
+        const [h, m] = heureRetrait.split(':').map(Number);
+        const nextMin = h * 60 + m + 15;
+        const nextSlot = `${String(Math.floor(nextMin / 60)).padStart(2, '0')}:${String(nextMin % 60).padStart(2, '0')}`;
+        console.log(`create-checkout: créneau ${heureRetrait} COMPLET — suggestion ${nextSlot}`);
+        return new Response(
+          JSON.stringify({ error: 'CRENEAU_PLEIN', heure: heureRetrait, next_slot: nextSlot }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // ── Construire les line items Stripe ─────────────────────────
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {

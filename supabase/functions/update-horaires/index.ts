@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { schedule, emp_token } = await req.json();
+    const { schedule, emp_token, capacite_creneau } = await req.json();
 
     // ── 1. Token requis ───────────────────────────────────────────
     if (!emp_token || typeof emp_token !== 'string') {
@@ -141,6 +141,19 @@ Deno.serve(async (req) => {
       );
 
     if (error) throw new Error('Supabase settings upsert: ' + error.message);
+
+    // ── 6. Capacité par créneau (optionnelle) ─────────────────────
+    if (capacite_creneau !== undefined) {
+      const cap = Math.max(1, Math.min(50, parseInt(String(capacite_creneau)) || 5));
+      const { error: capErr } = await supabase
+        .from('settings')
+        .upsert(
+          { key: 'capacite_creneau', value: cap, updated_at: new Date().toISOString() },
+          { onConflict: 'key' }
+        );
+      if (capErr) console.error('update-horaires: capacite_creneau upsert:', capErr.message);
+      else console.log('update-horaires: capacite_creneau →', cap);
+    }
 
     console.log('update-horaires: horaires mis à jour par patron —', JSON.stringify(schedule));
     return new Response(

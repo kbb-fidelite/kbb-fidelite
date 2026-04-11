@@ -502,8 +502,12 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .order-detail-label{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:.6rem;}
 .table-num-input{width:100%;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.75rem 1rem;color:var(--text);font-family:var(--font);font-size:28px;font-weight:700;text-align:center;letter-spacing:4px;box-sizing:border-box;}
 .time-slots{display:flex;flex-wrap:wrap;gap:8px;}
-.time-slot{padding:.45rem .9rem;background:var(--coal2);border:1px solid var(--border2);border-radius:99px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;}
+.time-slot{padding:.45rem .9rem;background:var(--coal2);border:1px solid var(--border2);border-radius:99px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;}
 .time-slot.selected{background:var(--fire);border-color:var(--fire);color:#fff;}
+.time-slot.slot-full{opacity:.38;text-decoration:line-through;cursor:not-allowed;pointer-events:none;border-style:dashed;}
+.slot-avail{font-size:10px;font-weight:700;color:#4CAF74;white-space:nowrap;}
+.slot-avail.slot-low{color:#FF8C42;}
+.time-slot.selected .slot-avail{color:rgba(255,255,255,.8);}
 .order-submit-btn{width:100%;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:var(--radius);padding:1rem;color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:.5rem;}
 .order-submit-btn:disabled{opacity:.4;cursor:not-allowed;}
 /* ══ EMP COMMANDES ══ */
@@ -2325,6 +2329,8 @@ function refreshClientSolde(){
 
 /* ── Statut restaurant dynamique (lit depuis settings Supabase) ── */
 let _statusCache=null,_statusTs=0,_loadingSchedule=false;
+let _slotAvailability=null; // {date:'YYYY-MM-DD', capacite:5, counts:{'11:30':3,...}}
+let _loadingSlotAvail=false;
 // Horaires par défaut — utilisés si la clé 'horaires' n'existe pas encore dans settings
 // 0=Dim fermé, 1=Lun fermé, 2-6=Mar-Sam deux services : midi 11h30-14h00 et soir 18h00-22h00
 const _DEFAULT_SCHEDULE={
@@ -2742,6 +2748,10 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
     })
   });
   const data=await r.json();
+  // Créneau complet : erreur 409 avec suggestion du créneau suivant
+  if(r.status===409&&data.error==='CRENEAU_PLEIN'){
+    throw new Error('CRENEAU_PLEIN|'+(data.next_slot||''));
+  }
   if(!r.ok||!data.url) throw new Error(data.error||'Erreur création session Stripe');
   // Retourner l'URL et l'ID Supabase pré-créé (peut être null si la DB a échoué)
   return { url: data.url, supabaseOrderId: data.supabaseOrderId || null };
@@ -2814,8 +2824,19 @@ async function stripePayOnline(){
     window.location.href=url;
   }catch(e){
     btn.disabled=false; btn.textContent='💳 Payer par carte';
-    showToast('Erreur Stripe : '+e.message);
-    console.error('Stripe error:',e);
+    if(e.message.startsWith('CRENEAU_PLEIN')){
+      const nextSlot=e.message.split('|')[1]||'';
+      stripeModalClose();
+      _slotAvailability=null; // invalider le cache — rechargement au prochain render
+      selectedPickupTime='';   // déselectionner le créneau complet
+      showToast(nextSlot
+        ?'Ce créneau est complet — prochain disponible : '+nextSlot
+        :'Ce créneau est complet — choisissez un autre horaire');
+      renderOrderOptions();
+    } else {
+      showToast('Erreur Stripe : '+e.message);
+      console.error('Stripe error:',e);
+    }
   }
 }
 
@@ -3429,20 +3450,37 @@ function renderOrderOptions(){
     return;
   }
   const needsTime=orderMode==='click_collect'||orderMode==='reservation';
-  let slots=[],slotsMsg='';
+  let sr=null,slotsMsg='';
+  const todayKey=new Date().toISOString().slice(0,10);
   if(needsTime){
     if(_statusCache===null){
       _loadScheduleForSlots();
       slotsMsg='<div style="padding:.5rem;font-size:13px;color:var(--text3);text-align:center;">⏳ Chargement des horaires…</div>';
     } else {
-      const sr=getPickupTimeSlotsFromSchedule(_statusCache);
+      sr=getPickupTimeSlotsFromSchedule(_statusCache);
       if(sr.closed){
         slotsMsg=`<div style="padding:.65rem .75rem;font-size:13px;font-weight:600;color:var(--fire);background:rgba(255,107,43,.08);border-radius:6px;margin-top:.5rem;text-align:center;">🔒 ${sr.reason}</div>`;
-      } else {
-        slots=sr.slots;
+        sr=null;
       }
+      // Déclencher le chargement de la disponibilité si pas encore fait
+      if(!_slotAvailability||_slotAvailability.date!==todayKey) _loadSlotAvailability();
     }
   }
+  // Génère le HTML d'un créneau avec badge disponibilité
+  const slotHtml=(t)=>{
+    const booked=(sr?.counts||{})[t]||0;
+    const cap=sr?.capacite??999;
+    const avail=Math.max(0,cap-booked);
+    const full=booked>=cap;
+    const sel=selectedPickupTime===t;
+    const hint=full?'Complet':avail<=2?`${avail} place${avail>1?'s':''}`:null;
+    const hintCls=full?'':avail<=2?'slot-low':'';
+    return `<div class="time-slot${full?' slot-full':''}${sel?' selected':''}" ${full?'':'onclick="selectPickupTime(\''+t+'\')"'}>
+      ${t}${hint?`<span class="slot-avail ${hintCls}">${hint}</span>`:''}
+    </div>`;
+  };
+  const slotsHtml=sr?.slots.length?`<div class="time-slots">${sr.slots.map(slotHtml).join('')}</div>`:slotsMsg;
+  const submitDisabled=(needsTime&&(!selectedPickupTime||!sr?.slots.length))||(!sr&&needsTime&&!slotsMsg.includes('🔒')&&_statusCache===null);
   section.innerHTML=`
     <div class="order-mode-section">
       <div class="order-mode-title">Comment souhaitez-vous commander ?</div>
@@ -3466,18 +3504,17 @@ function renderOrderOptions(){
       ${orderMode==='reservation'?`
         <div class="order-detail-box">
           <div class="order-detail-label">Heure d'arrivée prévue</div>
-          ${slots.length?`<div class="time-slots">${slots.map(t=>`<div class="time-slot ${selectedPickupTime===t?'selected':''}" onclick="selectPickupTime('${t}')">${t}</div>`).join('')}</div>`:slotsMsg}
+          ${slotsHtml}
         </div>
       `:''}
       ${orderMode==='click_collect'?`
         <div class="order-detail-box">
           <div class="order-detail-label">Heure de retrait souhaitée</div>
-          ${slots.length?`<div class="time-slots">${slots.map(t=>`<div class="time-slot ${selectedPickupTime===t?'selected':''}" onclick="selectPickupTime('${t}')">${t}</div>`).join('')}</div>`:slotsMsg}
+          ${slotsHtml}
         </div>
       `:''}
       ${orderMode?`
-        <button class="order-submit-btn" onclick="submitClientOrder()"
-          ${((orderMode==='click_collect'||orderMode==='reservation')&&(!selectedPickupTime||slotsMsg))?'disabled':''}>
+        <button class="order-submit-btn" onclick="submitClientOrder()" ${submitDisabled?'disabled':''}>
           Envoyer ma commande →
         </button>
       `:''}
@@ -3527,7 +3564,34 @@ function getPickupTimeSlotsFromSchedule(schedule){
   if(!slots.length){
     return {closed:true,reason:'Le restaurant est fermé pour aujourd\'hui — revenez demain',slots:[]};
   }
-  return {closed:false,reason:'',slots};
+  // Enrichir avec la disponibilité des créneaux (capacité)
+  const todayAvail=new Date().toISOString().slice(0,10);
+  let capacite=999, counts={};
+  if(_slotAvailability&&_slotAvailability.date===todayAvail){
+    capacite=_slotAvailability.capacite; counts=_slotAvailability.counts;
+  }
+  return {closed:false,reason:'',slots,capacite,counts};
+}
+
+// Charge la capacité et les réservations actuelles pour les créneaux
+async function _loadSlotAvailability(){
+  if(_loadingSlotAvail) return;
+  _loadingSlotAvail=true;
+  const today=new Date().toISOString().slice(0,10);
+  try{
+    const [capRows,slotRows]=await Promise.all([
+      supaReq('settings?key=eq.capacite_creneau&select=value').catch(()=>[]),
+      supaReq('rpc/get_slot_availability','POST',{p_date:today}).catch(()=>[])
+    ]);
+    const cap=Math.max(1,parseInt(String(capRows?.[0]?.value??5))||5);
+    const counts={};
+    (slotRows||[]).forEach(r=>{counts[r.heure]=parseInt(String(r.booked))||0;});
+    _slotAvailability={date:today,capacite:cap,counts};
+  }catch(e){
+    _slotAvailability={date:today,capacite:999,counts:{}};
+  }
+  _loadingSlotAvail=false;
+  renderOrderOptions();
 }
 
 // Charge les horaires depuis Supabase puis re-rend les options de commande
@@ -6031,7 +6095,14 @@ async function renderHorairesForm(){
     }catch(e){}
   }
   if(!schedule) schedule=_DEFAULT_SCHEDULE;
-  let html='';
+  // Charger la capacité actuelle
+  const capRows=await supaReq('settings?key=eq.capacite_creneau&select=value').catch(()=>[]);
+  const currentCap=Math.max(1,parseInt(String(capRows?.[0]?.value??5))||5);
+  let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;padding:.5rem .75rem;background:var(--coal3);border-radius:8px;border:1px solid var(--border2);">
+    <span style="font-size:13px;color:var(--text);flex-shrink:0;">⏱ Capacité / créneau de 15 min</span>
+    <input type="number" id="hor-capacite" value="${currentCap}" min="1" max="50" class="set-inp" style="width:60px;font-size:13px;padding:3px 6px;text-align:center;">
+    <span style="font-size:11px;color:var(--text3);">commandes max</span>
+  </div>`;
   for(let d=0;d<7;d++){
     const v=schedule[String(d)];
     const isClosed=v===null;
@@ -6096,17 +6167,18 @@ async function saveHoraires(){
   // Exceptions : dates YYYY-MM-DD séparées par virgules
   const excRaw=document.getElementById('horaires-exceptions')?.value||'';
   schedule.exceptions=excRaw.split(',').map(s=>s.trim()).filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(s));
+  const capacite_creneau=Math.max(1,parseInt(document.getElementById('hor-capacite')?.value||'5')||5);
   statusEl.textContent='⏳ Enregistrement…';
   try{
     const r=await fetch(SURL+'/functions/v1/update-horaires',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
-      body:JSON.stringify({schedule,emp_token:empToken})
+      body:JSON.stringify({schedule,capacite_creneau,emp_token:empToken})
     });
     const d=await r.json();
     if(!r.ok||!d.ok) throw new Error(d.error||'Erreur update-horaires');
-    // Invalider le cache local pour que les créneaux se rechargent
-    _statusCache=null; _statusTs=0;
+    // Invalider les caches locaux
+    _statusCache=null; _statusTs=0; _slotAvailability=null;
     statusEl.textContent='✓ Horaires enregistrés';
     showToast('Horaires mis à jour ✓');
   }catch(e){
