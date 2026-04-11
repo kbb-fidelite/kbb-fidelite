@@ -1015,6 +1015,25 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .cpt-btn{width:100%;padding:1.1rem;background:linear-gradient(130deg,var(--green),#2E8B57);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 5px 20px rgba(76,175,116,.28);transition:opacity .15s,transform .1s;}
 .cpt-btn:active{opacity:.85;transform:scale(.99);}
 
+/* ══ CODE DE PRÉSENCE ══ */
+/* Affichage comptoir */
+.presence-code-display{background:var(--coal3);border:2px solid rgba(255,107,43,.3);border-radius:var(--radius);padding:2rem 1.5rem;text-align:center;margin:.75rem 0;}
+.presence-code-digits{font-family:var(--font-d);font-size:80px;letter-spacing:18px;color:var(--fire);line-height:1;text-shadow:0 0 50px rgba(255,107,43,.3);user-select:all;}
+.presence-code-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-top:.6rem;}
+.presence-countdown{font-size:13px;color:var(--text3);margin-top:.5rem;}
+.presence-countdown strong{color:var(--text2);}
+/* Champ saisie client */
+.presence-input-wrap{background:var(--coal3);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:1rem 1.25rem;margin:.6rem 0;}
+.presence-input-label{font-size:12px;font-weight:700;color:var(--text3);margin-bottom:.5rem;letter-spacing:.5px;text-transform:uppercase;}
+.presence-input{width:100%;background:var(--coal4);border:1.5px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:28px;font-weight:800;text-align:center;letter-spacing:12px;padding:.6rem;outline:none;transition:border-color .2s;}
+.presence-input:focus{border-color:var(--fire);}
+.presence-input.error{border-color:#E53935;animation:shake .35s ease;}
+.presence-input.ok{border-color:var(--green);}
+.presence-msg{font-size:12px;margin-top:.4rem;min-height:16px;}
+.presence-msg.err{color:#E53935;}
+.presence-msg.ok{color:var(--green);}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+
 /* ══ MENTIONS LÉGALES / POLITIQUE RGPD ══ */
 .legal-page{padding:1.5rem 1.25rem 3rem;overflow-y:auto;flex:1;}
 .legal-h1{font-family:var(--font-d);font-size:26px;letter-spacing:1px;color:var(--text);margin-bottom:.25rem;}
@@ -1749,6 +1768,7 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
   <div class="cpt-tabs">
     <button class="cpt-tab active" id="cpt-tab-btn-orders" onclick="showCptTab('orders')">🍽️ Commandes prêtes</button>
     <button class="cpt-tab" id="cpt-tab-btn-points" onclick="showCptTab('points')">⭐ Points clients</button>
+    <button class="cpt-tab" id="cpt-tab-btn-code" onclick="showCptTab('code')">🔑 Code présence</button>
   </div>
   <div id="cpt-tab-pane-orders" class="cpt-tab-pane active">
     <div id="cpt-body" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
@@ -1761,6 +1781,18 @@ body.kiosk.kiosk-portrait .kiosk-portrait-warn{display:flex;}
     </div>
     <div class="cpt-pts-results" id="cpt-pts-results">
       <div style="text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px;">Recherchez un client par nom ou numéro de téléphone</div>
+    </div>
+  </div>
+  <div id="cpt-tab-pane-code" class="cpt-tab-pane">
+    <div style="padding:1.5rem 1.25rem;max-width:420px;margin:0 auto;">
+      <div class="presence-code-display" id="cpt-code-display">
+        <div class="presence-code-digits" id="cpt-code-digits">····</div>
+        <div class="presence-code-label">Code de présence sur place</div>
+        <div class="presence-countdown" id="cpt-code-countdown">Chargement…</div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);text-align:center;line-height:1.6;margin-top:.75rem;">
+        Communiquez ce code aux clients qui commandent sur place.<br>Il change automatiquement toutes les 15 minutes.
+      </div>
     </div>
   </div>
 </div>
@@ -2332,6 +2364,9 @@ function refreshClientSolde(){
 let _statusCache=null,_statusTs=0,_loadingSchedule=false;
 let _slotAvailability=null; // {date:'YYYY-MM-DD', capacite:5, counts:{'11:30':3,...}}
 let _loadingSlotAvail=false;
+let _presenceToken=null;       // token signé retourné par verify-presence-code (valide 10 min)
+let _cptCodeInterval=null;     // intervalle du countdown comptoir
+let _cptCodeExpiresAt=0;       // timestamp expiration du code comptoir affiché
 // Horaires par défaut — utilisés si la clé 'horaires' n'existe pas encore dans settings
 // 0=Dim fermé, 1=Lun fermé, 2-6=Mar-Sam deux services : midi 11h30-14h00 et soir 18h00-22h00
 const _DEFAULT_SCHEDULE={
@@ -2470,9 +2505,11 @@ async function empUpdateCommande(id,data){
 }
 
 /* ── Crée une commande via Edge Function (service_role, bypass RLS) ── */
-async function createCommande(payload){
+async function createCommande(payload, presenceToken=null){
   if(!supaOk()) throw new Error('Supabase non configuré');
-  const j=await callEdge('create-commande',{payload});
+  const body={payload};
+  if(presenceToken) body.presence_token=presenceToken;
+  const j=await callEdge('create-commande',body);
   if(!j.ok||!j.commande) throw new Error('create-commande: réponse invalide');
   return j.commande;
 }
@@ -2740,12 +2777,13 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
       clientTel:currentPortalClient?.telephone||currentPortalClient?.tel||null,
       orderLabel:label, successUrl, cancelUrl,
       // Données de commande pour pré-création Supabase (utilisées par create-checkout)
-      orderType:    extraParams?.orderType    || null,
-      heureRetrait: extraParams?.heureRetrait || null,
-      rewardId:     extraParams?.rewardId     || null,
-      rewardPts:    extraParams?.rewardPts    || 0,
-      rewardNom:    extraParams?.rewardNom    || null,
-      ptsACrediter: extraParams?.ptsACrediter || 0,
+      orderType:       extraParams?.orderType       || null,
+      heureRetrait:    extraParams?.heureRetrait    || null,
+      rewardId:        extraParams?.rewardId        || null,
+      rewardPts:       extraParams?.rewardPts       || 0,
+      rewardNom:       extraParams?.rewardNom       || null,
+      ptsACrediter:    extraParams?.ptsACrediter    || 0,
+      presence_token:  extraParams?.presence_token  || null,
     })
   });
   const data=await r.json();
@@ -2793,12 +2831,13 @@ async function stripePayOnline(){
     // Lire le pending context pour passer les données de commande à create-checkout
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
     const extraParams={
-      orderType:    pending?.activeOrder?.type  || null,
-      heureRetrait: pending?.activeOrder?.heure || null,
-      rewardId:     pending?.reward_id          || null,
-      rewardPts:    pending?.reward_pts         || 0,
-      rewardNom:    pending?.reward_nom         || null,
-      ptsACrediter: pending?.pts_a_crediter     || 0,
+      orderType:      pending?.activeOrder?.type  || null,
+      heureRetrait:   pending?.activeOrder?.heure || null,
+      rewardId:       pending?.reward_id          || null,
+      rewardPts:      pending?.reward_pts         || 0,
+      rewardNom:      pending?.reward_nom         || null,
+      ptsACrediter:   pending?.pts_a_crediter     || 0,
+      presence_token: pending?.presence_token     || null,
     };
     const {url, supabaseOrderId}=await callStripeEdgeFunction(ctx.orderId,amountCents,feeCents,ctx.levelKey,ctx.label,extraParams);
     // Stocker l'ID Supabase pré-créé dans le pending context pour handleStripeReturn
@@ -2865,7 +2904,7 @@ async function stripePayInPlace(){
     const _rIdNum=parseInt(pending.reward_id);
     if(pending.reward_id&&!isNaN(_rIdNum)&&_rIdNum>0){ orderPayload.reward_id=_rIdNum; }
     try{
-      const cmd=await createCommande(orderPayload);
+      const cmd=await createCommande(orderPayload, pending.presence_token||null);
       if(cmd&&cmd.id) supaId=cmd.id;
     }catch(e){ console.warn('stripePayInPlace createCommande:',e); }
     const effectiveIdInPlace=supaId||pending.orderId;
@@ -3522,6 +3561,16 @@ function renderOrderOptions(){
           ${slotsHtml}
         </div>
       `:''}
+      ${orderMode==='sur_place'?`
+        <div class="presence-input-wrap">
+          <div class="presence-input-label">🔑 Code de présence</div>
+          <input class="presence-input" id="presence-code-input" type="tel" inputmode="numeric"
+            maxlength="4" placeholder="····" autocomplete="off"
+            oninput="this.value=this.value.replace(/\D/g,'').slice(0,4);_presenceInputChanged()"
+          >
+          <div class="presence-msg" id="presence-msg"></div>
+        </div>
+      `:''}
       ${orderMode?`
         <button class="order-submit-btn" onclick="submitClientOrder()" ${submitDisabled?'disabled':''}>
           Envoyer ma commande →
@@ -3626,6 +3675,97 @@ async function _loadScheduleForSlots(){
   renderOrderOptions();
 }
 
+// ── Fonctions code de présence (client) ──────────────────────────────────────
+
+function _presenceInputChanged(){
+  const input=document.getElementById('presence-code-input');
+  const msg=document.getElementById('presence-msg');
+  if(!input||!msg) return;
+  input.classList.remove('error','ok');
+  msg.className='presence-msg';
+  msg.textContent='';
+  // Réinitialiser le token si le code change
+  if(_presenceToken) _presenceToken=null;
+}
+
+async function _verifyPresenceCode(){
+  // Retourne true si déjà validé
+  if(_presenceToken) return true;
+  const input=document.getElementById('presence-code-input');
+  const msg=document.getElementById('presence-msg');
+  if(!input||!msg) return false;
+  const code=input.value.trim();
+  if(code.length!==4){
+    input.classList.add('error');
+    msg.className='presence-msg err';
+    msg.textContent='Entrez le code à 4 chiffres affiché au comptoir';
+    return false;
+  }
+  const clientTel=currentPortalClient?.telephone||currentPortalClient?.tel||'';
+  try{
+    input.disabled=true;
+    const data=await callEdge('verify-presence-code',{code,client_tel:clientTel});
+    input.disabled=false;
+    if(data?.ok&&data?.presence_token){
+      _presenceToken=data.presence_token;
+      input.classList.add('ok');
+      msg.className='presence-msg ok';
+      msg.textContent='✓ Code validé';
+      return true;
+    }
+    throw new Error(data?.error||'Erreur');
+  }catch(e){
+    input.disabled=false;
+    input.classList.add('error');
+    msg.className='presence-msg err';
+    const errCode=e.message;
+    if(errCode.includes('expiré')){
+      msg.textContent='Ce code a expiré — demandez le nouveau code au comptoir';
+    } else if(errCode.includes('Trop de tentatives')){
+      msg.textContent='Trop de tentatives — réessayez dans 1 minute';
+    } else {
+      msg.textContent='Code incorrect — demandez le code au comptoir';
+    }
+    return false;
+  }
+}
+
+// ── Fonctions affichage code comptoir ────────────────────────────────────────
+
+async function loadCptPresenceCode(){
+  if(!empToken) return;
+  try{
+    const data=await callEdge('get-presence-code',{emp_token:empToken});
+    if(!data?.code) return;
+    const digits=document.getElementById('cpt-code-digits');
+    if(digits) digits.textContent=data.code.split('').join(' ');
+    _cptCodeExpiresAt=Date.now()+(data.expires_in*1000);
+    _startCptCodeCountdown();
+  }catch(e){
+    console.warn('loadCptPresenceCode:',e);
+    const digits=document.getElementById('cpt-code-digits');
+    if(digits) digits.textContent='—';
+  }
+}
+
+function _startCptCodeCountdown(){
+  if(_cptCodeInterval) clearInterval(_cptCodeInterval);
+  _cptCodeInterval=setInterval(()=>{
+    const cd=document.getElementById('cpt-code-countdown');
+    if(!cd) return;
+    const rem=Math.max(0,Math.floor((_cptCodeExpiresAt-Date.now())/1000));
+    if(rem<=0){
+      clearInterval(_cptCodeInterval);
+      _cptCodeInterval=null;
+      cd.innerHTML='<strong>Code en cours de changement…</strong>';
+      setTimeout(()=>loadCptPresenceCode(), 1500);
+      return;
+    }
+    const m=Math.floor(rem/60), s=rem%60;
+    cd.innerHTML=`Change dans <strong>${m > 0 ? m+'min ':''} ${String(s).padStart(2,'0')}s</strong>`;
+  },1000);
+}
+
 async function submitClientOrder(){
   if(!orderMode) return;
   if(!currentPortalClient){
@@ -3636,6 +3776,11 @@ async function submitClientOrder(){
   }
   if(orderMode==='click_collect'&&!selectedPickupTime){showToast('Choisissez une heure de retrait');return;}
   if(orderMode==='reservation'&&!selectedPickupTime){showToast("Choisissez votre heure d'arrivée");return;}
+  // ── Vérification code de présence pour les commandes sur place ────────────
+  if(orderMode==='sur_place'){
+    const ok=await _verifyPresenceCode();
+    if(!ok) return;
+  }
   const total=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
   const grouped={};
   cart.forEach((item,i)=>{
@@ -3694,8 +3839,10 @@ async function _doSubmitOrder(selectedReward){
   localStorage.setItem('kbb_client_orders',JSON.stringify(localOrders.slice(-100)));
 
   // ── Stocker le contexte complet pour handleStripeReturn ──
+  // presence_token inclus pour sur_place — transmis à create-checkout et create-commande
   localStorage.setItem('kbb_stripe_pending',JSON.stringify({
     orderId: localId, orderNum, label, grouped, total, levelKey, fee, clientTel, pts_a_crediter,
+    presence_token: _presenceToken||null,
     reward_id: selectedReward?.id||null,
     reward_pts: selectedReward?.points_requis||0,
     reward_nom: selectedReward?.nom||null,
@@ -3705,6 +3852,8 @@ async function _doSubmitOrder(selectedReward){
       heure:selectedPickupTime,items:itemsText,montant:total.toFixed(2),
       clientTel,expectedPts:pts_a_crediter,orderNum}
   }));
+  // Réinitialiser le token après usage (usage unique par commande)
+  _presenceToken=null;
 
   // Reset panier
   cart=[]; orderMode=null; orderTableNum=''; selectedPickupTime='';
@@ -5215,6 +5364,7 @@ function startComptoir(){
 
 function exitComptoir(){
   clearInterval(_cptRtInterval);clearInterval(_cptClockInterval);
+  if(_cptCodeInterval){clearInterval(_cptCodeInterval);_cptCodeInterval=null;}
   _cptRtInterval=null;_cptClockInterval=null;
   rtOff('cpt-orders');
   if(window._kioskMode) kioskDestroy();
@@ -5341,6 +5491,7 @@ function showCptTab(tab){
     document.getElementById('cpt-pts-results').innerHTML=
       '<div style="text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px;">Recherchez un client par nom ou numéro de téléphone</div>';
   }
+  if(tab==='code') loadCptPresenceCode();
 }
 
 let _cptPtsDebounce=null;
