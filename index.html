@@ -2810,8 +2810,8 @@ function stripeModalOpen(orderId, total, fee, levelKey, label){
   } else {
     feeZone.innerHTML='';
   }
-  // "Payer sur place" uniquement pour Or
-  document.getElementById('stripe-btn-inplace').style.display=levelKey==='or'?'':'none';
+  // "Payer sur place" masqué — sur_place ne passe plus par Stripe (paiement en caisse)
+  document.getElementById('stripe-btn-inplace').style.display='none';
   document.getElementById('stripe-overlay').style.display='flex';
 }
 
@@ -3835,40 +3835,92 @@ async function _doSubmitOrder(selectedReward){
   if(!ctx) return;
   const {total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,levelKey,fee,label}=ctx;
 
-  // ── Pas d'INSERT Supabase avant paiement ──
-  // La commande est créée en "en_attente" après confirmation Stripe dans handleStripeReturn.
-  // Cela évite tout problème de colonne manquante ou de statut invalide.
+  // Capturer avant reset — orderMode et presence_token sont nuls après
+  const isSurPlace = orderMode === 'sur_place';
+  const tok = _presenceToken;
+
   const localId='local_'+Date.now();
   const orderNum='#KBB-???';
 
   // Sauvegarde locale (historique client)
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
-  localOrders.push({id:localId,type:orderMode,items:itemsText,montant:total,statut:'en_attente',created_at:new Date().toISOString(),client_telephone:clientTel});
+  localOrders.push({id:localId,type:isSurPlace?'sur_place':orderMode,items:itemsText,montant:total,statut:'en_attente',created_at:new Date().toISOString(),client_telephone:clientTel});
   localStorage.setItem('kbb_client_orders',JSON.stringify(localOrders.slice(-100)));
 
-  // ── Stocker le contexte complet pour handleStripeReturn ──
-  // presence_token inclus pour sur_place — transmis à create-checkout et create-commande
+  // Reset panier (avant await pour éviter double-soumission)
+  _presenceToken=null;
+  cart=[]; orderMode=null; orderTableNum=''; selectedPickupTime='';
+  updateCartBar();
+
+  // ── Routage : Sur place → direct en cuisine, sinon Stripe ────────────────
+  if(isSurPlace){
+    await _submitSurPlaceDirect({
+      total, grouped, itemsArr, itemsText, clientTel, pts_a_crediter, label,
+      presenceToken: tok,
+      reward_id: selectedReward?.id||null,
+      reward_pts: selectedReward?.points_requis||0,
+      reward_nom: selectedReward?.nom||null,
+      localId,
+    });
+    return;
+  }
+
+  // ── Stocker le contexte complet pour handleStripeReturn (Stripe uniquement) ──
   localStorage.setItem('kbb_stripe_pending',JSON.stringify({
     orderId: localId, orderNum, label, grouped, total, levelKey, fee, clientTel, pts_a_crediter,
-    presence_token: _presenceToken||null,
+    presence_token: null, // sur_place n'atteint plus ce chemin
     reward_id: selectedReward?.id||null,
     reward_pts: selectedReward?.points_requis||0,
     reward_nom: selectedReward?.nom||null,
     reward_client_id: currentPortalClient?.id||null,
     clientData: currentPortalClient||null,
-    activeOrder:{supaId:null,statut:'en_attente',type:orderMode,tableNum:orderTableNum,
+    activeOrder:{supaId:null,statut:'en_attente',type:orderMode||'click_collect',tableNum:orderTableNum,
       heure:selectedPickupTime,items:itemsText,montant:total.toFixed(2),
       clientTel,expectedPts:pts_a_crediter,orderNum}
   }));
-  // Réinitialiser le token après usage (usage unique par commande)
-  _presenceToken=null;
 
-  // Reset panier
-  cart=[]; orderMode=null; orderTableNum=''; selectedPickupTime='';
-  updateCartBar();
-
-  // ── Routage paiement ──
   stripeModalOpen(localId, total, fee, levelKey, label);
+}
+
+// Finalise une commande sur place sans paiement Stripe.
+// Le paiement se fait en caisse à la remise — points crédités au "Remis au client".
+async function _submitSurPlaceDirect({total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,label,presenceToken,reward_id,reward_pts,reward_nom,localId}){
+  let supaId=null;
+  if(supaOk()){
+    const orderPayload={
+      type:'sur_place',
+      items:itemsText,
+      montant:total,
+      statut:'en_attente',
+      created_at:new Date().toISOString(),
+      client_telephone:clientTel||null,
+      heure_retrait:null,
+      pts_a_crediter:pts_a_crediter||0,
+    };
+    if(reward_nom) orderPayload.reward_nom=reward_nom;
+    if(reward_pts) orderPayload.reward_pts=parseInt(String(reward_pts))||0;
+    const rIdNum=parseInt(String(reward_id||0));
+    if(reward_id&&!isNaN(rIdNum)&&rIdNum>0) orderPayload.reward_id=rIdNum;
+
+    try{
+      const cmd=await createCommande(orderPayload, presenceToken||null);
+      if(cmd&&cmd.id) supaId=cmd.id;
+    }catch(e){
+      showToast('Erreur commande : '+e.message);
+      console.error('_submitSurPlaceDirect createCommande:',e);
+      return;
+    }
+    const effectiveId=supaId||localId;
+    try{ await insertTransaction({orderId:effectiveId,items:label||null,montantTTC:total,moyenPaiement:'en_caisse',refStripe:null}); }
+    catch(e){ console.error('_submitSurPlaceDirect insertTransaction:',e); }
+  }
+
+  const realNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):'#KBB-???';
+  setActiveOrder({supaId:supaId||null,statut:'en_attente',type:'sur_place',orderNum:realNum});
+  updateCommandesTile();
+  renderConfirmation(realNum, label, grouped, total);
+  go('page-confirmation');
+  setTimeout(()=>goToSuivi(), 2500);
 }
 
 function renderConfirmation(orderNum, label, grouped, total){
