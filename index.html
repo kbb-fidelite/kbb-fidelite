@@ -1811,6 +1811,10 @@ body{
     </button>
     <div class="hist-lbl">Historique</div>
     <div class="hist-list" id="portal-hist"></div>
+    <div id="push-notif-section" style="display:none;margin-bottom:.875rem;">
+      <button id="push-notif-btn" onclick="requestPushPermission()" style="width:100%;padding:.85rem 1.25rem;border-radius:var(--radius);border:1px solid var(--fire);background:var(--fire);color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;">🔔 Activer les notifications</button>
+      <div id="push-notif-hint" style="font-size:11px;color:var(--text3);text-align:center;margin-top:.4rem;">Soyez averti dès que votre commande est prête.</div>
+    </div>
     <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.25rem;">
       <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">Mes données &amp; confidentialité</div>
       <div class="rgpd-actions">
@@ -5071,25 +5075,72 @@ function _vapidKey(){
   return new Uint8Array([...atob(b64)].map(c=>c.charCodeAt(0)));
 }
 
+// Souscription silencieuse — uniquement si permission déjà accordée (pas de prompt)
 let _pushBusy=false;
 async function subscribeToPush(tel){
   if(!tel||_pushBusy) return;
   if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  if(Notification.permission!=='granted') return; // ne pas demander automatiquement
   _pushBusy=true;
   try{
     const reg=await navigator.serviceWorker.ready;
     let sub=await reg.pushManager.getSubscription();
-    if(!sub){
-      if(Notification.permission==='denied') return;
-      if(Notification.permission!=='granted'){
-        const p=await Notification.requestPermission();
-        if(p!=='granted') return;
-      }
-      sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_vapidKey()});
-    }
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_vapidKey()});
     await callEdge('save-push-subscription',{client_tel:tel,subscription:sub.toJSON()});
   }catch(e){console.warn('subscribeToPush:',e);}
   finally{_pushBusy=false;}
+}
+
+// Demande de permission déclenchée par l'utilisateur (bouton)
+async function requestPushPermission(){
+  const tel=currentPortalClient?.telephone||currentPortalClient?.tel;
+  if(!tel||_pushBusy) return;
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  _pushBusy=true;
+  try{
+    const perm=Notification.permission==='granted'?'granted':await Notification.requestPermission();
+    if(perm!=='granted'){updatePushBtnState();return;}
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_vapidKey()});
+    await callEdge('save-push-subscription',{client_tel:tel,subscription:sub.toJSON()});
+    showToast('Notifications activées !');
+    updatePushBtnState();
+  }catch(e){
+    console.warn('requestPushPermission:',e);
+    showToast('Impossible d\'activer les notifications');
+  }finally{_pushBusy=false;}
+}
+
+// Met à jour le bouton de la page profil selon l'état courant
+function updatePushBtnState(){
+  const section=document.getElementById('push-notif-section');
+  const btn=document.getElementById('push-notif-btn');
+  const hint=document.getElementById('push-notif-hint');
+  if(!section||!btn) return;
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){section.style.display='none';return;}
+  section.style.display='block';
+  const perm=Notification.permission;
+  if(perm==='denied'){
+    btn.textContent='🔕 Notifications bloquées';
+    btn.disabled=true;
+    btn.style.cssText='width:100%;padding:.85rem 1.25rem;border-radius:var(--radius);border:1px solid #444;background:#1a1a1a;color:#666;font-family:var(--font);font-size:14px;font-weight:700;cursor:not-allowed;';
+    if(hint) hint.textContent='Autorisez les notifications dans les réglages de votre appareil.';
+  } else {
+    navigator.serviceWorker.ready.then(r=>r.pushManager.getSubscription()).then(sub=>{
+      if(sub){
+        btn.textContent='✅ Notifications activées';
+        btn.disabled=true;
+        btn.style.cssText='width:100%;padding:.85rem 1.25rem;border-radius:var(--radius);border:1px solid #2d6a3f;background:#1a3d2b;color:#6fcf97;font-family:var(--font);font-size:14px;font-weight:700;cursor:default;';
+        if(hint) hint.textContent='Vous serez averti dès que votre commande est prête.';
+      } else {
+        btn.textContent='🔔 Activer les notifications';
+        btn.disabled=false;
+        btn.style.cssText='width:100%;padding:.85rem 1.25rem;border-radius:var(--radius);border:1px solid var(--fire);background:var(--fire);color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;';
+        if(hint) hint.textContent='Soyez averti dès que votre commande est prête.';
+      }
+    }).catch(()=>{});
+  }
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -5097,8 +5148,10 @@ function renderPortal(c){
   currentPortalClient=c;
   // Rafraîchir la session à chaque rendu (localStorage + cookie + IDB)
   saveSession(c);
-  // Souscrire aux notifications push (silencieux — demande permission si absent)
+  // Reconnect push subscription si permission déjà accordée
   subscribeToPush(c.telephone||c.tel).catch(()=>{});
+  // Mettre à jour l'état du bouton notifications
+  setTimeout(updatePushBtnState, 0);
   // Persister en local DB pour que l'auto-login fonctionne hors-ligne
   try{
     const tel=c.telephone||c.tel;
