@@ -77,31 +77,6 @@ async function hkdfExpand(prk: CryptoKey, info: Uint8Array, length: number): Pro
   return result;
 }
 
-// ── DER → raw P1363 signature (r‖s, 64 bytes) ────────────────────────────────
-
-function derToRaw(der: Uint8Array): Uint8Array {
-  let pos = 0;
-  if (der[pos++] !== 0x30) throw new Error('DER: expected SEQUENCE');
-  pos++; // sequence length (single byte, < 128 for P-256)
-
-  if (der[pos++] !== 0x02) throw new Error('DER: expected INTEGER r');
-  const rLen = der[pos++];
-  let r = der.slice(pos, pos + rLen); pos += rLen;
-
-  if (der[pos++] !== 0x02) throw new Error('DER: expected INTEGER s');
-  const sLen = der[pos++];
-  let s = der.slice(pos, pos + sLen);
-
-  // Strip leading 0x00 padding bytes added when high bit would be set
-  while (r.length > 32 && r[0] === 0) r = r.slice(1);
-  while (s.length > 32 && s[0] === 0) s = s.slice(1);
-
-  const raw = new Uint8Array(64);
-  raw.set(r, 32 - r.length);
-  raw.set(s, 64 - s.length);
-  return raw;
-}
-
 // ── VAPID JWT (ES256) ─────────────────────────────────────────────────────────
 
 async function buildVapidJwt(endpoint: string): Promise<{ jwt: string; pubKey: string }> {
@@ -136,10 +111,10 @@ async function buildVapidJwt(endpoint: string): Promise<{ jwt: string; pubKey: s
   })));
 
   const sigInput = new TextEncoder().encode(`${header}.${payload}`);
-  const sigDer   = new Uint8Array(await crypto.subtle.sign(
+  // Web Crypto retourne ECDSA en IEEE P1363 (r‖s, 64 octets) — pas en DER
+  const sig = await crypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' }, privKey, sigInput
-  ));
-  const sig = derToRaw(sigDer);
+  );
 
   return { jwt: `${header}.${payload}.${b64uEncode(sig)}`, pubKey: vapidPub };
 }
