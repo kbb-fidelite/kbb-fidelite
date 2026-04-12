@@ -1426,8 +1426,8 @@ body{
         <path d="M29 18C29 18 38 28 38 39C38 51 34 59 26 63C22 59 18 53 18 43C18 35 23 27 29 18Z" fill="#FF9A6C" opacity=".75"/>
         <path d="M29 34C29 34 33 40 33 49C33 57 31 63 29 67C27 63 25 57 25 49C25 40 29 34 29 34Z" fill="#FFB830" opacity=".9"/>
       </svg>
-      <div class="home-landing-logo">KBB À LA BRAISE</div>
-      <div class="home-landing-sub">Braisé artisanalement à Dole</div>
+      <div class="home-landing-logo">Kebab au feu de bois, à Dole.</div>
+      <div class="home-landing-sub">4,8/5 · 110 avis · Cuisson au feu depuis le premier jour.</div>
     </div>
   </div>
   <!-- Boutons sous la photo -->
@@ -1506,7 +1506,7 @@ body{
       <span class="kbb-ember" style="--x:91%;--delay:2.2s;--dur:2.1s;--drift:-6px;--sz:3px;--col:#FFD040" aria-hidden="true"></span>
       <span class="dash-cmd-ico">🥙</span>
       <div class="dash-cmd-text">
-        <div class="dash-cmd-title">Commander maintenant</div>
+        <div class="dash-cmd-title">Commander au feu de bois 🔥</div>
         <div class="dash-cmd-sub">Voir notre carte complète</div>
       </div>
       <span class="dash-cmd-arrow">›</span>
@@ -1576,19 +1576,19 @@ body{
         <div class="flvl-card bronze" id="flvl-bronze">
           <div class="flvl-emoji">🥉</div>
           <div class="flvl-name">Bronze</div>
-          <div class="flvl-desc">Niveau débutant</div>
+          <div class="flvl-desc">Premiers avantages débloqués</div>
           <div class="flvl-range">0 – 199 pts</div>
         </div>
         <div class="flvl-card argent" id="flvl-argent">
           <div class="flvl-emoji">⭐</div>
           <div class="flvl-name">Argent</div>
-          <div class="flvl-desc">Niveau intermédiaire</div>
+          <div class="flvl-desc">Membre privilégié</div>
           <div class="flvl-range">200 – 499 pts</div>
         </div>
         <div class="flvl-card or" id="flvl-or">
           <div class="flvl-emoji">👑</div>
           <div class="flvl-name">Or</div>
-          <div class="flvl-desc">Top clients</div>
+          <div class="flvl-desc">Client VIP — avantages exclusifs</div>
           <div class="flvl-range">500+ pts</div>
         </div>
       </div>
@@ -2703,16 +2703,16 @@ async function refreshDashStatus(){
   if(currentSvc){
     dotEl.className='dash-status-dot open';
     labelEl.textContent='Ouvert';
-    hoursEl.textContent='Jusqu\'à '+fmt(currentSvc.close);
+    hoursEl.textContent='Jusqu\'à '+fmt(currentSvc.close)+' ce soir.';
   } else {
     dotEl.className='dash-status-dot closed';
     labelEl.textContent='Fermé';
     const nextSvc=services.find(s=>nowMin<toMin(s.open));
     if(nextSvc){
-      hoursEl.textContent='Ouvre à '+fmt(nextSvc.open);
+      hoursEl.textContent='Réouverture ce soir à '+fmt(nextSvc.open)+'.';
     } else {
       const n=findNextDay();
-      hoursEl.textContent=n?'Ouvre '+n.day+' à '+fmt(n.open):'';
+      hoursEl.textContent=n?'Réouverture demain à '+fmt(n.open)+'.':'';
     }
   }
 }
@@ -5116,13 +5116,13 @@ function renderPortal(c){
 
   // Sub-text (portal + dashboard)
   const subHtml=nextR
-    ?`Plus que <span class="hl">${nextR.pts-pts} pts</span> pour : <span class="hl">${nextR.icon} ${nextR.name}</span>`
+    ?`Encore <span class="hl">${nextR.pts-pts} pts</span> pour votre prochaine récompense.`
     :rewards.length?`<span class="hl">🎉 Toutes les récompenses débloquées !</span>`:'';
   const portalSub=document.getElementById('portal-cag-sub');
   if(portalSub) portalSub.innerHTML=subHtml;
   const dashSub=document.getElementById('dash-cag-sub');
   if(dashSub){
-    if(nextR) dashSub.innerHTML=`Encore <strong style="color:#FF6B1A">${nextR.pts-pts} pts</strong> pour ${nextR.icon} ${nextR.name}`;
+    if(nextR) dashSub.innerHTML=`Encore <strong style="color:#FF6B1A">${nextR.pts-pts} pts</strong> pour votre prochaine récompense.`;
     else if(rewards.length) dashSub.textContent='🎉 Toutes les récompenses débloquées !';
     else dashSub.textContent='';
   }
