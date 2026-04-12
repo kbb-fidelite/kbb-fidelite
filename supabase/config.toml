@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.credit-referral-bonus]
 verify_jwt = false
+
+[functions.save-push-subscription]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
