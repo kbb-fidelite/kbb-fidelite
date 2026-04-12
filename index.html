@@ -1434,13 +1434,12 @@ body{
 
 <!-- HOME (non connecté) -->
 <div class="page active" id="page-home">
-  <button class="home-emp-link" onclick="go('page-pin')" title="Espace employé">🔐</button>
   <div class="home-landing">
     <!-- Photo broche avec Ken Burns -->
     <div class="home-landing-bg"></div>
     <div class="home-landing-overlay"></div>
     <!-- Contenu centré sur la photo -->
-    <div class="home-landing-top">
+    <div class="home-landing-top" onclick="_empSecretTap()" style="cursor:default;-webkit-tap-highlight-color:transparent;">
       <svg class="home-landing-fire" width="44" height="56" viewBox="0 0 58 72" fill="none">
         <path d="M29 2C29 2 42 17 42 30C42 38 37 43 33 45C35 38 33 31 29 27C29 27 25 35 19 37C15 39 13 35 13 29C13 18 21 9 29 2Z" fill="#FF6B2B" opacity=".95"/>
         <path d="M29 18C29 18 38 28 38 39C38 51 34 59 26 63C22 59 18 53 18 43C18 35 23 27 29 18Z" fill="#FF9A6C" opacity=".75"/>
@@ -1477,11 +1476,9 @@ body{
   <div class="dash-hero">
     <div class="dash-hero-bg"></div>
     <div class="dash-hero-overlay"></div>
-    <div class="dash-hero-topbar">
-      <button onclick="go('page-pin')" class="dash-icon-btn" title="Espace employé">⚙️</button>
-    </div>
+    <div class="dash-hero-topbar"></div>
     <div class="dash-hero-bottom">
-      <div class="dash-hero-brand">KBB 🔥</div>
+      <div class="dash-hero-brand" onclick="_empSecretTap()" style="-webkit-tap-highlight-color:transparent;">KBB 🔥</div>
       <div class="dash-hero-hello">Bonjour, <span id="dash-prenom">…</span> 👋</div>
       <div class="dash-hero-sub">Prêt à savourer ?</div>
     </div>
@@ -2390,6 +2387,15 @@ let pinVal = '';
 let empRole = 'employe'; // 'employe' or 'patron'
 let empClient = null;
 let useToggle = false;
+
+/* ══ ACCÈS CACHÉ EMPLOYÉ — 5 taps rapides sur le logo KBB ══ */
+let _eTaps=0,_eTapT=null;
+function _empSecretTap(){
+  _eTaps++;
+  if(_eTapT) clearTimeout(_eTapT);
+  _eTapT=setTimeout(()=>{ _eTaps=0; },1500);
+  if(_eTaps>=5){ _eTaps=0; clearTimeout(_eTapT); go('page-pin'); }
+}
 
 /* ══ SETTINGS ══ */
 function getSettings(){
