@@ -107,24 +107,30 @@ Deno.serve(async (req) => {
 
     // ── 5. Push notification si statut → en_cours ou pret ────────────────
     const newStatut = safe.statut as string | undefined;
-    if ((newStatut === 'en_cours' || newStatut === 'pret') && updated?.telephone) {
+    const clientTel = updated?.client_telephone as string | undefined; // champ réel de la table commandes
+    console.log(`update-commande: statut=${newStatut ?? '(non modifié)'} client_telephone=${clientTel ?? '(absent)'}`);
+    if ((newStatut === 'en_cours' || newStatut === 'pret') && clientTel) {
       const notifMap: Record<string, { title: string; body: string }> = {
         en_cours: { title: '🔥 KBB à la braise', body: 'Votre commande est en cours de préparation !' },
         pret:     { title: '✅ KBB à la braise', body: 'Votre commande est prête — venez la récupérer !' },
       };
       const notif = notifMap[newStatut];
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      console.log(`update-commande: déclenchement push → send-push-notification pour tel=...${clientTel.slice(-4)}`);
       // Fire-and-forget — on ne bloque pas la réponse sur le résultat du push
       fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_tel:      updated.telephone,
+          client_tel:      clientTel,
           title:           notif.title,
           body:            notif.body,
           internal_secret: Deno.env.get('EMP_TOKEN_SECRET') ?? 'kbb-default-secret-change-me',
         }),
-      }).catch(e => console.warn('update-commande: push notification échouée (non bloquant):', e));
+      }).then(r => r.json()).then(j => console.log('update-commande: push result:', JSON.stringify(j)))
+        .catch(e => console.warn('update-commande: push notification échouée (non bloquant):', e));
+    } else if (newStatut === 'en_cours' || newStatut === 'pret') {
+      console.warn(`update-commande: push ignoré — client_telephone absent de la commande ${id}`);
     }
 
     return new Response(
