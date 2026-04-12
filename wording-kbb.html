@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wording KBB — Propositions</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e8e0d5; min-height: 100vh; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 22px; font-weight: 700; color: #FFD040; margin-bottom: 4px; letter-spacing: .5px; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 2.5rem; }
+  .section { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; padding: .9rem 1.1rem; background: #1f1f1f; border-bottom: 1px solid #2a2a2a; }
+  .section-title { font-size: 14px; font-weight: 600; color: #FFB830; letter-spacing: .3px; }
+  .copy-btn { background: #2a2a2a; border: 1px solid #3a3a3a; color: #ccc; font-size: 12px; padding: .35rem .75rem; border-radius: 6px; cursor: pointer; transition: background .15s, color .15s; white-space: nowrap; }
+  .copy-btn:hover { background: #FFB830; color: #000; border-color: #FFB830; }
+  .copy-btn.copied { background: #2d6a3f; color: #6fcf97; border-color: #2d6a3f; }
+  .section-body { padding: 1rem 1.1rem; }
+  .item { margin-bottom: 1.1rem; }
+  .item:last-child { margin-bottom: 0; }
+  .item-label { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: #666; margin-bottom: .4rem; }
+  .variants { display: flex; flex-direction: column; gap: 6px; }
+  .variant { background: #111; border: 1px solid #222; border-radius: 8px; padding: .6rem .85rem; font-size: 14px; color: #ddd; line-height: 1.5; }
+  .variant span { display: block; }
+  .variant span + span { margin-top: 2px; color: #999; font-size: 13px; }
+  .divider { height: 1px; background: #222; margin: 1rem 0; }
+  hr.sep { border: none; border-top: 1px solid #222; margin: 1.2rem 0; }
+</style>
+</head>
+<body>
+
+<h1>Wording KBB à la braise</h1>
+<p class="subtitle">Propositions copywriting — 2 variantes par élément · Cliquez "Copier" pour chaque section</p>
+
+<!-- ══ ACCUEIL ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">🏠 Écran d'accueil</span>
+    <button class="copy-btn" onclick="copySection('s-accueil', this)">Copier</button>
+  </div>
+  <div class="section-body" id="s-accueil">
+    <div class="item">
+      <div class="item-label">Titre principal</div>
+      <div class="variants">
+        <div class="variant">Kebab au feu de bois, à Dole.</div>
+        <div class="variant">Le vrai kebab grillé au feu de bois.</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Sous-texte</div>
+      <div class="variants">
+        <div class="variant">4,8/5 · 110 avis · Cuisson au feu depuis le premier jour.</div>
+        <div class="variant">Noté 4,8/5 par vos voisins dolois.</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Bouton principal (CTA)</div>
+      <div class="variants">
+        <div class="variant">Commander maintenant</div>
+        <div class="variant">Voir la carte</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Bloc fidélité</div>
+      <div class="variants">
+        <div class="variant">Chaque commande rapporte des points.</div>
+        <div class="variant">1 € dépensé = 1 point. Récompenses dès 50 points.</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Statuts fidélité</div>
+      <div class="variants">
+        <div class="variant">Bronze → Argent → Or</div>
+        <div class="variant">Débutant → Régulier → Fidèle</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Message horaires</div>
+      <div class="variants">
+        <div class="variant">Ouvert jusqu'à 22h30 ce soir.</div>
+        <div class="variant">Fermé · Réouverture demain à 11h30.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE CARTE ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">🥙 Page carte</span>
+    <button class="copy-btn" onclick="copySection('s-carte', this)">Copier</button>
+  </div>
+  <div class="section-body" id="s-carte">
+    <div class="item">
+      <div class="item-label">Titre de page</div>
+      <div class="variants">
+        <div class="variant">Notre carte</div>
+        <div class="variant">Ce qu'on prépare</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Catégories</div>
+      <div class="variants">
+        <div class="variant">Kebabs · Sandwichs · Menus · Desserts · Boissons</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Descriptions produits</div>
+      <div class="variants">
+        <div class="variant"><strong>Le Classique</strong> — Viande grillée, crudités, sauce maison. Le bestseller.</div>
+        <div class="variant"><strong>Le Grec</strong> — Agneau, feta, tomate, oignon rouge.</div>
+        <div class="variant"><strong>Le Burrata</strong> — Viande, burrata fraîche, basilic, tomate.</div>
+        <div class="variant"><strong>Menu Junior</strong> — Sandwich + frite + boisson. Pour les moins fatigués.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PARCOURS COMMANDE ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">🛒 Parcours commande</span>
+    <button class="copy-btn" onclick="copySection('s-commande', this)">Copier</button>
+  </div>
+  <div class="section-body" id="s-commande">
+    <div class="item">
+      <div class="item-label">Message d'ajout au panier</div>
+      <div class="variants">
+        <div class="variant">Ajouté. Continuer ou passer commande ?</div>
+        <div class="variant">C'est dans votre panier.</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Upsell frites</div>
+      <div class="variants">
+        <div class="variant">Ajouter des frites ? 2,50 €.</div>
+        <div class="variant">Et des frites pour compléter ?</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Upsell boisson</div>
+      <div class="variants">
+        <div class="variant">Une boisson avec ça ? Dès 1,50 €.</div>
+        <div class="variant">Boisson à ajouter ?</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Upsell menu</div>
+      <div class="variants">
+        <div class="variant">Passer en menu : +3,50 € (frite + boisson).</div>
+        <div class="variant">En menu pour 3,50 € de plus ?</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FIDÉLITÉ ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">⭐ Fidélité</span>
+    <button class="copy-btn" onclick="copySection('s-fidelite', this)">Copier</button>
+  </div>
+  <div class="section-body" id="s-fidelite">
+    <div class="item">
+      <div class="item-label">Titre</div>
+      <div class="variants">
+        <div class="variant">Vos points fidélité</div>
+        <div class="variant">Programme fidélité KBB</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Accroche</div>
+      <div class="variants">
+        <div class="variant">Chaque commande compte. Les points s'accumulent automatiquement.</div>
+        <div class="variant">Commandez, cumulez, profitez.</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Niveaux</div>
+      <div class="variants">
+        <div class="variant">Bronze : vous démarrez.</div>
+        <div class="variant">Argent : vous revenez souvent.</div>
+        <div class="variant">Or : vous faites partie des meilleurs clients.</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Récompenses</div>
+      <div class="variants">
+        <div class="variant">
+          50 pts &nbsp;→ Boisson offerte<br>
+          80 pts &nbsp;→ Dessert offert<br>
+          150 pts → Kebab classique offert<br>
+          200 pts → Menu complet offert
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PARRAINAGE ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">🤝 Parrainage</span>
+    <button class="copy-btn" onclick="copySection('s-parrainage', this)">Copier</button>
+  </div>
+  <div class="section-body" id="s-parrainage">
+    <div class="item">
+      <div class="item-label">Titre</div>
+      <div class="variants">
+        <div class="variant">Parrainez un ami</div>
+        <div class="variant">Invitez, gagnez tous les deux</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Texte explicatif</div>
+      <div class="variants">
+        <div class="variant">Partagez votre code. Votre ami gagne 20 pts à sa première commande. Vous gagnez 15 pts.</div>
+        <div class="variant">Un ami s'inscrit avec votre code → 20 pts pour lui, 15 pts pour vous. Dès sa première commande de 8 €.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NOTIFICATIONS ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">🔔 Notifications push</span>
+    <button class="copy-btn" onclick="copySection('s-notifs', this)">Copier</button>
+  </div>
+  <div class="section-body" id="s-notifs">
+    <div class="item">
+      <div class="item-label">Relance client inactif</div>
+      <div class="variants">
+        <div class="variant">Ça fait un moment. La braise est prête, revenez quand vous voulez.</div>
+        <div class="variant">Votre table vous manque. On est ouverts ce soir.</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Heures creuses</div>
+      <div class="variants">
+        <div class="variant">Moins d'attente en ce moment. Commandez maintenant.</div>
+        <div class="variant">Service rapide garanti avant 12h30.</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Progression fidélité</div>
+      <div class="variants">
+        <div class="variant">Plus que 15 points pour votre prochain dessert offert.</div>
+        <div class="variant">Vous êtes à 10 points du niveau Argent.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIRMATION ══ -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">✅ Confirmation commande</span>
+    <button class="copy-btn" onclick="copySection('s-confirmation', this)">Copier</button>
+  </div>
+  <div class="section-body" id="s-confirmation">
+    <div class="item">
+      <div class="item-label">Message principal</div>
+      <div class="variants">
+        <div class="variant">Commande reçue. On s'en occupe maintenant.</div>
+        <div class="variant">C'est lancé. Votre commande est en préparation.</div>
+      </div>
+    </div>
+    <hr class="sep">
+    <div class="item">
+      <div class="item-label">Sous-texte</div>
+      <div class="variants">
+        <div class="variant">Vous recevrez un signal dès que c'est prêt.</div>
+        <div class="variant">Restez dans les parages, ça ne prend pas longtemps.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function copySection(id, btn) {
+  const el = document.getElementById(id);
+  const lines = [];
+  el.querySelectorAll('.item').forEach(item => {
+    const label = item.querySelector('.item-label');
+    if (label) lines.push(label.textContent.trim().toUpperCase());
+    item.querySelectorAll('.variant').forEach(v => {
+      lines.push(v.innerText.trim().replace(/\n+/g, ' · '));
+    });
+    lines.push('');
+  });
+  const text = lines.join('\n').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copié !';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ Copié !';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+</script>
+</body>
+</html>
