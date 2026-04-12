@@ -1432,7 +1432,7 @@ body{
   </div>
   <!-- Boutons sous la photo -->
   <div class="home-hero-actions">
-    <button class="home-landing-btn primary" onclick="go('page-qr')">
+    <button class="home-landing-btn primary" onclick="go('page-register')">
       <span class="kbb-ember" style="--x:18%;--delay:.2s;--dur:2.0s;--drift:-8px;--sz:3px;--col:#FFB830" aria-hidden="true"></span>
       <span class="kbb-ember" style="--x:38%;--delay:.8s;--dur:1.8s;--drift:7px;--sz:2px;--col:#FFD040" aria-hidden="true"></span>
       <span class="kbb-ember" style="--x:60%;--delay:.4s;--dur:2.1s;--drift:-5px;--sz:4px;--col:#FF9A30" aria-hidden="true"></span>
@@ -1635,7 +1635,7 @@ body{
 
 <!-- REGISTER -->
 <div class="page" id="page-register">
-  <div class="topbar"><button class="tbback" onclick="go('page-qr')">←</button><div class="tbtitle">Créer mon compte</div></div>
+  <div class="topbar"><button class="tbback" onclick="go('page-home')">←</button><div class="tbtitle">Créer mon compte</div></div>
   <div class="wrap">
     <div class="info-box">
       <span style="font-size:18px;flex-shrink:0">🔥</span>
@@ -1667,8 +1667,8 @@ body{
         <input type="tel" id="cs-tel" placeholder="06 12 34 56 78" autocomplete="tel" inputmode="tel">
       </div>
       <div class="field">
-        <label>Code secret <span style="font-weight:400;color:var(--text3);font-size:12px;">(facultatif)</span></label>
-        <input type="password" id="cs-code" placeholder="Laisser vide si vous n'en avez pas" autocomplete="current-password">
+        <label>Code PIN</label>
+        <input type="password" id="cs-code" placeholder="Ex : 1234" autocomplete="current-password">
       </div>
       <button class="abtn" onclick="loginWithCodeSecret()">Accéder à mes points →</button>
       <p style="font-size:12px;color:var(--text3);text-align:center;margin-top:1rem;line-height:1.6;">
