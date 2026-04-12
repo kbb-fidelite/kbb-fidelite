@@ -4667,31 +4667,28 @@ async function verifierParrainageFilleul(client, montant){
 }
 
 /* ── Traitement des parrainages reportés (appelé à l'ouverture de la page parrainage) ── */
+// Délègue 100% côté serveur via l'Edge Function credit-referral-bonus.
+// Le client n'envoie que son numéro de téléphone — aucun montant n'est imposé.
 async function processerParrainagesReportes(client){
   try{
-    const recs=await dbGetParrainages(String(client.id));
-    const moisCourant=getParrainageMonth();
-    const aTraiter=recs.filter(r=>r.status==='reporte'&&r.pts_filleul_verse===true&&r.pts_parrain_verse===false&&r.mois!==moisCourant);
-    if(!aTraiter.length) return 0;
-    let totalPts=0;
-    const ds=fmtDateParr(new Date().toISOString());
-    for(const r of aTraiter){
-      await dbUpdateParrainage(r.id,{status:'valide',pts_parrain_verse:true});
-      totalPts+=r.pts_parrain||15;
-    }
-    if(totalPts>0){
-      const newPts=(parseFloat(client.cagnotte)||0)+totalPts;
-      await dbUpdate(client.id,{cagnotte:newPts});
-      const ldb=lLoad();const li=ldb.findIndex(x=>x.id===client.id);
+    if(!supaOk()) return 0;
+    const tel=client.telephone||client.tel;
+    if(!tel) return 0;
+    const result=await callEdge('credit-referral-bonus',{client_tel:tel});
+    if(result.ok && result.pts_credites>0){
+      // Mettre à jour le cache local avec la valeur retournée par le serveur
+      client.cagnotte=result.nouveau_solde;
+      const ldb=lLoad();const li=ldb.findIndex(x=>x.id===client.id||x.telephone===tel||x.tel===tel);
       if(li>=0){
-        ldb[li].cagnotte=newPts;
+        ldb[li].cagnotte=result.nouveau_solde;
         ldb[li].history=ldb[li].history||[];
-        ldb[li].history.push({type:'g',label:`🎉 ${aTraiter.length} parrainage${aTraiter.length>1?'s':''} reporté${aTraiter.length>1?'s':''} crédité${aTraiter.length>1?'s':''}`,amount:`+${totalPts} pts`,date:ds});
+        const ds=fmtDateParr(new Date().toISOString());
+        ldb[li].history.push({type:'g',label:`🎉 ${result.nb_parrainages} parrainage${result.nb_parrainages>1?'s':''} reporté${result.nb_parrainages>1?'s':''} crédité${result.nb_parrainages>1?'s':''}`,amount:`+${result.pts_credites} pts`,date:ds});
         lSave(ldb);
       }
-      showToast(`🎉 +${totalPts} pts de parrainage crédités ce mois !`);
+      showToast(`🎉 +${result.pts_credites} pts de parrainage crédités ce mois !`);
     }
-    return aTraiter.length;
+    return result.nb_parrainages||0;
   }catch(e){console.error('processerParrainagesReportes:',e);return 0;}
 }
 

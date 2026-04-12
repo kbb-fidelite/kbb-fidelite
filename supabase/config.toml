@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.get-presence-code]
 verify_jwt = false
+
+[functions.credit-referral-bonus]
+verify_jwt = false
