@@ -1,4 +1,4 @@
-const VERSION = 'kbb-v147';
+const VERSION = 'kbb-v148';
 const CACHE = VERSION;
 
 // Fichiers critiques — l'app ne fonctionne pas sans eux
@@ -60,4 +60,29 @@ self.addEventListener('fetch', e => {
 
 self.addEventListener('message', e => {
   if (e.data === 'skipWaiting') self.skipWaiting();
+});
+
+self.addEventListener('push', e => {
+  let data = { title: 'KBB à la braise', body: 'Nouvelle notification' };
+  try { if (e.data) data = e.data.json(); } catch {}
+
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:  data.body,
+      icon:  data.icon  || './icon-kbb.png',
+      badge: data.badge || './icon-kbb.png',
+    })
+  );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes(self.location.origin) && 'focus' in c) return c.focus();
+      }
+      if (clients.openWindow) return clients.openWindow('./');
+    })
+  );
 });

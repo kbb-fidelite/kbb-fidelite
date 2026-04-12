@@ -3,6 +3,8 @@
 // Requiert un token employé valide (n'importe quel rôle).
 // Utilise SUPABASE_SERVICE_ROLE_KEY pour bypasser les RLS.
 //
+// Déclenche automatiquement une notification Web Push quand statut → en_cours ou pret.
+//
 // Secrets requis : EMP_TOKEN_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (auto-injectés)
 // Déploiement : supabase functions deploy update-commande
 
@@ -102,6 +104,29 @@ Deno.serve(async (req) => {
     if (error) throw new Error('Supabase commandes update: ' + error.message);
 
     console.log('update-commande: commande', id, 'mise à jour par', payload.role, '—', JSON.stringify(safe));
+
+    // ── 5. Push notification si statut → en_cours ou pret ────────────────
+    const newStatut = safe.statut as string | undefined;
+    if ((newStatut === 'en_cours' || newStatut === 'pret') && updated?.telephone) {
+      const notifMap: Record<string, { title: string; body: string }> = {
+        en_cours: { title: '🔥 KBB à la braise', body: 'Votre commande est en cours de préparation !' },
+        pret:     { title: '✅ KBB à la braise', body: 'Votre commande est prête — venez la récupérer !' },
+      };
+      const notif = notifMap[newStatut];
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      // Fire-and-forget — on ne bloque pas la réponse sur le résultat du push
+      fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_tel:      updated.telephone,
+          title:           notif.title,
+          body:            notif.body,
+          internal_secret: Deno.env.get('EMP_TOKEN_SECRET') ?? 'kbb-default-secret-change-me',
+        }),
+      }).catch(e => console.warn('update-commande: push notification échouée (non bloquant):', e));
+    }
+
     return new Response(
       JSON.stringify({ ok: true, commande: updated }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
