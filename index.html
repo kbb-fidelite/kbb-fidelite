@@ -3823,6 +3823,7 @@ function renderOrderOptions(){
             maxlength="4" placeholder="····" autocomplete="off"
             oninput="this.value=this.value.replace(/\D/g,'').slice(0,4);_presenceInputChanged()"
           >
+          <div style="font-size:11px;color:var(--text3);margin-top:.4rem;">📍 Demandez votre code au comptoir — il change toutes les 15 minutes</div>
           <div class="presence-msg" id="presence-msg"></div>
         </div>
       `:''}
@@ -4270,25 +4271,44 @@ async function registerClient(){
   if(code.length<4){showToast('Code secret : 4 caractères minimum');return;}
   try{
     const exist=await dbByTel(tel);
-    if(exist){showToast('Ce numéro est déjà inscrit');return;}
+    if(exist){showToast('Vous avez déjà un compte — connectez-vous directement');return;}
     const payload={prenom,nom,telephone:tel,code_secret:code,cagnotte:0,points:0};
     if(ddn) payload.date_naissance=ddn;
-    const saved=await dbCreate(payload);
+    let saved;
+    try{
+      saved=await dbCreate(payload);
+    }catch(createErr){
+      // Doublon Supabase (23505) : le compte existe déjà malgré la vérification
+      const msg=String(createErr?.message||'');
+      if(msg.includes('23505')||msg.includes('duplicate')||msg.includes('unique')||msg.includes('déjà')){
+        showToast('Vous avez déjà un compte — connectez-vous directement');
+      } else {
+        showToast('Erreur lors de la création du compte — réessayez');
+        console.error('Erreur inscription dbCreate:',createErr);
+      }
+      return;
+    }
     const newClient={id:saved.id||'c'+Date.now(),prenom,nom,telephone:tel,tel,code_secret:code,date_naissance:ddn,cagnotte:0,passages:0,history:[],derniere_visite:new Date().toISOString()};
     const ldb=lLoad();
     if(!ldb.find(x=>x.telephone===tel||x.tel===tel)){
       ldb.push(newClient);
       lSave(ldb);
     }
+    // Activer le parrainage indépendamment — ne doit pas bloquer la connexion
     if(parrainTel && parrainTel.replace(/\s/g,'')!==tel){
-      await activerParrainage(newClient, parrainTel.replace(/\s/g,''));
-      showOv('🎉','Bienvenue !',`Compte créé, ${prenom} !\n\n🤝 Code parrain validé ! +20 pts t'attendent dès ta 1ère commande de 8€.\n\n1€ dépensé = 1 point — cumulez vos points pour débloquer des récompenses !`);
+      try{ await activerParrainage(newClient, parrainTel.replace(/\s/g,'')); }
+      catch(parrErr){ console.warn('Parrainage non activé:',parrErr); }
+      showOv('🎉','Bienvenue !',`Compte créé, ${prenom} !\n\n✅ Code parrain enregistré !\nVotre parrainage sera validé après votre première commande.\nVotre parrain recevra ses points à ce moment-là.\n\n1€ dépensé = 1 point — cumulez vos points pour débloquer des récompenses !`);
     } else {
       showOv('🔥','Bienvenue !',`Compte créé, ${prenom} ! 1€ dépensé = 1 point. Cumulez vos points pour débloquer des récompenses exclusives !`);
     }
+    // Connexion automatique après inscription
+    currentPortalClient=newClient;
+    renderPortal(newClient);
+    go('page-dashboard');
   }catch(e){
     console.error('Erreur inscription:',e);
-    showToast('Erreur: '+e.message);
+    showToast('Erreur lors de la création du compte — réessayez');
   }
 }
 
@@ -6700,8 +6720,8 @@ function renderFilleulStatus(el, c){
     el.innerHTML=`<div style="background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.2);border-radius:var(--radius);padding:.875rem 1.25rem;margin-bottom:.875rem;display:flex;gap:10px;align-items:flex-start;">
       <span style="font-size:20px;flex-shrink:0;">🎁</span>
       <div>
-        <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:2px;">Parrainage en attente</div>
-        <div style="font-size:12px;color:var(--text3);">Parrainé par <strong>${prenomParrain}</strong><br>🎯 Passe une commande de <strong>8€+</strong> pour débloquer :<br>+20 pts pour toi · +15 pts pour ${prenomParrain}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:2px;">En attente de votre première commande</div>
+        <div style="font-size:12px;color:var(--text3);">Parrainé par <strong>${prenomParrain}</strong><br>Votre parrainage sera validé après votre 1ère commande de 8€+.<br>Votre parrain recevra ses points à ce moment-là.</div>
       </div>
     </div>`;
   } else if(c.parrain_status==='attente_mois'){
