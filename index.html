@@ -563,6 +563,26 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .emp-rt-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);}
 .emp-rt-dot.live{background:#4CAF74;animation:rt-blink 1.5s ease-in-out infinite;}
 
+/* ══ SUPERVISION PATRON ══ */
+.sup-counter{font-size:12px;color:var(--text3);margin-bottom:.75rem;padding:.5rem .875rem;background:var(--coal3);border-radius:var(--radius-sm);border:1px solid var(--border);}
+.sup-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.875rem;}
+.sup-filter-btn{padding:.32rem .8rem;border-radius:99px;border:1px solid var(--border2);background:var(--coal3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.sup-filter-btn.active{background:var(--fire);border-color:var(--fire);color:#fff;}
+.sup-card{background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:.625rem;}
+.sup-card-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.4rem;}
+.sup-card-num{font-size:14px;font-weight:800;color:var(--text);letter-spacing:.5px;}
+.sup-card-canal{font-size:12px;color:var(--text3);margin-top:2px;}
+.sup-status{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px;white-space:nowrap;flex-shrink:0;}
+.sup-status.s-en_attente{background:rgba(255,152,0,.18);color:#FFA726;}
+.sup-status.s-en_cours{background:rgba(79,195,247,.18);color:#4FC3F7;}
+.sup-status.s-pret{background:rgba(76,175,116,.2);color:var(--green);}
+.sup-status.s-archive{background:rgba(150,150,150,.12);color:#777;}
+.sup-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border);}
+.sup-card-client{font-size:12px;color:var(--text2);font-weight:600;}
+.sup-card-right{display:flex;align-items:center;gap:.75rem;}
+.sup-card-time{font-size:11px;color:var(--text3);}
+.sup-card-amount{font-size:14px;font-weight:800;color:var(--fire);}
+
 /* ══ REALTIME NOTIFICATIONS ══ */
 @keyframes rt-blink{0%,100%{opacity:1}50%{opacity:.25}}
 .rt-notif{position:fixed;top:1.1rem;left:50%;transform:translateX(-50%);background:linear-gradient(130deg,#4CAF74,#2E8B57);color:#fff;padding:.75rem 1.5rem;border-radius:99px;font-size:14px;font-weight:700;z-index:600;white-space:nowrap;box-shadow:0 6px 24px rgba(76,175,116,.4);animation:rt-notif-in .35s cubic-bezier(.34,1.56,.64,1);}
@@ -2303,13 +2323,24 @@ body{
   </div>
   <div class="epanel" id="epanel-commandes">
     <div class="emp-cmd-header">
-      <span style="font-size:14px;font-weight:700;color:var(--text);">Commandes en cours</span>
+      <span id="emp-cmd-title" style="font-size:14px;font-weight:700;color:var(--text);">Commandes en cours</span>
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="emp-rt-status" id="emp-rt-status">
           <div class="emp-rt-dot" id="emp-rt-dot"></div>
           <span id="emp-rt-label" style="color:var(--text3);">Connexion…</span>
         </div>
         <button class="emp-cmd-refresh" onclick="loadEmpCommandes()">⟳</button>
+      </div>
+    </div>
+    <!-- Vue supervision patron — visible uniquement quand empRole === 'patron' -->
+    <div id="sup-patron-header" style="display:none;">
+      <div id="sup-counter" class="sup-counter">—</div>
+      <div class="sup-filters">
+        <button class="sup-filter-btn active" onclick="loadPatronSupervision('toutes',this)">Toutes</button>
+        <button class="sup-filter-btn" onclick="loadPatronSupervision('en_attente',this)">En attente</button>
+        <button class="sup-filter-btn" onclick="loadPatronSupervision('en_cours',this)">En préparation</button>
+        <button class="sup-filter-btn" onclick="loadPatronSupervision('pret',this)">Prêtes</button>
+        <button class="sup-filter-btn" onclick="loadPatronSupervision('archive',this)">Livrées</button>
       </div>
     </div>
     <div id="emp-commandes-list"><div class="empty"><div class="big">📋</div><p>Aucune commande</p></div></div>
@@ -6182,8 +6213,17 @@ function _cmdTimer(created_at){
   return `<span class="cmd-timer${cls?' '+cls:''}">⏱ ${mm}:${ss}</span>`;
 }
 async function loadEmpCommandes(){
+  // Patron → vue supervision lecture seule
+  if(empRole==='patron'){ loadPatronSupervision(); return; }
+
   const el=document.getElementById('emp-commandes-list');
   if(!el) return;
+  // S'assurer que le header supervision est masqué pour les non-patrons
+  const supHdr=document.getElementById('sup-patron-header');
+  if(supHdr) supHdr.style.display='none';
+  const titleEl=document.getElementById('emp-cmd-title');
+  if(titleEl) titleEl.textContent='Commandes en cours';
+
   let orders=[];
   try{
     if(supaOk()){
@@ -6249,6 +6289,101 @@ async function loadEmpCommandes(){
     html+=groups[g].map(renderCard).join('');
   });
   el.innerHTML=html;
+}
+
+// ── Vue supervision patron — lecture seule, commandes du jour ─────────────────
+let _supFilter='toutes';
+
+async function loadPatronSupervision(filter, btnEl){
+  if(!empRole==='patron') return; // sécurité : patron uniquement
+  if(filter) _supFilter=filter;
+
+  // Activer le header supervision
+  const supHdr=document.getElementById('sup-patron-header');
+  if(supHdr) supHdr.style.display='block';
+  const titleEl=document.getElementById('emp-cmd-title');
+  if(titleEl) titleEl.textContent='Commandes du jour';
+
+  // Mettre à jour les boutons filtres
+  if(btnEl){
+    document.querySelectorAll('.sup-filter-btn').forEach(b=>b.classList.remove('active'));
+    btnEl.classList.add('active');
+  }
+
+  const el=document.getElementById('emp-commandes-list');
+  if(!el) return;
+
+  // Charger toutes les commandes du jour depuis Supabase
+  let orders=[];
+  try{
+    if(supaOk()){
+      const todayStart=new Date(); todayStart.setHours(0,0,0,0);
+      const iso=todayStart.toISOString();
+      const remote=await supaReq('commandes?select=*&created_at=gte.'+iso+'&order=created_at.desc&limit=300');
+      if(remote) orders=remote.filter(o=>o.statut!=='pending_payment');
+    }
+  }catch(e){ console.warn('loadPatronSupervision:',e); }
+
+  // Compteur + CA du jour (toutes commandes, sans filtre)
+  const ca=orders.reduce((s,o)=>s+parseFloat(o.montant||0),0);
+  const counterEl=document.getElementById('sup-counter');
+  if(counterEl){
+    const nb=orders.length;
+    counterEl.textContent=`${nb} commande${nb>1?'s':''} · CA du jour : ${ca.toFixed(2).replace('.',',')} €`;
+  }
+
+  // Appliquer le filtre actif
+  const filtered=_supFilter==='toutes'?orders:orders.filter(o=>o.statut===_supFilter);
+
+  if(!filtered.length){
+    el.innerHTML='<div class="empty"><div class="big">📋</div><p>Aucune commande pour ce filtre</p></div>';
+    return;
+  }
+
+  // Résoudre les prénoms clients depuis le cache local
+  const clientMap={};
+  try{ lLoad().forEach(c=>{ const t=c.telephone||c.tel; if(t) clientMap[t]=c.prenom||''; }); }catch(e){}
+
+  const statusMap={
+    en_attente:{label:'En attente',cls:'s-en_attente'},
+    en_cours:  {label:'En préparation',cls:'s-en_cours'},
+    pret:      {label:'Prête',cls:'s-pret'},
+    archive:   {label:'Livrée',cls:'s-archive'},
+  };
+  const canalMap={
+    sur_place:    '🪑 Sur place',
+    table:        '🪑 Sur place',
+    click_collect:'🏃 Click & Collect',
+    reservation:  '📅 Réservation',
+  };
+
+  el.innerHTML=filtered.map(o=>{
+    const orderNum=o.id?'#KBB-'+String(o.id).padStart(3,'0'):'—';
+    const st=statusMap[o.statut]||{label:o.statut,cls:''};
+    const canal=canalMap[o.type]||o.type||'—';
+    const pickup=(o.type==='click_collect'||o.type==='reservation')&&o.heure_retrait
+      ?' · Retrait '+o.heure_retrait:'';
+    const t=new Date(o.created_at);
+    const hhmm=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
+    const clientName=clientMap[o.client_telephone]||('···'+( o.client_telephone?.slice(-4)||'—'));
+    const montant=parseFloat(o.montant||0).toFixed(2).replace('.',',');
+    return `<div class="sup-card">
+      <div class="sup-card-hdr">
+        <div>
+          <div class="sup-card-num">${orderNum}</div>
+          <div class="sup-card-canal">${canal}${pickup}</div>
+        </div>
+        <span class="sup-status ${st.cls}">${st.label}</span>
+      </div>
+      <div class="sup-card-footer">
+        <div class="sup-card-client">👤 ${clientName}</div>
+        <div class="sup-card-right">
+          <span class="sup-card-time">${hhmm}</span>
+          <span class="sup-card-amount">${montant} €</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function startEmpRealtime(){
