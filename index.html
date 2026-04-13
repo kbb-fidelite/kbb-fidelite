@@ -333,6 +333,19 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .cag-unit{font-size:26px;color:var(--fire);}
 .cag-sub{font-size:12px;color:var(--text2);margin-top:.5rem;line-height:1.5;}
 .cag-sub .hl{color:var(--fire3);font-weight:600;}
+/* Boisson overlay */
+.boisson-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;max-height:42vh;overflow-y:auto;}
+.boisson-btn{background:var(--coal3);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.75rem .5rem;text-align:center;cursor:pointer;transition:border-color .15s;}
+.boisson-btn.sel{border-color:var(--fire);background:rgba(255,107,43,.1);}
+.boisson-btn:active{border-color:var(--fire2);}
+.boisson-btn-ico{font-size:24px;margin-bottom:4px;}
+.boisson-btn-lbl{font-size:12px;font-weight:600;color:var(--text);line-height:1.3;}
+/* Choix viande (même style que pain) */
+.viande-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:.5rem;}
+.viande-btn{background:var(--coal3);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.65rem .4rem;text-align:center;cursor:pointer;transition:border-color .15s;}
+.viande-btn.sel{border-color:var(--fire);background:rgba(255,107,43,.1);}
+.viande-btn-ico{font-size:20px;margin-bottom:3px;}
+.viande-btn-lbl{font-size:11px;font-weight:600;color:var(--text);line-height:1.2;}
 
 /* unlock banner */
 .unlock-banner{border-radius:var(--radius-sm);padding:.8rem 1rem;margin-bottom:.875rem;font-size:13px;line-height:1.5;border:1px solid;}
@@ -1762,6 +1775,38 @@ body{
   </div>
 </div>
 
+<!-- CHOIX BOISSON -->
+<div class="upsell-overlay" id="overlay-boisson">
+  <div class="upsell-sheet" style="max-height:90vh;overflow-y:auto;">
+    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;text-align:center;" id="boisson-overlay-title">Votre boisson incluse 🥤</div>
+    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1rem;" id="boisson-overlay-sub">Incluse dans votre menu</div>
+    <div class="boisson-grid" id="boisson-grid"></div>
+    <button onclick="confirmBoisson()" id="boisson-confirm-btn" style="width:100%;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:var(--radius);padding:.9rem;color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;margin-bottom:.5rem;opacity:.5;" disabled>Confirmer →</button>
+    <button onclick="skipBoisson()" id="boisson-skip-btn" style="display:none;width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.5rem 0 0;">Sans boisson</button>
+  </div>
+</div>
+
+<!-- CHOIX MENU JUNIOR -->
+<div class="upsell-overlay" id="overlay-junior">
+  <div class="upsell-sheet">
+    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;text-align:center;">Menu Junior 👶</div>
+    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1.25rem;">Choisissez le produit junior</div>
+    <div class="upsell-opt" onclick="chooseJunior('Tacos Junior Kebab')">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:22px;">🌮</span><div><div style="font-weight:700;font-size:14px;color:var(--text);">Tacos Junior Kebab</div></div></div>
+    </div>
+    <div class="upsell-opt" onclick="chooseJunior('Tacos Junior Poulet')">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:22px;">🐔</span><div><div style="font-weight:700;font-size:14px;color:var(--text);">Tacos Junior Poulet</div></div></div>
+    </div>
+    <div class="upsell-opt" onclick="chooseJunior('Kebab Junior')">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:22px;">🥙</span><div><div style="font-weight:700;font-size:14px;color:var(--text);">Kebab Junior</div></div></div>
+    </div>
+    <div class="upsell-opt" onclick="chooseJunior('Barquette de Nuggets')">
+      <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:22px;">🍗</span><div><div style="font-weight:700;font-size:14px;color:var(--text);">Barquette de Nuggets</div></div></div>
+    </div>
+    <button onclick="closeJuniorOverlay()" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.75rem 0 0;">Annuler</button>
+  </div>
+</div>
+
 <div id="overlay-quick-choice" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:flex-end;justify-content:center;">
   <div style="background:var(--coal2);border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:430px;">
     <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:.5rem;text-align:center;">Connexion rapide</div>
@@ -2983,6 +3028,18 @@ const MENU_DATA=[
   {cat:'desserts',icon:'🍫',name:'Mousse au Chocolat',desc:'Fait maison, chocolat noir intense.',price:3.90},
   {cat:'desserts',icon:'🍨',name:'Mövenpick',desc:'2 parfums au choix + 1 coulis au choix + 1 topping au choix.',price:4.90,badge:'⭐ Premium'},
 ];
+const BOISSONS=[
+  {name:'Coca-Cola',icon:'🥤'},
+  {name:'Coca Zéro',icon:'🥤'},
+  {name:'Fanta Orange',icon:'🍊'},
+  {name:'Sprite',icon:'💚'},
+  {name:'Ice Tea Pêche',icon:'🍑'},
+  {name:'Oasis',icon:'🍹'},
+  {name:'Eau plate',icon:'💧'},
+  {name:'Eau gazeuse',icon:'💧'},
+  {name:"Jus d'orange",icon:'🍊'},
+  {name:'Schweppes',icon:'🫧'},
+];
 // TVA par catégorie (art. 279-a et 278-1 CGI)
 const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,desserts:0.055};
 const TVA_DEFAULT=0.10;
@@ -3361,6 +3418,10 @@ let sheetRemovedIngredients=[];
 let sheetSauces=[];
 let sheetSansSauce=false; // true si le client choisit explicitement "Sans sauce"
 let _pendingMenuCtx=null; // contexte stocké entre le sheet et le popup menu
+let sheetViande=null; // 'Poulet mariné' | 'Nuggets' | 'Tenders'
+let _boissonMode='menu'; // 'menu' (incluse) | 'upsell' (optionnelle)
+let _boissonPendingCtx=null;
+let _selectedBoissonIdx=null;
 
 function calcSheetPrice(){
   const m=MENU_DATA[sheetIdx];
@@ -3393,6 +3454,7 @@ function openProductSheet(idx){
   sheetRemovedIngredients=[];
   sheetSauces=[];
   sheetSansSauce=false;
+  sheetViande=null;
   pendingIdx=idx;
 
   const top=document.getElementById('prod-sheet-top');
@@ -3450,6 +3512,20 @@ function renderProdSheetBody(){
     </div>`;
   }
 
+  /* ── Choix viande (Spicy Chicken + Sweet Chicken) ── */
+  if(m.cat==='tacos'&&m.name.toLowerCase().includes('chicken')){
+    const viandeOpts=[['Poulet mariné','🍗'],['Nuggets','🟡'],['Tenders','🥩']];
+    html+=`<div class="ps-section-title">🐔 Choix de la viande <span style="font-size:11px;color:#FF7043;font-weight:600;">(obligatoire)</span></div>
+    <div class="viande-grid">`;
+    viandeOpts.forEach(([v,ico])=>{
+      html+=`<div class="viande-btn${sheetViande===v?' sel':''}" onclick="setSheetViande('${v}')">
+        <div class="viande-btn-ico">${ico}</div>
+        <div class="viande-btn-lbl">${v}</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
   /* ── ÉTAPE 1 : Ingrédients à retirer ── */
   if(isCusto&&m.ingredients&&m.ingredients.length){
     html+=`<div class="ps-section-title">① Retirer des ingrédients</div>
@@ -3505,12 +3581,15 @@ function renderProdSheetBody(){
 
   /* ── Récapitulatif ── */
   if(isCusto){
-    const hasCustom=sheetRemovedIngredients.length||sheetSauces.length||selectedSupplements.length||sheetPain==='galette';
+    const hasCustom=sheetRemovedIngredients.length||sheetSauces.length||selectedSupplements.length||sheetPain==='galette'||sheetViande;
     html+=`<div class="ps-summary">
       <div class="ps-summary-ttl">📋 Récapitulatif</div>
       <div class="ps-sum-line">${m.icon} <strong>${m.name}</strong>${sheetTaille&&sheetTaille!=='M'?' ('+sheetTaille+')':''}</div>`;
     if(m.cat==='kebabs'&&sheetPain){
       html+=`<div class="ps-sum-line" style="color:#FFC107;font-weight:700;">${sheetPain==='galette'?'🫓 Galette':'🍞 Pain'}</div>`;
+    }
+    if(sheetViande){
+      html+=`<div class="ps-sum-line" style="color:#FF9A6C;font-weight:700;">🍗 ${sheetViande}</div>`;
     }
     if(sheetRemovedIngredients.length){
       sheetRemovedIngredients.forEach(ing=>{ html+=`<div class="ps-sum-line s-removed">❌ Sans ${ing}</div>`; });
@@ -3532,8 +3611,10 @@ function renderProdSheetBody(){
 
   const needsPain=m.cat==='kebabs'&&!sheetPain;
   const needsSauce=isCusto&&!sheetSauces.length&&!sheetSansSauce;
-  const isBlocked=needsPain||needsSauce;
-  const btnLabel=needsPain?'👆 Choisissez pain ou galette':needsSauce?'🥫 Veuillez choisir au moins une sauce':isCusto?'Continuer →':'Ajouter au panier';
+  const isChicken=m.cat==='tacos'&&m.name.toLowerCase().includes('chicken');
+  const needsViande=isChicken&&!sheetViande;
+  const isBlocked=needsPain||needsSauce||needsViande;
+  const btnLabel=needsPain?'👆 Choisissez pain ou galette':needsSauce?'🥫 Veuillez choisir au moins une sauce':needsViande?'🐔 Choisissez votre viande':m.name==='Menu Junior'?'Choisir le produit →':isCusto?'Continuer →':'Ajouter au panier';
   html+=`<button class="prod-add-btn" onclick="confirmProdSheet()"${isBlocked?' disabled':''}>
     <span>${btnLabel}</span>
     <span class="prod-add-price">${price.toFixed(2).replace('.',',')}€</span>
@@ -3544,6 +3625,7 @@ function renderProdSheetBody(){
 
 function setSheetTaille(t){ sheetTaille=t; renderProdSheetBody(); }
 function setSheetPain(p){ sheetPain=p; renderProdSheetBody(); }
+function setSheetViande(v){ sheetViande=v; renderProdSheetBody(); }
 function toggleSheetMenu(){ sheetMenuUpgrade=!sheetMenuUpgrade; renderProdSheetBody(); }
 function toggleSheetSansSauce(){ sheetSansSauce=!sheetSansSauce; if(sheetSansSauce) sheetSauces=[]; renderProdSheetBody(); }
 function toggleSheetSuppl(id){
@@ -3557,17 +3639,20 @@ function confirmProdSheet(){
   if(m.cat==='kebabs'&&!sheetPain){ showToast('Choisissez pain ou galette 👆'); return; }
   const isCusto=m.cat==='kebabs'||m.cat==='tacos'||m.cat==='salades';
   if(isCusto&&!sheetSauces.length&&!sheetSansSauce){ showToast('🥫 Veuillez choisir au moins une sauce'); return; }
+  const isChicken=m.cat==='tacos'&&m.name.toLowerCase().includes('chicken');
+  if(isChicken&&!sheetViande){ showToast('🐔 Choisissez votre viande'); return; }
   const suppls=selectedSupplements.map(sid=>{
     const s=SUPPLEMENTS.find(x=>x.id===sid);
     return s?{name:s.name,price:s.price}:null;
   }).filter(Boolean);
-  _pendingMenuCtx={idx:sheetIdx,taille:sheetTaille,removed:[...sheetRemovedIngredients],sauces:[...sheetSauces],suppls,pain:sheetPain,sansSauce:sheetSansSauce};
+  _pendingMenuCtx={idx:sheetIdx,taille:sheetTaille,removed:[...sheetRemovedIngredients],sauces:[...sheetSauces],suppls,pain:sheetPain,sansSauce:sheetSansSauce,viande:sheetViande||null};
   closeProdSheet();
-  if(isCusto){
-    // Proposer le menu une seule fois via popup
+  if(m.name==='Menu Junior'){
+    document.getElementById('overlay-junior').classList.add('show');
+  } else if(isCusto){
     document.getElementById('overlay-menu').classList.add('show');
   } else {
-    finalAddToCart(_pendingMenuCtx.idx,_pendingMenuCtx.taille,false,_pendingMenuCtx.removed,_pendingMenuCtx.sauces,_pendingMenuCtx.suppls,_pendingMenuCtx.pain,_pendingMenuCtx.sansSauce);
+    finalAddToCart(_pendingMenuCtx.idx,_pendingMenuCtx.taille,false,_pendingMenuCtx.removed,_pendingMenuCtx.sauces,_pendingMenuCtx.suppls,_pendingMenuCtx.pain,_pendingMenuCtx.sansSauce,null,_pendingMenuCtx.viande);
     _pendingMenuCtx=null;
   }
 }
@@ -3590,14 +3675,81 @@ function chooseTaille(taille){
 
 function acceptMenu(){
   document.getElementById('overlay-menu').classList.remove('show');
-  const ctx=_pendingMenuCtx; _pendingMenuCtx=null;
-  if(ctx) finalAddToCart(ctx.idx,ctx.taille,true,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce);
+  const ctx=_pendingMenuCtx;
+  if(ctx){ ctx.menuUpgrade=true; showBoissonOverlay('menu',ctx); }
 }
 
 function closeUpsellMenu(){
   document.getElementById('overlay-menu').classList.remove('show');
   const ctx=_pendingMenuCtx; _pendingMenuCtx=null;
-  if(ctx) finalAddToCart(ctx.idx,ctx.taille,false,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce);
+  if(ctx) finalAddToCart(ctx.idx,ctx.taille,false,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce,null,ctx.viande);
+}
+
+function showBoissonOverlay(mode, ctx){
+  _boissonMode=mode;
+  _boissonPendingCtx=ctx;
+  _selectedBoissonIdx=null;
+  const grid=document.getElementById('boisson-grid');
+  grid.innerHTML=BOISSONS.map((b,i)=>`
+    <div class="boisson-btn" id="bbt-${i}" onclick="selectBoisson(${i})">
+      <div class="boisson-btn-ico">${b.icon}</div>
+      <div class="boisson-btn-lbl">${b.name}</div>
+    </div>`).join('');
+  const title=document.getElementById('boisson-overlay-title');
+  const sub=document.getElementById('boisson-overlay-sub');
+  const skipBtn=document.getElementById('boisson-skip-btn');
+  const confirmBtn=document.getElementById('boisson-confirm-btn');
+  if(mode==='menu'){
+    title.textContent='Votre boisson incluse 🥤';
+    sub.textContent='Choisissez votre boisson (incluse dans le menu)';
+    skipBtn.style.display='none';
+  } else {
+    title.textContent='Ajouter une boisson ?';
+    sub.textContent='Optionnelle — passez si vous n\'en voulez pas';
+    skipBtn.style.display='';
+  }
+  confirmBtn.disabled=true;
+  confirmBtn.style.opacity='.5';
+  document.getElementById('overlay-boisson').classList.add('show');
+}
+
+function selectBoisson(idx){
+  _selectedBoissonIdx=idx;
+  document.querySelectorAll('.boisson-btn').forEach((b,i)=>b.classList.toggle('sel',i===idx));
+  const confirmBtn=document.getElementById('boisson-confirm-btn');
+  confirmBtn.disabled=false;
+  confirmBtn.style.opacity='1';
+}
+
+function confirmBoisson(){
+  document.getElementById('overlay-boisson').classList.remove('show');
+  const ctx=_boissonPendingCtx; _boissonPendingCtx=null;
+  const boisson=_selectedBoissonIdx!==null?BOISSONS[_selectedBoissonIdx].name:null;
+  _selectedBoissonIdx=null;
+  if(!ctx) return;
+  finalAddToCart(ctx.idx,ctx.taille,ctx.menuUpgrade||false,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce,boisson,ctx.viande,ctx.produitJunior);
+  _pendingMenuCtx=null;
+}
+
+function skipBoisson(){
+  document.getElementById('overlay-boisson').classList.remove('show');
+  const ctx=_boissonPendingCtx; _boissonPendingCtx=null;
+  _selectedBoissonIdx=null;
+  if(!ctx) return;
+  finalAddToCart(ctx.idx,ctx.taille,ctx.menuUpgrade||false,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce,null,ctx.viande,ctx.produitJunior);
+  _pendingMenuCtx=null;
+}
+
+function chooseJunior(produit){
+  document.getElementById('overlay-junior').classList.remove('show');
+  if(!_pendingMenuCtx) return;
+  _pendingMenuCtx.produitJunior=produit;
+  showBoissonOverlay('menu',_pendingMenuCtx);
+}
+
+function closeJuniorOverlay(){
+  document.getElementById('overlay-junior').classList.remove('show');
+  _pendingMenuCtx=null;
 }
 
 function closeUpsellTaille(){
@@ -3643,7 +3795,7 @@ function closeSupplements(){
   finalAddToCart(pendingIdx, pendingTaille, false);
 }
 
-function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain, sansSauce){
+function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain, sansSauce, boisson, viande, produitJunior){
   const m=MENU_DATA[idx];
   let price=m.price;
   let name=m.name;
@@ -3658,7 +3810,8 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain,
     idx, price:parseFloat(price.toFixed(2)), name, taille:taille||null,
     pain:pain||null, removed:removed||[], sauces:sauces||[], suppls:suppls||[],
     menu:menuUpgrade||false, icon:m.icon||'🍴', cat:m.cat,
-    sansSauce:sansSauce||false
+    sansSauce:sansSauce||false, boisson:boisson||null,
+    viande:viande||null, produitJunior:produitJunior||null
   });
 
   updateCartBar();
@@ -3733,7 +3886,10 @@ function renderCart(){
       if(item.sauces?.length) parts.push(`<span class="c-sauce">🥫 ${item.sauces.join(', ')}</span>`);
       else if(item.sansSauce) parts.push(`<span class="c-sauce" style="color:var(--text3);">🚫 Sans sauce</span>`);
       if(item.suppls?.length) parts.push(item.suppls.map(s=>`<span class="c-suppl">➕ ${s.name}</span>`).join(' '));
-      if(item.menu) parts.push(`<span class="c-suppl">🍟 Menu</span>`);
+      if(item.viande) parts.push(`<span class="c-suppl">🍗 ${item.viande}</span>`);
+      if(item.produitJunior) parts.push(`<span class="c-suppl">👶 ${item.produitJunior}</span>`);
+      if(item.menu) parts.push(`<span class="c-suppl">🍟 Menu${item.boisson?' — '+item.boisson:''}</span>`);
+      else if(item.boisson) parts.push(`<span class="c-suppl">🥤 ${item.boisson}</span>`);
       if(parts.length) customHtml=`<div class="cart-item-custom">${parts.join('<br>')}</div>`;
     }
     return `<div class="cart-item">
@@ -5616,8 +5772,17 @@ function parseItemsKDS(itemsStr){
         lines.push(`<div class="kds-item-sauce" style="color:#FF7043;font-weight:700;">🚫 SANS SAUCE</div>`);
       if(it.suppls&&it.suppls.length)
         it.suppls.forEach(s=>lines.push(`<div class="kds-item-suppl">➕ ${s}</div>`));
-      if(it.menu) lines.push(`<div class="kds-item-suppl">➕ Menu frites + boisson</div>`);
-      if(!it.removed?.length&&!it.sauces?.length&&!it.sansSauce&&!it.suppls?.length&&!it.menu)
+      if(it.viande)
+        lines.push(`<div class="kds-item-pain" style="color:#FF9A6C;font-weight:700;font-size:15px;">🍗 VIANDE : ${it.viande.toUpperCase()}</div>`);
+      if(it.produitJunior)
+        lines.push(`<div class="kds-item-pain" style="color:#FFD700;font-weight:700;font-size:15px;">👶 JUNIOR : ${it.produitJunior.toUpperCase()}</div>`);
+      if(it.menu){
+        const bl=it.boisson?` — 🥤 ${it.boisson}`:'';
+        lines.push(`<div class="kds-item-suppl">➕ Menu frites + boisson${bl}</div>`);
+      } else if(it.boisson){
+        lines.push(`<div class="kds-item-suppl">🥤 Boisson : ${it.boisson}</div>`);
+      }
+      if(!it.removed?.length&&!it.sauces?.length&&!it.sansSauce&&!it.suppls?.length&&!it.menu&&!it.viande&&!it.produitJunior&&!it.boisson)
         lines.push(`<div class="kds-item-default">✅ Tout par défaut</div>`);
       return `<div class="kds-item-wrap">${lines.join('')}</div>`;
     }).join('');
