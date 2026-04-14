@@ -1898,6 +1898,7 @@ body{
     <div class="mtab" onclick="scrollMenuCat('cat-salades',this)">Salades</div>
     <div class="mtab" onclick="scrollMenuCat('cat-menus',this)">Menus</div>
     <div class="mtab" onclick="scrollMenuCat('cat-desserts',this)">Desserts</div>
+    <div class="mtab" onclick="scrollMenuCat('cat-boissons',this)">Boissons</div>
   </div>
   <div class="menu-wrap" id="menu-wrap">
 
@@ -1944,6 +1945,15 @@ body{
       <div class="menu-cat-title">🍰 Desserts Maison</div>
     </div>
     <div class="menu-items" id="mi-desserts"></div>
+
+    <div class="menu-sep"></div>
+
+    <!-- BOISSONS -->
+    <div class="menu-cat" id="cat-boissons">
+      <div class="menu-cat-title">🥤 Boissons</div>
+      <div class="menu-cat-sub">Canettes &amp; bouteilles fraîches</div>
+    </div>
+    <div class="menu-items" id="mi-boissons"></div>
 
     <div class="menu-info" style="margin-bottom:6rem;">
       📞 <strong>09.81.50.27.57</strong><br>5 rue François Xavier Bichat — 39100 Dole
@@ -3027,6 +3037,15 @@ const MENU_DATA=[
   {cat:'desserts',icon:'🍮',name:'Panna Cotta',desc:'Fait maison, onctueuse et gourmande.',price:3.90},
   {cat:'desserts',icon:'🍫',name:'Mousse au Chocolat',desc:'Fait maison, chocolat noir intense.',price:3.90},
   {cat:'desserts',icon:'🍨',name:'Mövenpick',desc:'2 parfums au choix + 1 coulis au choix + 1 topping au choix.',price:4.90,badge:'⭐ Premium'},
+  {cat:'boissons',icon:'🟥',name:'Coca-Cola 33cl',desc:'',price:2.50},
+  {cat:'boissons',icon:'🔵',name:'Pepsi 33cl',desc:'',price:2.50},
+  {cat:'boissons',icon:'🍒',name:'Pepsi Cherry 33cl',desc:'',price:2.50},
+  {cat:'boissons',icon:'🍊',name:'Oasis Tropical 33cl',desc:'',price:2.50},
+  {cat:'boissons',icon:'🟠',name:'Orangina 33cl',desc:'',price:2.50},
+  {cat:'boissons',icon:'🍋',name:'Oasis Tea 33cl',desc:'',price:2.50},
+  {cat:'boissons',icon:'🫧',name:'Schweppes Agrumes 33cl',desc:'',price:2.50},
+  {cat:'boissons',icon:'💧',name:'Eau plate 50cl',desc:'',price:1.50},
+  {cat:'boissons',icon:'🫧',name:'Perrier 33cl',desc:'',price:2.50},
 ];
 const BOISSONS=[
   {name:'Coca-Cola',icon:'🥤'},
@@ -3041,7 +3060,7 @@ const BOISSONS=[
   {name:'Schweppes',icon:'🫧'},
 ];
 // TVA par catégorie (art. 279-a et 278-1 CGI)
-const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,desserts:0.055};
+const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,desserts:0.055,boissons:0.20};
 const TVA_DEFAULT=0.10;
 
 let cart=[];
@@ -3050,7 +3069,7 @@ let orderTableNum='';
 let selectedPickupTime='';
 
 function initMenu(){
-  const cats=['kebabs','tacos','salades','menus','desserts'];
+  const cats=['kebabs','tacos','salades','menus','desserts','boissons'];
   cats.forEach(cat=>{
     const el=document.getElementById('mi-'+cat);
     if(!el)return;
@@ -3408,6 +3427,11 @@ let pendingTaille=null;
 let selectedSupplements=[];
 
 function addToCart(idx){
+  const m=MENU_DATA[idx];
+  if(m.cat==='boissons'){
+    finalAddToCart(idx,null,false,[],[],[],null,false);
+    return;
+  }
   openProductSheet(idx);
 }
 
@@ -5752,7 +5776,8 @@ function parseItemsKDS(itemsStr){
   const catBadgeMap={
     'kebabs':'<span class="kds-item-badge b-kebab">🥙 KEBAB</span>',
     'tacos':'<span class="kds-item-badge b-tacos">🌮 TACOS</span>',
-    'salades':'<span class="kds-item-badge b-salade">🥗 SALADE</span>'
+    'salades':'<span class="kds-item-badge b-salade">🥗 SALADE</span>',
+    'boissons':'<span class="kds-item-badge b-autre">🥤 BOISSON</span>'
   };
   try{
     const arr=JSON.parse(itemsStr);
