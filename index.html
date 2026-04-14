@@ -8002,16 +8002,11 @@ function ensureJsPDF(){
 }
 
 // TVA breakdown from grouped cart
-// orderType : 'sur_place' | 'click_collect' | null
-// Boissons seules (aucun autre produit) à emporter → 5,5% (CGI art. 278-1)
-// Boissons avec un repas ou sur place → 10% (CGI art. 279-a restauration)
+// orderType : 'sur_place' | 'click_collect' | 'reservation' | null
+// Boissons non alcoolisées : 10% sur place, 5,5% à emporter (CGI art. 278-1 / 279-a)
 function computeTVABreakdown(grouped, orderType){
   if(!grouped||!Object.keys(grouped).length) return {ht10:0,tva10:0,ht55:0,tva55:0,ttc:0};
-  const allBoissons=Object.values(grouped).every(({item})=>{
-    const cat=typeof item==='object'?(item.cat||'kebabs'):(MENU_DATA[item]?.cat||'kebabs');
-    return cat==='boissons';
-  });
-  const boissonRate=(allBoissons&&orderType==='click_collect')?0.055:0.10;
+  const boissonRate=(orderType==='click_collect'||orderType==='reservation')?0.055:0.10;
   let ttcSum10=0, ttcSum55=0;
   for(const [,{item,qty}] of Object.entries(grouped)){
     const isObj=typeof item==='object';
@@ -8032,11 +8027,7 @@ function computeTVABreakdown(grouped, orderType){
 // Build articles array from grouped (for Supabase storage)
 function groupedToArticles(grouped, orderType){
   if(!grouped) return [];
-  const allBoissons=Object.values(grouped).every(({item})=>{
-    const cat=typeof item==='object'?(item.cat||'kebabs'):(MENU_DATA[item]?.cat||'kebabs');
-    return cat==='boissons';
-  });
-  const boissonRate=(allBoissons&&orderType==='click_collect')?0.055:0.10;
+  const boissonRate=(orderType==='click_collect'||orderType==='reservation')?0.055:0.10;
   return Object.entries(grouped).map(([,{item,qty}])=>{
     const isObj=typeof item==='object';
     const name=isObj?item.name:(MENU_DATA[item]?.name||'Article');
