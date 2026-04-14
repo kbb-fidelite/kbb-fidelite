@@ -3052,18 +3052,8 @@ const MENU_DATA=[
   {cat:'boissons',icon:'🫧',name:'Perrier 33cl',desc:'',price:2.50,image:'assets/images/boissons/perrier.png'},
   {cat:'boissons',icon:'💧',name:'Cristaline 50cl',desc:'',price:1.50,image:'assets/images/boissons/cristaline.png'},
 ];
-const BOISSONS=[
-  {name:'Coca-Cola',icon:'🥤',image:'assets/images/boissons/coca-cola.png'},
-  {name:'Coca Zéro',icon:'🥤'},
-  {name:'Fanta Orange',icon:'🍊'},
-  {name:'Sprite',icon:'💚'},
-  {name:'Ice Tea Pêche',icon:'🍑'},
-  {name:'Oasis',icon:'🍋',image:'assets/images/boissons/oasis.png'},
-  {name:'Eau plate',icon:'💧',image:'assets/images/boissons/cristaline.png'},
-  {name:'Perrier',icon:'🫧',image:'assets/images/boissons/perrier.png'},
-  {name:"Jus d'orange",icon:'🍊'},
-  {name:'Schweppes',icon:'🫧',image:'assets/images/boissons/schweppes-agrumes.png'},
-];
+// Source unique : les boissons de l'overlay = exactement celles de la carte
+const BOISSONS=MENU_DATA.filter(m=>m.cat==='boissons');
 // TVA par catégorie (art. 279-a et 278-1 CGI)
 const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,desserts:0.055,boissons:0.10};
 const TVA_DEFAULT=0.10;
@@ -3730,7 +3720,7 @@ function showBoissonOverlay(mode, ctx){
   grid.innerHTML=BOISSONS.map((b,i)=>`
     <div class="boisson-btn" id="bbt-${i}" onclick="selectBoisson(${i})">
       ${b.image
-        ?`<div style="height:48px;background:none;display:flex;align-items:center;justify-content:center;margin-bottom:4px;"><img src="${b.image}" alt="${b.name}" style="height:48px;width:auto;object-fit:contain;background:transparent;display:block;"></div>`
+        ?`<img src="${b.image}" alt="${b.name}" style="height:56px;width:56px;object-fit:contain;object-position:center;display:block;margin:0 auto 4px;">`
         :`<div class="boisson-btn-ico">${b.icon}</div>`}
       <div class="boisson-btn-lbl">${b.name}</div>
     </div>`).join('');
