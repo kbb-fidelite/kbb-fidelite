@@ -3060,7 +3060,7 @@ const BOISSONS=[
   {name:'Schweppes',icon:'🫧'},
 ];
 // TVA par catégorie (art. 279-a et 278-1 CGI)
-const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,desserts:0.055,boissons:0.20};
+const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,desserts:0.055,boissons:0.10};
 const TVA_DEFAULT=0.10;
 
 let cart=[];
@@ -8002,14 +8002,22 @@ function ensureJsPDF(){
 }
 
 // TVA breakdown from grouped cart
-function computeTVABreakdown(grouped){
-  let ttcSum10=0, ttcSum55=0;
+// orderType : 'sur_place' | 'click_collect' | null
+// Boissons seules (aucun autre produit) à emporter → 5,5% (CGI art. 278-1)
+// Boissons avec un repas ou sur place → 10% (CGI art. 279-a restauration)
+function computeTVABreakdown(grouped, orderType){
   if(!grouped||!Object.keys(grouped).length) return {ht10:0,tva10:0,ht55:0,tva55:0,ttc:0};
+  const allBoissons=Object.values(grouped).every(({item})=>{
+    const cat=typeof item==='object'?(item.cat||'kebabs'):(MENU_DATA[item]?.cat||'kebabs');
+    return cat==='boissons';
+  });
+  const boissonRate=(allBoissons&&orderType==='click_collect')?0.055:0.10;
+  let ttcSum10=0, ttcSum55=0;
   for(const [,{item,qty}] of Object.entries(grouped)){
     const isObj=typeof item==='object';
     const price=isObj?item.price:MENU_DATA[item].price;
     const cat=isObj?(item.cat||'kebabs'):(MENU_DATA[item]?.cat||'kebabs');
-    const rate=TVA_RATES[cat]??TVA_DEFAULT;
+    const rate=cat==='boissons'?boissonRate:(TVA_RATES[cat]??TVA_DEFAULT);
     const line=parseFloat((price*qty).toFixed(2));
     if(rate===0.055) ttcSum55+=line; else ttcSum10+=line;
   }
@@ -8022,14 +8030,19 @@ function computeTVABreakdown(grouped){
 }
 
 // Build articles array from grouped (for Supabase storage)
-function groupedToArticles(grouped){
+function groupedToArticles(grouped, orderType){
   if(!grouped) return [];
+  const allBoissons=Object.values(grouped).every(({item})=>{
+    const cat=typeof item==='object'?(item.cat||'kebabs'):(MENU_DATA[item]?.cat||'kebabs');
+    return cat==='boissons';
+  });
+  const boissonRate=(allBoissons&&orderType==='click_collect')?0.055:0.10;
   return Object.entries(grouped).map(([,{item,qty}])=>{
     const isObj=typeof item==='object';
     const name=isObj?item.name:(MENU_DATA[item]?.name||'Article');
     const price=isObj?item.price:(MENU_DATA[item]?.price||0);
     const cat=isObj?(item.cat||'kebabs'):(MENU_DATA[item]?.cat||'kebabs');
-    const tva_rate=TVA_RATES[cat]??TVA_DEFAULT;
+    const tva_rate=cat==='boissons'?boissonRate:(TVA_RATES[cat]??TVA_DEFAULT);
     return {name,qty,price,cat,tva_rate};
   });
 }
@@ -8079,8 +8092,9 @@ async function createFactureFromPending(pending){
   }
   const numero=await getNextFactureNumber();
   const grouped=pending.grouped||null;
-  const articles=grouped?groupedToArticles(grouped):[];
-  const tva=grouped?computeTVABreakdown(grouped):{ht10:0,tva10:0,ht55:0,tva55:0,ttc:pending.total||0};
+  const orderType=pending.activeOrder?.type||null;
+  const articles=grouped?groupedToArticles(grouped,orderType):[];
+  const tva=grouped?computeTVABreakdown(grouped,orderType):{ht10:0,tva10:0,ht55:0,tva55:0,ttc:pending.total||0};
   const ht10=tva.ht10||(Math.round((pending.total||0)/1.10*100)/100);
   const tvA10=tva.tva10||Math.round(((pending.total||0)-ht10)*100)/100;
   const facData={
