@@ -9348,23 +9348,87 @@ window.addEventListener('load', async function(){
 </script>
 <script>
 if('serviceWorker' in navigator){
+  // ── Mise à jour automatique du SW ─────────────────────────────────────────
+  // Conditions non-négociables :
+  //   1. Jamais pendant un paiement Stripe (URL stripe_session/cancel ou kbb_stripe_pending présent)
+  //   2. Seulement entre deux interactions utilisateur (idle ≥ 4 s)
+  //   3. localStorage (tokens Supabase) survit à location.reload() nativement
+  //   4. Aucune requête Supabase / modification RLS ici
+  // Bandeau manuel conservé comme fallback si les conditions tardent.
+
+  let _swWaiting = null;
+  let _refreshing = false;
+
+  // 1. Détection paiement Stripe actif
+  function _isStripeActive(){
+    // URL de retour Stripe — vérification en cours, ne jamais interrompre
+    if(location.search.includes('stripe_session') || location.search.includes('stripe_cancel')) return true;
+    // Données de paiement présentes en localStorage
+    try{
+      const p = JSON.parse(localStorage.getItem('kbb_stripe_pending') || 'null');
+      if(p && (p.orderId || p.activeOrder || p.grouped)) return true;
+    }catch(_){}
+    return false;
+  }
+
+  // 2. Idle detection — aucune interaction depuis 4 s
+  let _lastInteraction = Date.now();
+  ['pointerdown','touchstart','keydown','scroll'].forEach(ev=>{
+    document.addEventListener(ev, ()=>{ _lastInteraction = Date.now(); }, {passive:true, capture:true});
+  });
+  function _isIdle(){ return Date.now() - _lastInteraction > 4000; }
+
+  // 3. Tentative d'activation — vérifie les deux conditions
+  function _applyIfSafe(){
+    if(!_swWaiting) return;
+    if(_isStripeActive() || !_isIdle()){
+      // Conditions non remplies → réessai dans 10 s
+      setTimeout(_applyIfSafe, 10000);
+      return;
+    }
+    // Sûr : active le nouveau SW (location.reload() suit via controllerchange)
+    _swWaiting.postMessage('skipWaiting');
+    _swWaiting = null;
+  }
+
+  // 4. Planification : requestIdleCallback (browser idle) ou setTimeout fallback
+  //    timeout:60000 garantit un essai dans la minute même si le browser est occupé ;
+  //    _applyIfSafe re-vérifie _isIdle() avant d'agir.
+  function _scheduleUpdate(){
+    if(window.requestIdleCallback){
+      requestIdleCallback(_applyIfSafe, {timeout: 60000});
+    } else {
+      setTimeout(_applyIfSafe, 10000);
+    }
+  }
+
   navigator.serviceWorker.register('./sw.js').then(reg=>{
-    reg.addEventListener('updatefound',()=>{
-      const nw=reg.installing;
-      nw.addEventListener('statechange',()=>{
-        if(nw.state==='installed'&&navigator.serviceWorker.controller){
-          const bar=document.createElement('div');
-          bar.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#FF6B2B;color:#fff;text-align:center;padding:12px 16px;font-size:14px;font-weight:700;z-index:9999;display:flex;align-items:center;justify-content:space-between;max-width:430px;margin:0 auto;border-radius:12px 12px 0 0;';
-          bar.innerHTML='🔥 Nouvelle version disponible ! <button onclick="location.reload()" style="background:#fff;color:#FF6B2B;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;">Mettre à jour</button>';
-          document.body.appendChild(bar);
-          nw.postMessage('skipWaiting');
+    reg.addEventListener('updatefound', ()=>{
+      const nw = reg.installing;
+      nw.addEventListener('statechange', ()=>{
+        if(nw.state === 'installed' && navigator.serviceWorker.controller){
+          _swWaiting = nw;
+          // Bandeau manuel — fallback si idle et stripe tardent
+          if(!document.getElementById('sw-update-bar')){
+            const bar = document.createElement('div');
+            bar.id = 'sw-update-bar';
+            bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#FF6B2B;color:#fff;padding:12px 16px;font-size:14px;font-weight:700;z-index:9999;display:flex;align-items:center;justify-content:space-between;max-width:430px;margin:0 auto;border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.3);';
+            const btn = document.createElement('button');
+            btn.style.cssText = 'background:#fff;color:#FF6B2B;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;';
+            btn.textContent = 'Mettre à jour';
+            btn.onclick = ()=>{ if(_swWaiting) _swWaiting.postMessage('skipWaiting'); bar.remove(); };
+            bar.append('🔥 Nouvelle version disponible ! ', btn);
+            document.body.appendChild(bar);
+          }
+          _scheduleUpdate();
         }
       });
     });
   });
-  let refreshing=false;
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(!refreshing){refreshing=true;location.reload();}
+
+  // Quand le nouveau SW prend le contrôle → reload (localStorage préservé nativement)
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    if(!_refreshing){ _refreshing = true; location.reload(); }
   });
 }
 </script>

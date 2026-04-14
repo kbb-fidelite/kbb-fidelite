@@ -1,4 +1,4 @@
-const VERSION = 'kbb-v157';
+const VERSION = 'kbb-v158';
 const CACHE = VERSION;
 
 // Fichiers critiques — l'app ne fonctionne pas sans eux
@@ -18,17 +18,17 @@ const ASSETS_OPTIONAL = [
 ];
 
 self.addEventListener('install', e => {
+  // NE PAS appeler skipWaiting() ici.
+  // La page contrôle le moment de l'activation via message('skipWaiting')
+  // pour ne jamais interrompre un paiement Stripe en cours.
   e.waitUntil(
     caches.open(CACHE).then(async cache => {
-      // Critiques : doit réussir
       await cache.addAll(ASSETS_CRITICAL);
-      // Optionnels : on ignore les erreurs individuelles
       await Promise.allSettled(
         ASSETS_OPTIONAL.map(url => cache.add(url).catch(() => null))
       );
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
