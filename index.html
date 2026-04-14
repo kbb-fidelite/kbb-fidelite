@@ -2934,7 +2934,7 @@ function goBack(){
 // la session n'a pas encore eu le temps d'être lue.
 let _authInitialized = false;
 
-const _AUTH_PAGES=['page-menu','page-fidel','page-parrainage'];
+const _AUTH_PAGES=['page-menu','page-fidel','page-parrainage','page-factures','page-commandes'];
 // Pages client sur lesquelles la barre de navigation globale est visible
 const _GNAV_PAGES=['page-dashboard','page-fidelite','page-parrainage','page-menu','page-cart','page-confirmation','page-suivi','page-commandes','page-factures','page-client-portal'];
 // Page active → bouton actif dans la barre
@@ -8889,7 +8889,7 @@ function _renderCmdCard(cmd, facture){
     <div class="cmd-footer">
       <div class="cmd-total">${parseFloat(cmd.montant||0).toFixed(2).replace('.',',')}€</div>
       <div class="cmd-actions">
-        ${facture?`<button class="cmd-btn" onclick="downloadFacturePDF(${JSON.stringify(facture).replace(/'/g,'&#39;')})">📄 Facture</button>`
+        ${facture?`<button class="cmd-btn" onclick="downloadFacturePDF(window._kbbFacLoad['${facture.id}'])">📄 Facture</button>`
           :`<button class="cmd-btn" onclick="downloadFactureByCommandeId('${cmd.id}')">📄 Facture</button>`}
         <button class="cmd-btn primary" onclick="reorderCommande('${(cmd.items||'[]').replace(/'/g,'&#39;').replace(/\\/g,'\\\\').replace(/"/g,'&quot;')}','${shortDate}')">🔄 Recommander</button>
       </div>
@@ -8925,9 +8925,10 @@ async function loadCommandesHistory(){
     // Fetch factures for these commandes
     const ids=commandes.map(c=>String(c.id)).filter(Boolean);
     let factures=[];
-    if(ids.length) factures=await supaReq('factures?select=*&commande_id=in.('+ids.join(',')+')'  ).catch(()=>[]);
+    if(ids.length) factures=await supaReq('factures?select=*&commande_id=in.("'+ids.join('","')+'")'  ).catch(()=>[]);
     const factureByCmd={};
-    (factures||[]).forEach(f=>{ factureByCmd[String(f.commande_id)]=f; });
+    window._kbbFacLoad=window._kbbFacLoad||{};
+    (factures||[]).forEach(f=>{ factureByCmd[String(f.commande_id)]=f; window._kbbFacLoad[f.id]=f; });
     // Stats
     const total=commandes.reduce((s,c)=>s+parseFloat(c.montant||0),0);
     const nbRecompenses=commandes.filter(c=>c.reward_nom).length;
@@ -8962,11 +8963,13 @@ async function loadFacturesHistory(){
       return;
     }
     const ids=commandes.map(c=>String(c.id)).filter(Boolean);
-    const factures=await supaReq('factures?select=*&commande_id=in.('+ids.join(',')+')'+'&order=date.desc').catch(()=>[]);
+    const factures=await supaReq('factures?select=*&commande_id=in.("'+ids.join('","')+'")'+'&order=date.desc').catch(()=>[]);
     if(!factures||!factures.length){
       el.innerHTML='<div class="empty"><p>Aucune facture disponible<br><span style="font-size:12px;color:var(--text3);">Les factures sont générées après confirmation du paiement</span></p></div>';
       return;
     }
+    window._kbbFacLoad=window._kbbFacLoad||{};
+    factures.forEach(f=>{ window._kbbFacLoad[f.id]=f; });
     let html=`<div style="font-size:12px;color:var(--text3);margin-bottom:.75rem;">${factures.length} facture${factures.length>1?'s':''}</div>`;
     factures.forEach(f=>{
       html+=`<div style="background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:.875rem 1rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem;">
@@ -8975,7 +8978,7 @@ async function loadFacturesHistory(){
           <div style="font-size:11px;color:var(--text3);margin-top:2px;">${_fmtDateCmd(f.date)}</div>
         </div>
         <div style="font-family:var(--font-d);font-size:16px;color:var(--text);font-weight:700;flex-shrink:0;">${parseFloat(f.total_ttc||0).toFixed(2).replace('.',',')}€</div>
-        <button class="cmd-btn" onclick="downloadFacturePDF(${JSON.stringify(f).replace(/'/g,'&#39;')})">📄 PDF</button>
+        <button class="cmd-btn" onclick="downloadFacturePDF(window._kbbFacLoad['${f.id}'])">📄 PDF</button>
       </div>`;
     });
     el.innerHTML=html;
