@@ -1799,6 +1799,16 @@ body{
   </div>
 </div>
 
+<!-- SUGGESTION ACCOMPAGNEMENT -->
+<div class="upsell-overlay" id="overlay-accompagnement-suggest">
+  <div class="upsell-sheet" style="max-height:85vh;overflow-y:auto;">
+    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;text-align:center;">🍟 Un accompagnement ?</div>
+    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1rem;">Complétez votre commande</div>
+    <div id="accompagnement-suggest-list"></div>
+    <button onclick="closeAccompagnementSuggest()" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.75rem 0 0;">Non merci</button>
+  </div>
+</div>
+
 <!-- CHOIX MENU JUNIOR -->
 <div class="upsell-overlay" id="overlay-junior">
   <div class="upsell-sheet">
@@ -1910,6 +1920,7 @@ body{
     <div class="mtab" onclick="scrollMenuCat('cat-tacos',this)">Tacos</div>
     <div class="mtab" onclick="scrollMenuCat('cat-salades',this)">Salades</div>
     <div class="mtab" onclick="scrollMenuCat('cat-menus',this)">Menus</div>
+    <div class="mtab" onclick="scrollMenuCat('cat-accompagnements',this)">Accompagnements</div>
     <div class="mtab" onclick="scrollMenuCat('cat-desserts',this)">Desserts</div>
     <div class="mtab" onclick="scrollMenuCat('cat-boissons',this)">Boissons</div>
   </div>
@@ -1950,6 +1961,15 @@ body{
       <div class="menu-cat-title">🥡 Menus & Formules</div>
     </div>
     <div class="menu-items" id="mi-menus"></div>
+
+    <div class="menu-sep"></div>
+
+    <!-- ACCOMPAGNEMENTS -->
+    <div class="menu-cat" id="cat-accompagnements">
+      <div class="menu-cat-title">🍟 Accompagnements</div>
+      <div class="menu-cat-sub">Frites &amp; nuggets pour compléter votre plat</div>
+    </div>
+    <div class="menu-items" id="mi-accompagnements"></div>
 
     <div class="menu-sep"></div>
 
@@ -3047,6 +3067,11 @@ const MENU_DATA=[
    ingredients:['Salade','Tomates cerises','Houmous','Oignons','Pain grillé']},
   {cat:'menus',icon:'👶',name:'Menu Junior',desc:'Mini kebab braisé (salade, tomates, ketchup) + frites junior + boisson 33cl.',price:7.90},
   {cat:'menus',icon:'🍟',name:'Supplément Menu',desc:'Frites + boisson avec n\'importe quel kebab ou tacos.',price:3.50},
+  {cat:'accompagnements',icon:'🍟',name:'Frites classiques',desc:'',price:2.50,image:'assets/images/accompagnements/frites-classiques.png'},
+  {cat:'accompagnements',icon:'🍟',name:'Frites cheddar & oignons frits',desc:'',price:3.90,image:'assets/images/accompagnements/frites-cheddar.png'},
+  {cat:'accompagnements',icon:'🍗',name:'Nuggets 4 pcs',desc:'',price:3.90,image:'assets/images/accompagnements/nuggets.png'},
+  {cat:'accompagnements',icon:'🍗',name:'Nuggets 6 pcs',desc:'',price:4.90,image:'assets/images/accompagnements/nuggets.png'},
+  {cat:'accompagnements',icon:'🍗',name:'Nuggets 9 pcs',desc:'',price:6.90,image:'assets/images/accompagnements/nuggets.png'},
   {cat:'desserts',icon:'🍮',name:'Panna Cotta',desc:'Fait maison, onctueuse et gourmande.',price:3.90},
   {cat:'desserts',icon:'🍫',name:'Mousse au Chocolat',desc:'Fait maison, chocolat noir intense.',price:3.90},
   {cat:'desserts',icon:'🍨',name:'Mövenpick',desc:'2 parfums au choix + 1 coulis au choix + 1 topping au choix.',price:4.90,badge:'⭐ Premium'},
@@ -3062,7 +3087,7 @@ const MENU_DATA=[
 // Source unique : les boissons de l'overlay = exactement celles de la carte
 const BOISSONS=MENU_DATA.filter(m=>m.cat==='boissons');
 // TVA par catégorie (art. 279-a et 278-1 CGI)
-const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,desserts:0.055,boissons:0.10};
+const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,accompagnements:0.10,desserts:0.055,boissons:0.10};
 const TVA_DEFAULT=0.10;
 
 let cart=[];
@@ -3071,7 +3096,7 @@ let orderTableNum='';
 let selectedPickupTime='';
 
 function initMenu(){
-  const cats=['kebabs','tacos','salades','menus','desserts','boissons'];
+  const cats=['kebabs','tacos','salades','menus','accompagnements','desserts','boissons'];
   cats.forEach(cat=>{
     const el=document.getElementById('mi-'+cat);
     if(!el)return;
@@ -3858,6 +3883,31 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain,
   showToast(`✓ ${name} ajouté${extras.length?' — '+extras.join(' | '):''}`);
   pendingIdx=null; pendingTaille=null; selectedSupplements=[];
   sheetRemovedIngredients=[]; sheetSauces=[]; sheetPain=null;
+  // Suggestion accompagnement : uniquement pour les plats principaux, si aucun accompagnement en panier
+  const _skipCats=['accompagnements','boissons','desserts'];
+  if(!_skipCats.includes(m.cat)){
+    const _hasAccomp=cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements');
+    if(!_hasAccomp) setTimeout(showAccompagnementSuggest,350);
+  }
+}
+
+function showAccompagnementSuggest(){
+  const items=MENU_DATA.filter(m=>m.cat==='accompagnements');
+  const list=document.getElementById('accompagnement-suggest-list');
+  if(!list) return;
+  list.innerHTML=items.map(m=>{
+    const idx=MENU_DATA.indexOf(m);
+    return `<div class="boisson-card" onclick="finalAddToCart(${idx},null,false,[],[],[],null,false,null,null,null);closeAccompagnementSuggest();">
+      <img src="${m.image}" alt="${m.name}">
+      <div class="boisson-card-name">${m.name}</div>
+      <div class="boisson-card-price">${m.price.toFixed(2).replace('.',',')}€</div>
+    </div>`;
+  }).join('');
+  document.getElementById('overlay-accompagnement-suggest').classList.add('show');
+}
+
+function closeAccompagnementSuggest(){
+  document.getElementById('overlay-accompagnement-suggest').classList.remove('show');
 }
 
 function updateCartBar(){
