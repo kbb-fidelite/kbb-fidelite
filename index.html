@@ -3037,27 +3037,27 @@ const MENU_DATA=[
   {cat:'desserts',icon:'🍮',name:'Panna Cotta',desc:'Fait maison, onctueuse et gourmande.',price:3.90},
   {cat:'desserts',icon:'🍫',name:'Mousse au Chocolat',desc:'Fait maison, chocolat noir intense.',price:3.90},
   {cat:'desserts',icon:'🍨',name:'Mövenpick',desc:'2 parfums au choix + 1 coulis au choix + 1 topping au choix.',price:4.90,badge:'⭐ Premium'},
-  {cat:'boissons',icon:'🟥',name:'Coca-Cola 33cl',desc:'',price:2.50},
-  {cat:'boissons',icon:'🔵',name:'Pepsi 33cl',desc:'',price:2.50},
-  {cat:'boissons',icon:'🍒',name:'Pepsi Cherry 33cl',desc:'',price:2.50},
-  {cat:'boissons',icon:'🍊',name:'Oasis Tropical 33cl',desc:'',price:2.50},
-  {cat:'boissons',icon:'🟠',name:'Orangina 33cl',desc:'',price:2.50},
-  {cat:'boissons',icon:'🍋',name:'Oasis Tea 33cl',desc:'',price:2.50},
-  {cat:'boissons',icon:'🫧',name:'Schweppes Agrumes 33cl',desc:'',price:2.50},
-  {cat:'boissons',icon:'💧',name:'Eau plate 50cl',desc:'',price:1.50},
-  {cat:'boissons',icon:'🫧',name:'Perrier 33cl',desc:'',price:2.50},
+  {cat:'boissons',icon:'🥤',name:'Coca-Cola 33cl',desc:'',price:2.50,image:'assets/images/boissons/coca-cola.png'},
+  {cat:'boissons',icon:'🥤',name:'Pepsi 33cl',desc:'',price:2.50,image:'assets/images/boissons/pepsi.png'},
+  {cat:'boissons',icon:'🥤',name:'Pepsi Cherry 33cl',desc:'',price:2.50,image:'assets/images/boissons/pepsi-cherry.png'},
+  {cat:'boissons',icon:'🍊',name:'Orangina canette 33cl',desc:'',price:2.50,image:'assets/images/boissons/orangina-can.png'},
+  {cat:'boissons',icon:'🍊',name:'Orangina grande',desc:'',price:2.50,image:'assets/images/boissons/orangina-large.png'},
+  {cat:'boissons',icon:'🍋',name:'Oasis Tea 33cl',desc:'',price:2.50,image:'assets/images/boissons/oasis-tea.png'},
+  {cat:'boissons',icon:'🫧',name:'Schweppes Agrumes 33cl',desc:'',price:2.50,image:'assets/images/boissons/schweppes-agrumes.png'},
+  {cat:'boissons',icon:'💧',name:'Cristaline petite 50cl',desc:'',price:1.50,image:'assets/images/boissons/cristaline-small.png'},
+  {cat:'boissons',icon:'💧',name:'Cristaline grande 1,5L',desc:'',price:2.00,image:'assets/images/boissons/cristaline-large.png'},
 ];
 const BOISSONS=[
-  {name:'Coca-Cola',icon:'🥤'},
+  {name:'Coca-Cola',icon:'🥤',image:'assets/images/boissons/coca-cola.png'},
   {name:'Coca Zéro',icon:'🥤'},
   {name:'Fanta Orange',icon:'🍊'},
   {name:'Sprite',icon:'💚'},
   {name:'Ice Tea Pêche',icon:'🍑'},
-  {name:'Oasis',icon:'🍹'},
-  {name:'Eau plate',icon:'💧'},
+  {name:'Oasis Tea',icon:'🍋',image:'assets/images/boissons/oasis-tea.png'},
+  {name:'Eau plate',icon:'💧',image:'assets/images/boissons/cristaline-small.png'},
   {name:'Eau gazeuse',icon:'💧'},
   {name:"Jus d'orange",icon:'🍊'},
-  {name:'Schweppes',icon:'🫧'},
+  {name:'Schweppes',icon:'🫧',image:'assets/images/boissons/schweppes-agrumes.png'},
 ];
 // TVA par catégorie (art. 279-a et 278-1 CGI)
 const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,desserts:0.055,boissons:0.10};
@@ -3087,6 +3087,14 @@ function initMenu(){
             <div class="mi-info"><div class="mi-name">${m.name}</div><div class="mi-desc">${m.desc}</div>${m.badge?`<div class="mi-badge">${m.badge}</div>`:''}</div>
             <div class="mi-price">${m.price.toFixed(2).replace('.',',')}€</div>
           </div>
+        </div>`;
+      }
+      if(m.image){
+        return `<div class="mi" onclick="addToCart(${idx})" style="transition:transform .1s;">
+          ${qty?`<div class="mi-qty">${qty}</div>`:''}
+          <img src="${m.image}" alt="${m.name}" style="height:80px;width:60px;object-fit:contain;flex-shrink:0;">
+          <div class="mi-info"><div class="mi-name">${m.name}</div><div class="mi-desc">${m.desc}</div>${m.badge?`<div class="mi-badge">${m.badge}</div>`:''}</div>
+          <div class="mi-price">${m.price.toFixed(2).replace('.',',')}€</div>
         </div>`;
       }
       return `<div class="mi" onclick="addToCart(${idx})" style="transition:transform .1s;">
@@ -3716,7 +3724,9 @@ function showBoissonOverlay(mode, ctx){
   const grid=document.getElementById('boisson-grid');
   grid.innerHTML=BOISSONS.map((b,i)=>`
     <div class="boisson-btn" id="bbt-${i}" onclick="selectBoisson(${i})">
-      <div class="boisson-btn-ico">${b.icon}</div>
+      ${b.image
+        ?`<img src="${b.image}" alt="${b.name}" style="height:48px;object-fit:contain;margin-bottom:4px;">`
+        :`<div class="boisson-btn-ico">${b.icon}</div>`}
       <div class="boisson-btn-lbl">${b.name}</div>
     </div>`).join('');
   const title=document.getElementById('boisson-overlay-title');
