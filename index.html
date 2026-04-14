@@ -3092,7 +3092,9 @@ function initMenu(){
       if(m.image){
         return `<div class="mi" onclick="addToCart(${idx})" style="transition:transform .1s;">
           ${qty?`<div class="mi-qty">${qty}</div>`:''}
-          <img src="${m.image}" alt="${m.name}" style="height:80px;width:60px;object-fit:contain;flex-shrink:0;">
+          <div style="width:80px;height:80px;flex-shrink:0;background:none;display:flex;align-items:center;justify-content:center;">
+            <img src="${m.image}" alt="${m.name}" style="width:80px;height:80px;object-fit:contain;background:transparent;display:block;">
+          </div>
           <div class="mi-info"><div class="mi-name">${m.name}</div><div class="mi-desc">${m.desc}</div>${m.badge?`<div class="mi-badge">${m.badge}</div>`:''}</div>
           <div class="mi-price">${m.price.toFixed(2).replace('.',',')}€</div>
         </div>`;
@@ -3725,7 +3727,7 @@ function showBoissonOverlay(mode, ctx){
   grid.innerHTML=BOISSONS.map((b,i)=>`
     <div class="boisson-btn" id="bbt-${i}" onclick="selectBoisson(${i})">
       ${b.image
-        ?`<img src="${b.image}" alt="${b.name}" style="height:48px;object-fit:contain;margin-bottom:4px;">`
+        ?`<div style="height:48px;background:none;display:flex;align-items:center;justify-content:center;margin-bottom:4px;"><img src="${b.image}" alt="${b.name}" style="height:48px;width:auto;object-fit:contain;background:transparent;display:block;"></div>`
         :`<div class="boisson-btn-ico">${b.icon}</div>`}
       <div class="boisson-btn-lbl">${b.name}</div>
     </div>`).join('');
