@@ -709,12 +709,14 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 /* ══ PRODUCT POPUP ══ */
 .prod-wrap{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
 .prod-wrap.show{display:flex;}
-.prod-sheet{background:var(--coal2);border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:92vh;overflow-y:auto;position:relative;transform:translateY(50px);opacity:0;transition:transform .32s cubic-bezier(.34,1.1,.64,1),opacity .22s ease;}
+.prod-sheet{background:#121212;border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;position:relative;transform:translateY(50px);opacity:0;transition:transform .32s cubic-bezier(.34,1.1,.64,1),opacity .22s ease;}
 .prod-wrap.show .prod-sheet{transform:translateY(0);opacity:1;}
 .prod-sheet-photo{width:100%;height:220px;object-fit:cover;border-radius:20px 20px 0 0;display:block;}
 .prod-sheet-nophoto{width:100%;height:160px;background:linear-gradient(135deg,var(--coal3),var(--coal4));border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:center;font-size:72px;}
 .prod-sheet-close{position:absolute;top:.75rem;right:.75rem;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1;}
-.prod-sheet-body{padding:1.25rem 1.25rem 2.5rem;}
+.prod-sheet-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.prod-sheet-scroll::-webkit-scrollbar{display:none;}
+.prod-sheet-body{padding:1.25rem 1.25rem 1rem;}
 .prod-sheet-name{font-family:var(--font-d);font-size:34px;letter-spacing:1px;color:var(--text);line-height:1.05;}
 .prod-sheet-badges{display:flex;gap:6px;margin:.4rem 0 .75rem;}
 .prod-sheet-desc{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:1.25rem;}
@@ -730,9 +732,31 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .prod-menu-toggle.sel{border-color:var(--fire);background:rgba(255,107,43,.08);}
 .prod-menu-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);background:var(--coal4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:700;transition:all .15s;}
 .prod-menu-toggle.sel .prod-menu-check{background:var(--fire);border-color:var(--fire);color:#fff;}
-.prod-add-btn{width:100%;padding:1.05rem 1.25rem;background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;margin-top:.75rem;box-shadow:0 6px 24px rgba(255,107,43,.4);transition:opacity .15s,transform .12s;display:flex;align-items:center;justify-content:space-between;}
+.prod-add-btn{width:100%;padding:1.05rem 1.25rem;background:linear-gradient(130deg,#c47a00,#8b3500);color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(180,80,0,.4);transition:opacity .15s,transform .12s;display:flex;align-items:center;justify-content:space-between;}
 .prod-add-btn:active{opacity:.88;transform:scale(.99);}
+.prod-add-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
 .prod-add-price{font-family:var(--font-d);font-size:22px;}
+/* ── Sticky bar + progress bar ── */
+.ps-sticky-bar{flex-shrink:0;background:rgba(14,14,14,.95);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.07);padding:.875rem 1.25rem 1.25rem;}
+.ps-progress{display:none;justify-content:center;align-items:center;gap:7px;padding:9px 1.25rem 8px;background:rgba(18,18,18,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.05);position:sticky;top:0;z-index:5;}
+.ps-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.1);transition:all .3s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;}
+.ps-dot.done{background:#e65100;}
+.ps-dot.req{background:rgba(255,87,34,.35);box-shadow:0 0 0 2px rgba(255,87,34,.12);}
+.ps-dot-line{width:13px;height:1px;background:rgba(255,255,255,.07);flex-shrink:0;}
+/* Required label */
+.ps-required{font-size:10px;font-weight:600;color:#c04020;text-transform:none;letter-spacing:0;margin-left:5px;}
+/* Accordion retrait */
+.ps-accord-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:.2rem 0;margin:1.25rem 0 0;}
+.ps-accord-chevron{transition:transform .25s ease;flex-shrink:0;}
+.ps-accord.open .ps-accord-chevron{transform:rotate(180deg);}
+.ps-accord-body{max-height:0;overflow:hidden;transition:max-height .32s ease;}
+.ps-accord-body.open{max-height:600px;}
+.ps-accord-badge{background:rgba(230,81,0,.15);color:#c04020;border-radius:99px;font-size:10px;font-weight:700;padding:2px 7px;margin-left:7px;vertical-align:middle;}
+/* Improved ingredient chip removed state */
+.ps-ingr-chip.removed{border-color:#8b2800;background:rgba(139,40,0,.12);color:rgba(255,112,67,.6);text-decoration:line-through;opacity:.65;}
+/* Price pop animation */
+@keyframes psPricePop{0%{opacity:0;transform:translateY(6px)}60%{transform:translateY(-2px)}100%{opacity:1;transform:translateY(0)}}
+.ps-price-pop{animation:psPricePop .22s cubic-bezier(.34,1.56,.64,1) both;}
 
 /* ══ PRODUCT SHEET v2 ══ */
 .ps-section-title{font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:1.25rem 0 .65rem;}
@@ -1921,8 +1945,12 @@ body{
 <!-- PRODUCT DETAIL POPUP -->
 <div class="prod-wrap" id="prod-wrap" onclick="closeProdSheetOutside(event)">
   <div class="prod-sheet" id="prod-sheet">
-    <div id="prod-sheet-top" style="position:relative;"></div>
-    <div class="prod-sheet-body" id="prod-sheet-body"></div>
+    <div class="prod-sheet-scroll" id="prod-sheet-scroll">
+      <div id="prod-sheet-top" style="position:relative;"></div>
+      <div class="ps-progress" id="ps-progress" style="display:none;"></div>
+      <div class="prod-sheet-body" id="prod-sheet-body"></div>
+    </div>
+    <div class="ps-sticky-bar" id="ps-sticky-bar"></div>
   </div>
 </div>
 
@@ -3559,6 +3587,7 @@ function addToCart(idx){
 }
 
 /* ══ PRODUCT SHEET ══ */
+let _accordRetrait=false;
 let sheetIdx=null, sheetTaille='M', sheetMenuUpgrade=false;
 let sheetPain=null; // 'pain' | 'galette' | null — requis pour les kebabs
 let sheetRemovedIngredients=[];
@@ -3580,15 +3609,32 @@ function calcSheetPrice(){
   Object.entries(selectedSupplements).forEach(([sid,qty])=>{const s=SUPPLEMENTS.find(x=>x.id===sid);if(s)p+=s.price*qty;});
   return p;
 }
+function _rerender(scrollTargetId){
+  const scroll=document.getElementById('prod-sheet-scroll');
+  const sv=scroll?scroll.scrollTop:0;
+  renderProdSheetBody();
+  requestAnimationFrame(()=>{
+    if(!scroll) return;
+    if(scrollTargetId){
+      const el=document.getElementById(scrollTargetId);
+      if(el) scroll.scrollTo({top:Math.max(0,el.offsetTop-55),behavior:'smooth'});
+      else scroll.scrollTop=sv;
+    } else {
+      scroll.scrollTop=sv;
+    }
+  });
+}
 function toggleSheetIngredient(name){
   const i=sheetRemovedIngredients.indexOf(name);
-  if(i>=0) sheetRemovedIngredients.splice(i,1); else sheetRemovedIngredients.push(name);
-  renderProdSheetBody();
+  if(i>=0) sheetRemovedIngredients.splice(i,1);
+  else { sheetRemovedIngredients.push(name); _accordRetrait=true; }
+  _rerender(null);
 }
 function toggleSheetSauce(name){
+  const wasEmpty=!sheetSauces.length&&!sheetSansSauce;
   const i=sheetSauces.indexOf(name);
   if(i>=0) sheetSauces.splice(i,1); else sheetSauces.push(name);
-  renderProdSheetBody();
+  _rerender(wasEmpty&&sheetSauces.length===1?'ps-sect-suppls':null);
 }
 
 function openProductSheet(idx){
@@ -3602,6 +3648,7 @@ function openProductSheet(idx){
   sheetSauces=[];
   sheetSansSauce=false;
   sheetViande=null;
+  _accordRetrait=false;
   pendingIdx=idx;
 
   const top=document.getElementById('prod-sheet-top');
@@ -3613,6 +3660,8 @@ function openProductSheet(idx){
     top.innerHTML=`<div class="prod-sheet-nophoto">${m.icon}</div>
       <button class="prod-sheet-close" onclick="closeProdSheet()">✕</button>`;
   }
+  const bar=document.getElementById('ps-sticky-bar');
+  if(bar) bar.dataset.price='';
   renderProdSheetBody();
   document.getElementById('prod-wrap').classList.add('show');
   document.body.style.overflow='hidden';
@@ -3620,192 +3669,220 @@ function openProductSheet(idx){
 
 function renderProdSheetBody(){
   const m=MENU_DATA[sheetIdx];
-  const price=calcSheetPrice();
+
+  // Adaptive flags
+  const hasPain=m.cat==='kebabs';
+  const hasTaille=m.cat==='tacos';
+  const hasViande=m.cat==='tacos'&&m.name.toLowerCase().includes('chicken');
+  const hasSauces=m.cat==='kebabs'||m.cat==='tacos';
+  const hasSuppl=m.cat==='kebabs'||m.cat==='tacos';
+  const hasRetrait=(m.cat==='kebabs'||m.cat==='tacos'||m.cat==='salades')&&m.ingredients&&m.ingredients.length>0;
   const isCusto=m.cat==='kebabs'||m.cat==='tacos'||m.cat==='salades';
+  // Step counter
+  let _step=0; const S=()=>['①','②','③','④','⑤'][_step++]||(_step+'.') ;
 
   let html=`<div class="prod-sheet-name">${m.name}</div>`;
   if(m.badge) html+=`<div class="prod-sheet-badges"><span class="mi-badge">${m.badge}</span></div>`;
   html+=`<div class="prod-sheet-desc">${m.desc}</div>`;
 
-  /* ── ÉTAPE ⓪ : Pain / Galette (kebabs uniquement) ── */
-  if(m.cat==='kebabs'){
-    html+=`<div class="ps-section-title">⓪ Pain ou galette ?</div>
-    <div class="ps-pain-grid">
-      <div class="ps-pain-btn${sheetPain==='pain'?' sel':''}" onclick="setSheetPain('pain')">
-        <div class="ps-pain-ico">🍞</div>
-        <div class="ps-pain-lbl">Pain</div>
-      </div>
-      <div class="ps-pain-btn${sheetPain==='galette'?' sel':''}" onclick="setSheetPain('galette')">
-        <div class="ps-pain-ico">🫓</div>
-        <div class="ps-pain-lbl">Galette</div>
-      </div>
-    </div>`;
+  /* ── ① Pain / Galette (kebabs) ── */
+  if(hasPain){
+    html+=`<div id="ps-sect-pain">
+      <div class="ps-section-title">${S()} Pain ou galette <span class="ps-required">obligatoire</span></div>
+      <div class="ps-pain-grid">
+        <div class="ps-pain-btn${sheetPain==='pain'?' sel':''}" onclick="setSheetPain('pain')"><div class="ps-pain-ico">🍞</div><div class="ps-pain-lbl">Pain</div></div>
+        <div class="ps-pain-btn${sheetPain==='galette'?' sel':''}" onclick="setSheetPain('galette')"><div class="ps-pain-ico">🫓</div><div class="ps-pain-lbl">Galette</div></div>
+      </div></div>`;
   }
 
-  /* Taille tacos */
-  if(m.cat==='tacos'){
-    html+=`<div class="ps-section-title">Taille</div>
-    <div class="prod-taille-grid">
-      <div class="prod-taille-btn ${sheetTaille==='M'?'sel':''}" onclick="setSheetTaille('M')">
-        <div class="prod-taille-lbl">M</div>
-        <div class="prod-taille-price">${m.price.toFixed(2).replace('.',',')}€</div>
-      </div>
-      <div class="prod-taille-btn ${sheetTaille==='L'?'sel':''}" onclick="setSheetTaille('L')">
-        <div class="prod-taille-lbl">L</div><div class="prod-taille-price">11,50€</div>
-      </div>
-      <div class="prod-taille-btn ${sheetTaille==='XL'?'sel':''}" onclick="setSheetTaille('XL')">
-        <div class="prod-taille-lbl">XL</div><div class="prod-taille-price">14,50€</div>
-      </div>
-    </div>`;
+  /* ── Taille (tacos) ── */
+  if(hasTaille){
+    html+=`<div id="ps-sect-taille">
+      <div class="ps-section-title">${S()} Taille</div>
+      <div class="prod-taille-grid">
+        <div class="prod-taille-btn${sheetTaille==='M'?' sel':''}" onclick="setSheetTaille('M')"><div class="prod-taille-lbl">M</div><div class="prod-taille-price">${m.price.toFixed(2).replace('.',',')}€</div></div>
+        <div class="prod-taille-btn${sheetTaille==='L'?' sel':''}" onclick="setSheetTaille('L')"><div class="prod-taille-lbl">L</div><div class="prod-taille-price">11,50€</div></div>
+        <div class="prod-taille-btn${sheetTaille==='XL'?' sel':''}" onclick="setSheetTaille('XL')"><div class="prod-taille-lbl">XL</div><div class="prod-taille-price">14,50€</div></div>
+      </div></div>`;
   }
 
-  /* ── Choix viande (Spicy Chicken + Sweet Chicken) ── */
-  if(m.cat==='tacos'&&m.name.toLowerCase().includes('chicken')){
-    const viandeOpts=[['Poulet mariné','🍗'],['Nuggets','🟡'],['Tenders','🥩']];
-    html+=`<div class="ps-section-title">🐔 Choix de la viande <span style="font-size:11px;color:#FF7043;font-weight:600;">(obligatoire)</span></div>
-    <div class="viande-grid">`;
-    viandeOpts.forEach(([v,ico])=>{
-      html+=`<div class="viande-btn${sheetViande===v?' sel':''}" onclick="setSheetViande('${v}')">
-        <div class="viande-btn-ico">${ico}</div>
-        <div class="viande-btn-lbl">${v}</div>
-      </div>`;
-    });
-    html+=`</div>`;
+  /* ── Viande (Chicken tacos) ── */
+  if(hasViande){
+    const vOpts=[['Poulet mariné','🍗'],['Nuggets','🟡'],['Tenders','🥩']];
+    html+=`<div id="ps-sect-viande"><div class="ps-section-title">${S()} Viande <span class="ps-required">obligatoire</span></div><div class="viande-grid">`;
+    vOpts.forEach(([v,ico])=>{ html+=`<div class="viande-btn${sheetViande===v?' sel':''}" onclick="setSheetViande('${v}')"><div class="viande-btn-ico">${ico}</div><div class="viande-btn-lbl">${v}</div></div>`; });
+    html+=`</div></div>`;
   }
 
-  /* ── ÉTAPE 1 : Ingrédients à retirer ── */
-  if(isCusto&&m.ingredients&&m.ingredients.length){
-    html+=`<div class="ps-section-title">① Retirer des ingrédients</div>
-    <div class="ps-ingr-grid">`;
-    html+=m.ingredients.map(ing=>{
-      const removed=sheetRemovedIngredients.includes(ing);
-      return `<div class="ps-ingr-chip${removed?' removed':''}" onclick="toggleSheetIngredient('${ing.replace(/'/g,"\\'")}')">
-        ${removed?'✗':''} ${ing}
-      </div>`;
+  /* ── Sauces ── */
+  if(hasSauces){
+    const n=sheetSauces.length,extra=Math.max(0,n-SAUCES_FREE);
+    let cTxt;
+    if(sheetSansSauce) cTxt=`<span style="color:var(--text3);">🚫 Sans sauce</span>`;
+    else if(n===0) cTxt=`<span style="color:#c04020;">Choisissez au moins une sauce</span>`;
+    else if(n<=SAUCES_FREE) cTxt=`✓ ${n} sauce${n>1?'s':''} — ${SAUCES_FREE-n} gratuite${SAUCES_FREE-n>1?'s':''} restante${SAUCES_FREE-n>1?'s':''}`;
+    else cTxt=`✓ ${SAUCES_FREE} gratuites <span class="s-extra">+${extra} suppl. : +${(extra*SAUCE_EXTRA_PRICE).toFixed(2).replace('.',',')}€</span>`;
+    html+=`<div id="ps-sect-sauces"><div class="ps-section-title">${S()} Sauces <span class="ps-required">obligatoire</span></div><div class="ps-sauce-grid">`;
+    html+=SAUCES_LIST.map(sc=>{ const sel=sheetSauces.includes(sc),dis=sheetSansSauce;
+      return `<div class="ps-sauce-chip${sel?' sel':''}${dis?' disabled':''}" onclick="${dis?'':'toggleSheetSauce(\''+sc.replace(/'/g,"\\'")+'\')'}" style="${dis?'opacity:.3;pointer-events:none;':''}">
+        ${sel?'🥫 ':''} ${sc}</div>`;
     }).join('');
-    html+=`</div>`;
+    html+=`<div class="ps-sauce-chip${sheetSansSauce?' sel':''}" onclick="toggleSheetSansSauce()" style="border-color:${sheetSansSauce?'#FF7043':'var(--border)'};background:${sheetSansSauce?'rgba(255,112,67,.15)':'var(--coal3)'};">🚫 Sans sauce</div>`;
+    html+=`</div><div class="ps-sauce-counter">${cTxt}</div></div>`;
   }
 
-  /* ── ÉTAPE 2 : Sauces ── */
-  if(isCusto){
-    const n=sheetSauces.length;
-    const extra=Math.max(0,n-SAUCES_FREE);
-    let counterTxt;
-    if(sheetSansSauce){
-      counterTxt=`<span style="color:var(--text3);">🚫 Sans sauce sélectionné</span>`;
-    } else if(n===0){
-      counterTxt=`<span style="color:#FF7043;font-weight:700;">⚠️ Choisissez au moins une sauce (ou Sans sauce)</span>`;
-    } else if(n<=SAUCES_FREE){
-      counterTxt=`✓ ${n} sauce${n>1?'s':''} — ${SAUCES_FREE-n} gratuite${SAUCES_FREE-n>1?'s':''} restante${SAUCES_FREE-n>1?'s':''}`;
-    } else {
-      counterTxt=`✓ ${SAUCES_FREE} gratuites <span class="s-extra">+ ${extra} sauce${extra>1?'s':''} supplémentaire${extra>1?'s':''} : +${(extra*SAUCE_EXTRA_PRICE).toFixed(2).replace('.',',')}€</span>`;
-    }
-    html+=`<div class="ps-section-title">② Choisir les sauces <span style="font-size:11px;color:#FF7043;font-weight:600;">(obligatoire)</span></div>
-    <div class="ps-sauce-grid">`;
-    html+=SAUCES_LIST.map(s=>{
-      const sel=sheetSauces.includes(s);
-      const disabled=sheetSansSauce;
-      return `<div class="ps-sauce-chip${sel?' sel':''}${disabled?' disabled':''}" onclick="${disabled?'':'toggleSheetSauce(\''+s.replace(/'/g,"\\'")+'\')'}" style="${disabled?'opacity:.35;pointer-events:none;':''}">
-        ${sel?'🥫 ':''} ${s}
-      </div>`;
-    }).join('');
-    html+=`<div class="ps-sauce-chip${sheetSansSauce?' sel':''}" onclick="toggleSheetSansSauce()" style="border-color:${sheetSansSauce?'#FF7043':'var(--border)'};background:${sheetSansSauce?'rgba(255,112,67,.15)':'var(--coal3)'};">
-      🚫 Sans sauce
-    </div>`;
-    html+=`</div><div class="ps-sauce-counter">${counterTxt}</div>`;
-  }
-
-  /* ── ÉTAPE 3 : Suppléments ── */
-  if(isCusto&&SUPPLEMENTS.length){
-    html+=`<div class="ps-section-title">③ Suppléments</div>`;
-    const _sGroups=[{key:'premium',label:'Nos Incontournables',icon:'🔥'},{key:'extra',label:'Les Petits Plus',icon:'✨'}];
-    _sGroups.forEach(g=>{
-      const items=SUPPLEMENTS.filter(s=>s.cat===g.key);
+  /* ── Suppléments ── */
+  if(hasSuppl&&SUPPLEMENTS.length){
+    html+=`<div id="ps-sect-suppls"><div class="ps-section-title">${S()} Suppléments</div>`;
+    [{key:'premium',label:'Nos Incontournables',icon:'🔥'},{key:'extra',label:'Les Petits Plus',icon:'✨'}].forEach(g=>{
+      const items=SUPPLEMENTS.filter(x=>x.cat===g.key);
       if(!items.length) return;
       html+=`<div class="suppl-section-head"><div class="suppl-section-icon">${g.icon}</div><div class="suppl-section-title">${g.label}</div></div>`;
-      items.forEach(s=>{
-        const qty=(selectedSupplements[s.id]||0);
-        const dn=s.name.replace(/^Supplément\s+/i,'');
-        html+=`<div class="suppl-card${qty>0?' active':''}">
-          <div class="suppl-card-img"><div class="suppl-icon suppl-icon-${s.cat}">${SUPPL_ICONS[s.id]||''}</div></div>
-          <div class="suppl-card-body">
-            <div class="suppl-card-name">${dn}</div>
-            ${s.desc?`<div class="suppl-card-desc">${s.desc}</div>`:''}
-          </div>
+      items.forEach(x=>{
+        const qty=(selectedSupplements[x.id]||0),dn=x.name.replace(/^Supplément\s+/i,'');
+        html+=`<div class="suppl-card${qty>0?' active':''}" data-suppl-id="${x.id}">
+          <div class="suppl-card-img"><div class="suppl-icon suppl-icon-${x.cat}">${SUPPL_ICONS[x.id]||''}</div></div>
+          <div class="suppl-card-body"><div class="suppl-card-name">${dn}</div>${x.desc?`<div class="suppl-card-desc">${x.desc}</div>`:''}</div>
           <div class="suppl-card-right">
-            <div class="suppl-card-price">+${s.price.toFixed(2).replace('.',',')}€</div>
-            ${qty>0
-              ?`<div class="suppl-qty-wrap"><button class="suppl-qty-btn" onclick="changeSheetSuppl('${s.id}',-1)">−</button><span class="suppl-qty-val">${qty}</span><button class="suppl-qty-btn" onclick="changeSheetSuppl('${s.id}',1)">+</button></div>`
-              :`<button class="suppl-add-btn" onclick="changeSheetSuppl('${s.id}',1)">+</button>`
-            }
-          </div>
-        </div>`;
+            <div class="suppl-card-price">+${x.price.toFixed(2).replace('.',',')}€</div>
+            ${qty>0?`<div class="suppl-qty-wrap"><button class="suppl-qty-btn" onclick="changeSheetSuppl('${x.id}',-1)">−</button><span class="suppl-qty-val">${qty}</span><button class="suppl-qty-btn" onclick="changeSheetSuppl('${x.id}',1)">+</button></div>`
+              :`<button class="suppl-add-btn" onclick="changeSheetSuppl('${x.id}',1)">+</button>`}
+          </div></div>`;
       });
     });
+    html+=`</div>`;
+  }
+
+  /* ── Retrait ingrédients (accordion) ── */
+  if(hasRetrait){
+    const nR=sheetRemovedIngredients.length,isOpen=_accordRetrait||nR>0;
+    html+=`<div id="ps-sect-retrait" class="ps-accord${isOpen?' open':''}">
+      <div class="ps-accord-head" onclick="toggleAccordRetrait()">
+        <div class="ps-section-title" style="margin:0;">${S()} Je retire des ingrédients${nR>0?`<span class="ps-accord-badge">${nR} retrait${nR>1?'s':''}</span>`:''}</div>
+        <svg class="ps-accord-chevron" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 6l5 5 5-5" stroke="rgba(255,255,255,.35)" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div>
+      <div class="ps-accord-body${isOpen?' open':''}">
+        <div class="ps-ingr-grid" style="margin-top:.75rem;">`;
+    html+=m.ingredients.map(ing=>{ const rm=sheetRemovedIngredients.includes(ing);
+      return `<div class="ps-ingr-chip${rm?' removed':''}" onclick="toggleSheetIngredient('${ing.replace(/'/g,"\\'")}')">
+        ${rm?'✗ ':''} ${ing}</div>`;
+    }).join('');
+    html+=`</div></div></div>`;
   }
 
   /* ── Récapitulatif ── */
   if(isCusto){
     const hasCustom=sheetRemovedIngredients.length||sheetSauces.length||Object.values(selectedSupplements).some(q=>q>0)||sheetPain==='galette'||sheetViande;
-    html+=`<div class="ps-summary">
-      <div class="ps-summary-ttl">📋 Récapitulatif</div>
+    html+=`<div class="ps-summary"><div class="ps-summary-ttl">📋 Récapitulatif</div>
       <div class="ps-sum-line">${m.icon} <strong>${m.name}</strong>${sheetTaille&&sheetTaille!=='M'?' ('+sheetTaille+')':''}</div>`;
-    if(m.cat==='kebabs'&&sheetPain){
-      html+=`<div class="ps-sum-line" style="color:#FFC107;font-weight:700;">${sheetPain==='galette'?'🫓 Galette':'🍞 Pain'}</div>`;
-    }
-    if(sheetViande){
-      html+=`<div class="ps-sum-line" style="color:#FF9A6C;font-weight:700;">🍗 ${sheetViande}</div>`;
-    }
-    if(sheetRemovedIngredients.length){
-      sheetRemovedIngredients.forEach(ing=>{ html+=`<div class="ps-sum-line s-removed">❌ Sans ${ing}</div>`; });
-    }
-    if(sheetSauces.length){
-      html+=`<div class="ps-sum-line s-sauce">🥫 ${sheetSauces.join(', ')}</div>`;
-    } else if(sheetSansSauce){
-      html+=`<div class="ps-sum-line" style="color:var(--text3);">🚫 Sans sauce</div>`;
-    } else {
-      html+=`<div class="ps-sum-line" style="color:#FF7043;font-weight:600;">⚠️ Aucune sauce — requis</div>`;
-    }
-    Object.entries(selectedSupplements).forEach(([sid,qty])=>{
-      if(!qty) return;
-      const s=SUPPLEMENTS.find(x=>x.id===sid);
-      if(s) html+=`<div class="ps-sum-line s-suppl">➕ ${s.name}${qty>1?' ×'+qty:''} (+${(s.price*qty).toFixed(2).replace('.',',')}€)</div>`;
-    });
+    if(m.cat==='kebabs'&&sheetPain) html+=`<div class="ps-sum-line" style="color:#FFC107;font-weight:700;">${sheetPain==='galette'?'🫓 Galette':'🍞 Pain'}</div>`;
+    if(sheetViande) html+=`<div class="ps-sum-line" style="color:#FF9A6C;font-weight:700;">🍗 ${sheetViande}</div>`;
+    if(sheetRemovedIngredients.length) sheetRemovedIngredients.forEach(ing=>{ html+=`<div class="ps-sum-line s-removed">❌ Sans ${ing}</div>`; });
+    if(sheetSauces.length) html+=`<div class="ps-sum-line s-sauce">🥫 ${sheetSauces.join(', ')}</div>`;
+    else if(sheetSansSauce) html+=`<div class="ps-sum-line" style="color:var(--text3);">🚫 Sans sauce</div>`;
+    else if(hasSauces) html+=`<div class="ps-sum-line" style="color:#c04020;font-weight:600;">⚠️ Aucune sauce — requis</div>`;
+    Object.entries(selectedSupplements).forEach(([sid,qty])=>{ if(!qty) return; const s=SUPPLEMENTS.find(x=>x.id===sid); if(s) html+=`<div class="ps-sum-line s-suppl">➕ ${s.name}${qty>1?' ×'+qty:''} (+${(s.price*qty).toFixed(2).replace('.',',')}€)</div>`; });
     if(!hasCustom) html+=`<div class="ps-sum-line s-ok">✅ Tout par défaut</div>`;
     html+=`</div>`;
   }
 
-  const needsPain=m.cat==='kebabs'&&!sheetPain;
-  const needsSauce=isCusto&&!sheetSauces.length&&!sheetSansSauce;
-  const isChicken=m.cat==='tacos'&&m.name.toLowerCase().includes('chicken');
-  const needsViande=isChicken&&!sheetViande;
-  const isBlocked=needsPain||needsSauce||needsViande;
-  const btnLabel=needsPain?'👆 Choisissez pain ou galette':needsSauce?'🥫 Veuillez choisir au moins une sauce':needsViande?'🐔 Choisissez votre viande':m.name==='Menu Junior'?'Choisir le produit →':isCusto?'Continuer →':'Ajouter au panier';
-  html+=`<button class="prod-add-btn" onclick="confirmProdSheet()"${isBlocked?' disabled':''}>
-    <span>${btnLabel}</span>
-    <span class="prod-add-price">${price.toFixed(2).replace('.',',')}€</span>
-  </button>`;
-
   document.getElementById('prod-sheet-body').innerHTML=html;
+  _renderProgressBar(hasPain,hasTaille,hasViande,hasSauces,hasSuppl,hasRetrait);
+  _renderStickyBar();
 }
 
-function setSheetTaille(t){ sheetTaille=t; renderProdSheetBody(); }
-function setSheetPain(p){ sheetPain=p; renderProdSheetBody(); }
-function setSheetViande(v){ sheetViande=v; renderProdSheetBody(); }
-function toggleSheetMenu(){ sheetMenuUpgrade=!sheetMenuUpgrade; renderProdSheetBody(); }
-function toggleSheetSansSauce(){ sheetSansSauce=!sheetSansSauce; if(sheetSansSauce) sheetSauces=[]; renderProdSheetBody(); }
+function setSheetTaille(t){ sheetTaille=t; _rerender(null); }
+function setSheetPain(p){ sheetPain=p; _rerender('ps-sect-sauces'); }
+function setSheetViande(v){ sheetViande=v; _rerender(null); }
+function toggleSheetMenu(){ sheetMenuUpgrade=!sheetMenuUpgrade; _rerender(null); }
+function toggleSheetSansSauce(){
+  sheetSansSauce=!sheetSansSauce;
+  if(sheetSansSauce) sheetSauces=[];
+  _rerender(sheetSansSauce?'ps-sect-suppls':null);
+}
 function changeSheetSuppl(id, delta){
   const cur=(selectedSupplements[id]||0)+delta;
   if(cur<=0) delete selectedSupplements[id];
   else selectedSupplements[id]=cur;
-  renderProdSheetBody();
+  // In-place patch — évite le saut de scroll sur ±1
+  const card=document.querySelector(`[data-suppl-id="${id}"]`);
+  if(card){
+    const qty=selectedSupplements[id]||0;
+    const s=SUPPLEMENTS.find(x=>x.id===id);
+    if(!s) return;
+    card.classList.toggle('active',qty>0);
+    card.querySelector('.suppl-card-right').innerHTML=
+      `<div class="suppl-card-price">+${s.price.toFixed(2).replace('.',',')}€</div>`+
+      (qty>0
+        ?`<div class="suppl-qty-wrap"><button class="suppl-qty-btn" onclick="changeSheetSuppl('${id}',-1)">−</button><span class="suppl-qty-val">${qty}</span><button class="suppl-qty-btn" onclick="changeSheetSuppl('${id}',1)">+</button></div>`
+        :`<button class="suppl-add-btn" onclick="changeSheetSuppl('${id}',1)">+</button>`);
+    _renderStickyBar();
+  } else {
+    _rerender(null);
+  }
+}
+
+function toggleAccordRetrait(){
+  _accordRetrait=!_accordRetrait;
+  const acc=document.getElementById('ps-sect-retrait');
+  if(acc){
+    acc.classList.toggle('open',_accordRetrait);
+    acc.querySelector('.ps-accord-body').classList.toggle('open',_accordRetrait);
+  }
+}
+
+function _renderProgressBar(hasPain,hasTaille,hasViande,hasSauces,hasSuppl,hasRetrait){
+  const el=document.getElementById('ps-progress');
+  if(!el) return;
+  const steps=[];
+  if(hasPain)    steps.push({done:!!sheetPain,    req:true});
+  if(hasTaille)  steps.push({done:true,            req:false});
+  if(hasViande)  steps.push({done:!!sheetViande,   req:true});
+  if(hasSauces)  steps.push({done:sheetSauces.length>0||sheetSansSauce, req:true});
+  if(hasSuppl)   steps.push({done:Object.values(selectedSupplements).some(q=>q>0), req:false});
+  if(hasRetrait) steps.push({done:false,           req:false});
+  if(steps.length<2){ el.style.display='none'; return; }
+  el.style.display='flex';
+  el.innerHTML=steps.map((s,i)=>{
+    const cls=s.done?'ps-dot done':(s.req?'ps-dot req':'ps-dot');
+    return (i>0?'<div class="ps-dot-line"></div>':'')+`<div class="${cls}"></div>`;
+  }).join('');
+}
+
+function _renderStickyBar(){
+  const bar=document.getElementById('ps-sticky-bar');
+  if(!bar||sheetIdx===null) return;
+  const m=MENU_DATA[sheetIdx];
+  let base=m.price;
+  if(m.cat==='tacos'){
+    if(sheetTaille==='L') base=11.5;
+    else if(sheetTaille==='XL') base=14.5;
+  }
+  const sauceExtra=Math.max(0,sheetSauces.length-SAUCES_FREE)*SAUCE_EXTRA_PRICE;
+  const supplExtra=Object.entries(selectedSupplements).reduce((acc,[sid,qty])=>{
+    const s=SUPPLEMENTS.find(x=>x.id===sid);
+    return acc+(s?s.price*qty:0);
+  },0);
+  const total=base+sauceExtra+supplExtra;
+  const totalStr=total.toFixed(2).replace('.',',')+'€';
+  const prev=bar.dataset.price||'';
+  const pop=prev!==''&&prev!==totalStr;
+  bar.dataset.price=totalStr;
+  bar.innerHTML=`<button class="prod-add-btn" onclick="confirmProdSheet()">Ajouter au panier — <span id="ps-bar-price">${totalStr}</span></button>`;
+  if(pop){
+    requestAnimationFrame(()=>{
+      const span=bar.querySelector('#ps-bar-price');
+      if(span){ span.classList.remove('ps-price-pop'); void span.offsetWidth; span.classList.add('ps-price-pop'); }
+    });
+  }
 }
 
 function confirmProdSheet(){
   const m=MENU_DATA[sheetIdx];
   if(m.cat==='kebabs'&&!sheetPain){ showToast('Choisissez pain ou galette 👆'); return; }
   const isCusto=m.cat==='kebabs'||m.cat==='tacos'||m.cat==='salades';
-  if(isCusto&&!sheetSauces.length&&!sheetSansSauce){ showToast('🥫 Veuillez choisir au moins une sauce'); return; }
+  const hasSauces=m.cat==='kebabs'||m.cat==='tacos';
+  if(hasSauces&&!sheetSauces.length&&!sheetSansSauce){ showToast('🥫 Veuillez choisir au moins une sauce'); return; }
   const isChicken=m.cat==='tacos'&&m.name.toLowerCase().includes('chicken');
   if(isChicken&&!sheetViande){ showToast('🐔 Choisissez votre viande'); return; }
   const suppls=Object.entries(selectedSupplements).flatMap(([sid,qty])=>{
