@@ -308,13 +308,40 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .flash-card{background:linear-gradient(135deg,rgba(255,107,43,.15),rgba(255,184,48,.1));border:1px solid rgba(255,107,43,.3);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:.875rem;}
 .upsell-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:flex-end;justify-content:center;}
 .upsell-overlay.show{display:flex;}
-.upsell-sheet{background:var(--coal2);border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:430px;animation:slideup .28s cubic-bezier(.34,1.56,.64,1);}
+.upsell-sheet{background:#121212;border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 0;width:100%;max-width:430px;animation:slideup .28s cubic-bezier(.34,1.56,.64,1);}
 @keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .upsell-opt{display:flex;align-items:center;justify-content:space-between;background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.875rem 1rem;margin-bottom:.5rem;cursor:pointer;transition:border-color .15s;}
 .upsell-opt:active{border-color:var(--fire);}
 .upsell-opt.selected{border-color:var(--fire);background:rgba(255,107,43,.08);}
 .suppl-check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);background:var(--coal4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;transition:all .15s;}
 .suppl-check.on{background:var(--fire);border-color:var(--fire);}
+/* ── Premium Supplements ── */
+.suppl-section-head{display:flex;align-items:center;gap:9px;padding:.5rem 0 .45rem;margin-bottom:.5rem;border-bottom:1px solid rgba(255,255,255,.07);}
+.suppl-section-icon{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#FF8C00,#FF4500);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.suppl-section-title{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);font-family:'Inter',sans-serif;}
+.suppl-card{display:flex;align-items:center;gap:11px;padding:10px 12px;background:#1a1a1a;border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:8px;transition:border-color .2s,background .2s;}
+.suppl-card.active{border-color:rgba(255,107,43,.45);background:rgba(255,107,43,.07);}
+.suppl-card-img{width:50px;height:50px;border-radius:10px;background:#222;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.suppl-card-img img{width:100%;height:100%;object-fit:cover;}
+.suppl-card-placeholder{font-size:22px;line-height:1;}
+.suppl-card-body{flex:1;min-width:0;}
+.suppl-card-name{font-size:14px;font-weight:600;color:#fff;font-family:'Inter',sans-serif;line-height:1.3;}
+.suppl-card-desc{font-size:11px;color:#5a5a5a;margin-top:2px;font-family:'Inter',sans-serif;line-height:1.4;}
+.suppl-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0;}
+.suppl-card-price{font-size:13px;font-weight:700;background:linear-gradient(135deg,#FF8C00,#FF4500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.suppl-add-btn{width:32px;height:32px;border-radius:99px;border:none;background:linear-gradient(135deg,#FF8C00,#FF4500);color:#fff;font-size:22px;font-weight:300;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;padding-bottom:1px;transition:transform .15s,opacity .15s;flex-shrink:0;}
+.suppl-add-btn:active{transform:scale(.88);opacity:.8;}
+.suppl-qty-wrap{display:flex;align-items:center;gap:7px;}
+.suppl-qty-btn{width:28px;height:28px;border-radius:99px;border:1px solid rgba(255,107,43,.5);background:rgba(255,107,43,.1);color:#FF8C00;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;flex-shrink:0;transition:background .15s;}
+.suppl-qty-btn:active{background:rgba(255,107,43,.25);}
+.suppl-qty-val{font-size:15px;font-weight:700;color:#fff;min-width:18px;text-align:center;font-family:'Inter',sans-serif;}
+.suppl-float-bar{position:sticky;bottom:0;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);background:rgba(18,18,18,.88);border-top:1px solid rgba(255,255,255,.09);padding:.9rem 1.25rem 1.6rem;display:flex;align-items:center;gap:12px;margin:0 -1.25rem;}
+.suppl-float-total{flex:1;}
+.suppl-float-label{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.6px;font-family:'Inter',sans-serif;}
+.suppl-float-price{font-size:20px;font-weight:700;background:linear-gradient(135deg,#FF8C00,#FF4500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-family:'Inter',sans-serif;line-height:1.2;}
+.suppl-confirm-btn{background:linear-gradient(135deg,#FF8C00,#FF4500);border:none;border-radius:12px;padding:.75rem 1.1rem;color:#fff;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .15s;}
+.suppl-confirm-btn:active{opacity:.8;}
+.suppl-skip-btn{width:100%;background:none;border:none;color:#444;font-size:12px;cursor:pointer;padding:.5rem 0 0;font-family:'Inter',sans-serif;}
 .cart-upsell-hint{background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.2);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:.875rem;font-size:12px;color:var(--gold);line-height:1.5;}
 .flash-timer{font-family:var(--font-d);font-size:32px;color:var(--fire);letter-spacing:2px;text-align:center;margin:.5rem 0;}
 .flash-badge{display:inline-block;background:var(--fire);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:3px 10px;margin-bottom:.5rem;}
@@ -710,6 +737,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .ps-suppl-row.sel{border-color:#FF9800;background:rgba(255,152,0,.08);}
 .ps-suppl-chk{width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);background:var(--coal4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:700;transition:all .15s;}
 .ps-suppl-row.sel .ps-suppl-chk{background:#FF9800;border-color:#FF9800;color:#fff;}
+/* product sheet suppl section head (reuse suppl-section-head above) */
 .ps-summary{background:rgba(255,107,43,.06);border:1px solid rgba(255,107,43,.15);border-radius:var(--radius-sm);padding:.875rem;margin:1rem 0 .75rem;}
 .ps-summary-ttl{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.55rem;}
 .ps-sum-line{font-size:13px;line-height:1.75;}
@@ -1779,12 +1807,21 @@ body{
 
 <!-- UPSELL SUPPLÉMENTS -->
 <div class="upsell-overlay" id="overlay-supplements">
-  <div class="upsell-sheet">
-    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;text-align:center;">Ajouter des suppléments ?</div>
-    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1.25rem;">Personnalisez votre plat</div>
+  <div class="upsell-sheet" style="max-height:88vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.2rem;">
+      <div style="font-size:19px;font-weight:700;color:#fff;font-family:'Inter',sans-serif;">Ajouter des suppléments ?</div>
+      <button onclick="closeSupplements()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#888;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+    <div style="font-size:12px;color:#555;margin-bottom:1.1rem;font-family:'Inter',sans-serif;">Personnalisez votre plat</div>
     <div id="suppl-list"></div>
-    <button onclick="validerSupplements()" style="width:100%;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:var(--radius);padding:.9rem;color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;margin-top:.5rem;">Ajouter au panier →</button>
-    <button onclick="closeSupplements()" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.5rem 0 0;">Sans supplément</button>
+    <div class="suppl-float-bar">
+      <div class="suppl-float-total">
+        <div class="suppl-float-label">Suppléments</div>
+        <div class="suppl-float-price" id="suppl-float-price">+0,00€</div>
+      </div>
+      <button class="suppl-confirm-btn" onclick="validerSupplements()">Ajouter au panier →</button>
+    </div>
+    <button class="suppl-skip-btn" onclick="closeSupplements()">Sans supplément</button>
   </div>
 </div>
 
@@ -3155,13 +3192,16 @@ function initMenu(){
 
 /* ══ SUPPLÉMENTS ══ */
 const SUPPLEMENTS=[
-  {id:'vkeb', name:'Supplément viande kebab', price:2.00},
-  {id:'vpou', name:'Supplément viande poulet', price:2.00},
-  {id:'bur',  name:'Supplément burrata',       price:4.00},
-  {id:'che',  name:'Supplément cheddar',        price:0.50},
-  {id:'fet',  name:'Supplément féta',           price:1.00},
-  {id:'fro',  name:'Supplément sauce fromagère',price:0.50},
-  {id:'jal',  name:'Supplément jalapeños',      price:0.50},
+  // Nos Incontournables
+  {id:'vkeb',name:'Supplément viande de kebab',   price:2.50,cat:'premium'},
+  {id:'vpou',name:'Supplément poulet',             price:2.50,cat:'premium'},
+  {id:'bur', name:'Supplément burrata',            price:4.40,cat:'premium',desc:'Cœur crémeux de 125g'},
+  {id:'ten', name:'Supplément tenders crispy',     price:2.50,cat:'premium',desc:'Filets de poulet croustillants'},
+  // Les Petits Plus
+  {id:'che', name:'Supplément cheddar',            price:0.50,cat:'extra'},
+  {id:'fet', name:'Supplément féta',               price:1.00,cat:'extra'},
+  {id:'fro', name:'Supplément sauce fromagère maison',price:1.00,cat:'extra',desc:'Recette maison du chef'},
+  {id:'jal', name:'Supplément jalapeños',          price:0.50,cat:'extra'},
 ];
 /* ══ SAUCES ══ */
 const SAUCES_LIST=['Mayonnaise','Ketchup','Algérienne','Barbecue','Brazil','Sauce blanche maison','Harissa','Samouraï','Biggy'];
@@ -3478,7 +3518,7 @@ function _stripeCleanup(){
 
 let pendingIdx=null;
 let pendingTaille=null;
-let selectedSupplements=[];
+let selectedSupplements={};
 
 function addToCart(idx){
   const m=MENU_DATA[idx];
@@ -3513,7 +3553,7 @@ function calcSheetPrice(){
   if(sheetTaille==='XL') p=14.50;
   if(sheetMenuUpgrade) p+=3.50;
   p+=Math.max(0,sheetSauces.length-SAUCES_FREE)*SAUCE_EXTRA_PRICE;
-  selectedSupplements.forEach(sid=>{const s=SUPPLEMENTS.find(x=>x.id===sid);if(s)p+=s.price;});
+  Object.entries(selectedSupplements).forEach(([sid,qty])=>{const s=SUPPLEMENTS.find(x=>x.id===sid);if(s)p+=s.price*qty;});
   return p;
 }
 function toggleSheetIngredient(name){
@@ -3533,7 +3573,7 @@ function openProductSheet(idx){
   sheetTaille=m.cat==='tacos'?'M':null;
   sheetMenuUpgrade=false;
   sheetPain=null;
-  selectedSupplements=[];
+  selectedSupplements={};
   sheetRemovedIngredients=[];
   sheetSauces=[];
   sheetSansSauce=false;
@@ -3654,17 +3694,35 @@ function renderProdSheetBody(){
   /* ── ÉTAPE 3 : Suppléments ── */
   if(isCusto&&SUPPLEMENTS.length){
     html+=`<div class="ps-section-title">③ Suppléments</div>`;
-    html+=SUPPLEMENTS.map(s=>`
-      <div class="ps-suppl-row${selectedSupplements.includes(s.id)?' sel':''}" onclick="toggleSheetSuppl('${s.id}')">
-        <div class="ps-suppl-chk">${selectedSupplements.includes(s.id)?'✓':''}</div>
-        <div style="flex:1;font-size:13px;font-weight:600;color:var(--text);">${s.name}</div>
-        <div style="font-family:var(--font-d);font-size:18px;color:var(--fire);flex-shrink:0;">+${s.price.toFixed(2).replace('.',',')}€</div>
-      </div>`).join('');
+    const _sGroups=[{key:'premium',label:'Nos Incontournables',icon:'🔥'},{key:'extra',label:'Les Petits Plus',icon:'✨'}];
+    _sGroups.forEach(g=>{
+      const items=SUPPLEMENTS.filter(s=>s.cat===g.key);
+      if(!items.length) return;
+      html+=`<div class="suppl-section-head"><div class="suppl-section-icon">${g.icon}</div><div class="suppl-section-title">${g.label}</div></div>`;
+      items.forEach(s=>{
+        const qty=(selectedSupplements[s.id]||0);
+        const dn=s.name.replace(/^Supplément\s+/i,'');
+        html+=`<div class="suppl-card${qty>0?' active':''}">
+          <div class="suppl-card-img">${s.image?`<img src="${s.image}" alt="${dn}">`:`<span class="suppl-card-placeholder">🥩</span>`}</div>
+          <div class="suppl-card-body">
+            <div class="suppl-card-name">${dn}</div>
+            ${s.desc?`<div class="suppl-card-desc">${s.desc}</div>`:''}
+          </div>
+          <div class="suppl-card-right">
+            <div class="suppl-card-price">+${s.price.toFixed(2).replace('.',',')}€</div>
+            ${qty>0
+              ?`<div class="suppl-qty-wrap"><button class="suppl-qty-btn" onclick="changeSheetSuppl('${s.id}',-1)">−</button><span class="suppl-qty-val">${qty}</span><button class="suppl-qty-btn" onclick="changeSheetSuppl('${s.id}',1)">+</button></div>`
+              :`<button class="suppl-add-btn" onclick="changeSheetSuppl('${s.id}',1)">+</button>`
+            }
+          </div>
+        </div>`;
+      });
+    });
   }
 
   /* ── Récapitulatif ── */
   if(isCusto){
-    const hasCustom=sheetRemovedIngredients.length||sheetSauces.length||selectedSupplements.length||sheetPain==='galette'||sheetViande;
+    const hasCustom=sheetRemovedIngredients.length||sheetSauces.length||Object.values(selectedSupplements).some(q=>q>0)||sheetPain==='galette'||sheetViande;
     html+=`<div class="ps-summary">
       <div class="ps-summary-ttl">📋 Récapitulatif</div>
       <div class="ps-sum-line">${m.icon} <strong>${m.name}</strong>${sheetTaille&&sheetTaille!=='M'?' ('+sheetTaille+')':''}</div>`;
@@ -3684,9 +3742,10 @@ function renderProdSheetBody(){
     } else {
       html+=`<div class="ps-sum-line" style="color:#FF7043;font-weight:600;">⚠️ Aucune sauce — requis</div>`;
     }
-    selectedSupplements.forEach(sid=>{
+    Object.entries(selectedSupplements).forEach(([sid,qty])=>{
+      if(!qty) return;
       const s=SUPPLEMENTS.find(x=>x.id===sid);
-      if(s) html+=`<div class="ps-sum-line s-suppl">➕ ${s.name} (+${s.price.toFixed(2).replace('.',',')}€)</div>`;
+      if(s) html+=`<div class="ps-sum-line s-suppl">➕ ${s.name}${qty>1?' ×'+qty:''} (+${(s.price*qty).toFixed(2).replace('.',',')}€)</div>`;
     });
     if(!hasCustom) html+=`<div class="ps-sum-line s-ok">✅ Tout par défaut</div>`;
     html+=`</div>`;
@@ -3711,9 +3770,10 @@ function setSheetPain(p){ sheetPain=p; renderProdSheetBody(); }
 function setSheetViande(v){ sheetViande=v; renderProdSheetBody(); }
 function toggleSheetMenu(){ sheetMenuUpgrade=!sheetMenuUpgrade; renderProdSheetBody(); }
 function toggleSheetSansSauce(){ sheetSansSauce=!sheetSansSauce; if(sheetSansSauce) sheetSauces=[]; renderProdSheetBody(); }
-function toggleSheetSuppl(id){
-  const i=selectedSupplements.indexOf(id);
-  if(i>=0) selectedSupplements.splice(i,1); else selectedSupplements.push(id);
+function changeSheetSuppl(id, delta){
+  const cur=(selectedSupplements[id]||0)+delta;
+  if(cur<=0) delete selectedSupplements[id];
+  else selectedSupplements[id]=cur;
   renderProdSheetBody();
 }
 
@@ -3724,10 +3784,10 @@ function confirmProdSheet(){
   if(isCusto&&!sheetSauces.length&&!sheetSansSauce){ showToast('🥫 Veuillez choisir au moins une sauce'); return; }
   const isChicken=m.cat==='tacos'&&m.name.toLowerCase().includes('chicken');
   if(isChicken&&!sheetViande){ showToast('🐔 Choisissez votre viande'); return; }
-  const suppls=selectedSupplements.map(sid=>{
+  const suppls=Object.entries(selectedSupplements).flatMap(([sid,qty])=>{
     const s=SUPPLEMENTS.find(x=>x.id===sid);
-    return s?{name:s.name,price:s.price}:null;
-  }).filter(Boolean);
+    return (s&&qty>0)?Array(qty).fill(null).map(()=>({name:s.name,price:s.price})):[];
+  });
   _pendingMenuCtx={idx:sheetIdx,taille:sheetTaille,removed:[...sheetRemovedIngredients],sauces:[...sheetSauces],suppls,pain:sheetPain,sansSauce:sheetSansSauce,viande:sheetViande||null};
   closeProdSheet();
   if(m.name==='Menu Junior'){
@@ -3842,42 +3902,78 @@ function closeUpsellTaille(){
   pendingIdx=null; pendingTaille=null;
 }
 
+function _renderSupplOverlayList(){
+  const m=MENU_DATA[pendingIdx];
+  const dispo=SUPPLEMENTS.filter(s=>!s.cats||s.cats.includes(m?.cat));
+  const list=document.getElementById('suppl-list');
+  const groups=[{key:'premium',label:'Nos Incontournables',icon:'🔥'},{key:'extra',label:'Les Petits Plus',icon:'✨'}];
+  let html='';
+  groups.forEach(g=>{
+    const items=dispo.filter(s=>s.cat===g.key);
+    if(!items.length) return;
+    html+=`<div class="suppl-section-head"><div class="suppl-section-icon">${g.icon}</div><div class="suppl-section-title">${g.label}</div></div>`;
+    items.forEach(s=>{
+      const qty=(selectedSupplements[s.id]||0);
+      const dn=s.name.replace(/^Supplément\s+/i,'');
+      html+=`<div class="suppl-card${qty>0?' active':''}">
+        <div class="suppl-card-img">${s.image?`<img src="${s.image}" alt="${dn}">`:`<span class="suppl-card-placeholder">🥩</span>`}</div>
+        <div class="suppl-card-body">
+          <div class="suppl-card-name">${dn}</div>
+          ${s.desc?`<div class="suppl-card-desc">${s.desc}</div>`:''}
+        </div>
+        <div class="suppl-card-right">
+          <div class="suppl-card-price">+${s.price.toFixed(2).replace('.',',')}€</div>
+          ${qty>0
+            ?`<div class="suppl-qty-wrap"><button class="suppl-qty-btn" onclick="changeSuppl('${s.id}',-1)">−</button><span class="suppl-qty-val">${qty}</span><button class="suppl-qty-btn" onclick="changeSuppl('${s.id}',1)">+</button></div>`
+            :`<button class="suppl-add-btn" onclick="changeSuppl('${s.id}',1)">+</button>`
+          }
+        </div>
+      </div>`;
+    });
+  });
+  list.innerHTML=html;
+}
+
+function updateSupplFloatBar(){
+  let total=0;
+  Object.entries(selectedSupplements).forEach(([sid,qty])=>{
+    const s=SUPPLEMENTS.find(x=>x.id===sid);
+    if(s) total+=s.price*qty;
+  });
+  const el=document.getElementById('suppl-float-price');
+  if(el) el.textContent=(total>0?'+':'')+total.toFixed(2).replace('.',',')+'€';
+}
+
 function ouvrirSupplements(){
   const m=MENU_DATA[pendingIdx];
   const dispo=SUPPLEMENTS.filter(s=>!s.cats||s.cats.includes(m.cat));
-  if(!dispo.length){
-    finalAddToCart(pendingIdx, pendingTaille, false);
-    return;
-  }
-  const list=document.getElementById('suppl-list');
-  list.innerHTML=dispo.map(s=>`
-    <div class="upsell-opt" id="sopt-${s.id}" onclick="toggleSuppl('${s.id}')">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div class="suppl-check" id="schk-${s.id}"></div>
-        <div style="font-size:14px;color:var(--text);">${s.name}</div>
-      </div>
-      <div style="font-family:var(--font-d);font-size:18px;color:var(--fire);">+${s.price.toFixed(2).replace('.',',')}€</div>
-    </div>`).join('');
+  if(!dispo.length){ finalAddToCart(pendingIdx, pendingTaille, false); return; }
+  selectedSupplements={};
+  _renderSupplOverlayList();
+  updateSupplFloatBar();
   document.getElementById('overlay-supplements').classList.add('show');
 }
 
-function toggleSuppl(id){
-  const i=selectedSupplements.indexOf(id);
-  if(i>=0) selectedSupplements.splice(i,1);
-  else selectedSupplements.push(id);
-  document.getElementById('sopt-'+id).classList.toggle('selected', selectedSupplements.includes(id));
-  document.getElementById('schk-'+id).classList.toggle('on', selectedSupplements.includes(id));
-  document.getElementById('schk-'+id).textContent=selectedSupplements.includes(id)?'✓':'';
+function changeSuppl(id, delta){
+  const cur=(selectedSupplements[id]||0)+delta;
+  if(cur<=0) delete selectedSupplements[id];
+  else selectedSupplements[id]=cur;
+  _renderSupplOverlayList();
+  updateSupplFloatBar();
 }
 
 function validerSupplements(){
   document.getElementById('overlay-supplements').classList.remove('show');
-  finalAddToCart(pendingIdx, pendingTaille, true);
+  const suppls=Object.entries(selectedSupplements).flatMap(([sid,qty])=>{
+    const s=SUPPLEMENTS.find(x=>x.id===sid);
+    return (s&&qty>0)?Array(qty).fill(null).map(()=>({name:s.name,price:s.price})):[];
+  });
+  finalAddToCart(pendingIdx, pendingTaille, false, [], [], suppls, null, false, null, null);
 }
 
 function closeSupplements(){
   document.getElementById('overlay-supplements').classList.remove('show');
-  finalAddToCart(pendingIdx, pendingTaille, false);
+  finalAddToCart(pendingIdx, pendingTaille, false, [], [], [], null, false, null, null);
 }
 
 function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain, sansSauce, boisson, viande, produitJunior){
@@ -3905,7 +4001,7 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain,
   if((removed||[]).length) extras.push('sans '+(removed||[]).join(', '));
   if((sauces||[]).length) extras.push((sauces||[]).join('+'));
   showToast(`✓ ${name} ajouté${extras.length?' — '+extras.join(' | '):''}`);
-  pendingIdx=null; pendingTaille=null; selectedSupplements=[];
+  pendingIdx=null; pendingTaille=null; selectedSupplements={};
   sheetRemovedIngredients=[]; sheetSauces=[]; sheetPain=null;
   // Suggestion accompagnement : uniquement pour les plats principaux, si aucun accompagnement en panier
   const _skipCats=['accompagnements','boissons','desserts'];
