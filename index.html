@@ -316,32 +316,46 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .suppl-check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);background:var(--coal4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;transition:all .15s;}
 .suppl-check.on{background:var(--fire);border-color:var(--fire);}
 /* ── Premium Supplements ── */
-.suppl-section-head{display:flex;align-items:center;gap:9px;padding:.5rem 0 .45rem;margin-bottom:.5rem;border-bottom:1px solid rgba(255,255,255,.07);}
-.suppl-section-icon{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#FF8C00,#FF4500);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
-.suppl-section-title{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);font-family:'Inter',sans-serif;}
-.suppl-card{display:flex;align-items:center;gap:11px;padding:10px 12px;background:#1a1a1a;border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:8px;transition:border-color .2s,background .2s;}
-.suppl-card.active{border-color:rgba(255,107,43,.45);background:rgba(255,107,43,.07);}
-.suppl-card-img{width:50px;height:50px;border-radius:10px;background:#222;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+/* Section header with "feu de bois" radial glow */
+.suppl-section-head{display:flex;align-items:center;gap:10px;padding:.55rem .75rem;margin-bottom:.6rem;border-radius:10px;background:radial-gradient(ellipse 90% 120% at 0% 50%,rgba(62,20,0,.75) 0%,transparent 70%);border:none;}
+.suppl-section-icon{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#c47a00,#8b3500);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(180,80,0,.35);}
+.suppl-section-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.4px;color:#7a5a3a;font-family:'Inter',sans-serif;}
+/* Cards */
+.suppl-card{display:flex;align-items:center;gap:12px;padding:11px 13px;background:#161616;border:1px solid rgba(255,255,255,.06);border-radius:14px;margin-bottom:8px;transition:border-color .22s,background .22s,box-shadow .22s;}
+.suppl-card.active{border-color:#e65100;background:rgba(230,81,0,.07);box-shadow:0 0 0 1px rgba(230,81,0,.15),0 4px 16px rgba(230,81,0,.08);}
+@media(hover:hover){.suppl-card:hover{background:#1e1e1e;border-color:rgba(230,81,0,.28);}}
+/* Icon slot */
+.suppl-card-img{width:46px;height:46px;border-radius:10px;background:#1f1f1f;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
 .suppl-card-img img{width:100%;height:100%;object-fit:cover;}
-.suppl-card-placeholder{font-size:22px;line-height:1;}
+.suppl-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;}
+.suppl-icon svg{width:100%;height:100%;}
+.suppl-icon-premium{color:#bf6e00;}
+.suppl-icon-extra{color:#6a6a6a;}
+/* Text */
 .suppl-card-body{flex:1;min-width:0;}
-.suppl-card-name{font-size:14px;font-weight:600;color:#fff;font-family:'Inter',sans-serif;line-height:1.3;}
-.suppl-card-desc{font-size:11px;color:#5a5a5a;margin-top:2px;font-family:'Inter',sans-serif;line-height:1.4;}
-.suppl-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0;}
-.suppl-card-price{font-size:13px;font-weight:700;background:linear-gradient(135deg,#FF8C00,#FF4500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.suppl-add-btn{width:32px;height:32px;border-radius:99px;border:none;background:linear-gradient(135deg,#FF8C00,#FF4500);color:#fff;font-size:22px;font-weight:300;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;padding-bottom:1px;transition:transform .15s,opacity .15s;flex-shrink:0;}
-.suppl-add-btn:active{transform:scale(.88);opacity:.8;}
-.suppl-qty-wrap{display:flex;align-items:center;gap:7px;}
-.suppl-qty-btn{width:28px;height:28px;border-radius:99px;border:1px solid rgba(255,107,43,.5);background:rgba(255,107,43,.1);color:#FF8C00;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;flex-shrink:0;transition:background .15s;}
-.suppl-qty-btn:active{background:rgba(255,107,43,.25);}
-.suppl-qty-val{font-size:15px;font-weight:700;color:#fff;min-width:18px;text-align:center;font-family:'Inter',sans-serif;}
-.suppl-float-bar{position:sticky;bottom:0;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);background:rgba(18,18,18,.88);border-top:1px solid rgba(255,255,255,.09);padding:.9rem 1.25rem 1.6rem;display:flex;align-items:center;gap:12px;margin:0 -1.25rem;}
+.suppl-card-name{font-size:14.5px;font-weight:700;color:#f0ebe3;font-family:'Inter',sans-serif;line-height:1.25;letter-spacing:.1px;}
+.suppl-card-desc{font-size:11px;color:#4e4e4e;margin-top:3px;font-family:'Inter',sans-serif;line-height:1.45;}
+.suppl-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;}
+.suppl-card-price{font-size:13px;font-weight:700;color:#c25000;letter-spacing:.2px;}
+/* Buttons */
+.suppl-add-btn{width:32px;height:32px;border-radius:99px;border:none;background:linear-gradient(135deg,#c47a00,#8b3500);color:#fff;font-size:22px;font-weight:300;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;padding-bottom:1px;transition:transform .15s,box-shadow .15s;flex-shrink:0;box-shadow:0 2px 10px rgba(180,80,0,.4);}
+.suppl-add-btn:active{transform:scale(.88);box-shadow:none;}
+.suppl-qty-wrap{display:flex;align-items:center;gap:8px;}
+.suppl-qty-btn{width:28px;height:28px;border-radius:99px;border:1px solid rgba(230,81,0,.45);background:rgba(230,81,0,.09);color:#c25000;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;flex-shrink:0;transition:background .15s,transform .1s;}
+.suppl-qty-btn:active{background:rgba(230,81,0,.22);transform:scale(.9);}
+.suppl-qty-val{font-size:15px;font-weight:700;color:#f0ebe3;min-width:18px;text-align:center;font-family:'Inter',sans-serif;}
+/* Float bar */
+.suppl-float-bar{position:sticky;bottom:0;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(14,14,14,.9);border-top:1px solid rgba(255,255,255,.07);padding:.9rem 1.25rem 1.65rem;display:flex;align-items:center;gap:12px;margin:0 -1.25rem;}
 .suppl-float-total{flex:1;}
-.suppl-float-label{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.6px;font-family:'Inter',sans-serif;}
-.suppl-float-price{font-size:20px;font-weight:700;background:linear-gradient(135deg,#FF8C00,#FF4500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-family:'Inter',sans-serif;line-height:1.2;}
-.suppl-confirm-btn{background:linear-gradient(135deg,#FF8C00,#FF4500);border:none;border-radius:12px;padding:.75rem 1.1rem;color:#fff;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .15s;}
-.suppl-confirm-btn:active{opacity:.8;}
-.suppl-skip-btn{width:100%;background:none;border:none;color:#444;font-size:12px;cursor:pointer;padding:.5rem 0 0;font-family:'Inter',sans-serif;}
+.suppl-float-label{font-size:9.5px;color:#484848;text-transform:uppercase;letter-spacing:.8px;font-family:'Inter',sans-serif;margin-bottom:2px;}
+.suppl-float-price{font-size:21px;font-weight:700;color:#c25000;font-family:'Inter',sans-serif;line-height:1.15;display:inline-block;}
+.suppl-confirm-btn{background:linear-gradient(135deg,#c47a00,#8b3500);border:none;border-radius:12px;padding:.75rem 1.15rem;color:#fff;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 4px 16px rgba(180,80,0,.35);transition:opacity .15s,transform .12s;}
+.suppl-confirm-btn:active{opacity:.85;transform:scale(.97);}
+.suppl-skip-btn{width:100%;background:none;border:none;color:#383838;font-size:12px;cursor:pointer;padding:.5rem 0 .25rem;font-family:'Inter',sans-serif;transition:color .15s;}
+.suppl-skip-btn:active{color:#555;}
+/* Float bar price pop animation */
+@keyframes supplPricePop{0%{opacity:0;transform:translateY(5px)}60%{transform:translateY(-2px)}100%{opacity:1;transform:translateY(0)}}
+.suppl-price-pop{animation:supplPricePop .22s cubic-bezier(.34,1.56,.64,1) both;}
 .cart-upsell-hint{background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.2);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:.875rem;font-size:12px;color:var(--gold);line-height:1.5;}
 .flash-timer{font-family:var(--font-d);font-size:32px;color:var(--fire);letter-spacing:2px;text-align:center;margin:.5rem 0;}
 .flash-badge{display:inline-block;background:var(--fire);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:3px 10px;margin-bottom:.5rem;}
@@ -3191,6 +3205,16 @@ function initMenu(){
 }
 
 /* ══ SUPPLÉMENTS ══ */
+const SUPPL_ICONS={
+  vkeb:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M7 7h10"/><path d="M6 12h12"/><path d="M7 17h10"/><ellipse cx="12" cy="7" rx="5" ry="1.5"/><ellipse cx="12" cy="12" rx="6" ry="1.5"/><ellipse cx="12" cy="17" rx="4" ry="1.5"/></svg>`,
+  vpou:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4c3 1 5 4 4 7s-4 5-5 8"/><path d="M14 4c-3 1-4 4-3 7s3 5 2 8"/><path d="M11 19h4M9 22h8"/></svg>`,
+  bur: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><circle cx="9" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".8" fill="currentColor" stroke="none"/></svg>`,
+  ten: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14c0-4 3-7 7-7s7 2 7 6-3 7-7 7-7-2-7-6z"/><line x1="10" y1="9" x2="11" y2="15"/><line x1="14" y1="8" x2="15" y2="14"/></svg>`,
+  che: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19L12 4l10 15H2z"/><circle cx="12" cy="14" r="1.5"/><circle cx="7.5" cy="17.5" r="1"/></svg>`,
+  fet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="13" height="8" rx="2"/><path d="M16 10l5-3v14l-5-3"/><line x1="7" y1="10" x2="7" y2="18"/><line x1="11" y1="10" x2="11" y2="18"/></svg>`,
+  fro: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11c0-3 2.5-5 6-5s6 2 6 5-2.7 6-6 6-6-2.5-6-6z"/><path d="M12 17v2M10 19h4"/><circle cx="10" cy="11" r=".8" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r=".8" fill="currentColor" stroke="none"/></svg>`,
+  jal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3c2 1 3 3 2 6s-3 5-3 8"/><path d="M13 3c-2 1-3 3-2 6s2 5 2 8"/><path d="M15 4c2-2 4-2 4 0"/></svg>`,
+};
 const SUPPLEMENTS=[
   // Nos Incontournables
   {id:'vkeb',name:'Supplément viande de kebab',   price:2.50,cat:'premium'},
@@ -3703,7 +3727,7 @@ function renderProdSheetBody(){
         const qty=(selectedSupplements[s.id]||0);
         const dn=s.name.replace(/^Supplément\s+/i,'');
         html+=`<div class="suppl-card${qty>0?' active':''}">
-          <div class="suppl-card-img">${s.image?`<img src="${s.image}" alt="${dn}">`:`<span class="suppl-card-placeholder">🥩</span>`}</div>
+          <div class="suppl-card-img"><div class="suppl-icon suppl-icon-${s.cat}">${SUPPL_ICONS[s.id]||''}</div></div>
           <div class="suppl-card-body">
             <div class="suppl-card-name">${dn}</div>
             ${s.desc?`<div class="suppl-card-desc">${s.desc}</div>`:''}
@@ -3916,7 +3940,7 @@ function _renderSupplOverlayList(){
       const qty=(selectedSupplements[s.id]||0);
       const dn=s.name.replace(/^Supplément\s+/i,'');
       html+=`<div class="suppl-card${qty>0?' active':''}">
-        <div class="suppl-card-img">${s.image?`<img src="${s.image}" alt="${dn}">`:`<span class="suppl-card-placeholder">🥩</span>`}</div>
+        <div class="suppl-card-img"><div class="suppl-icon suppl-icon-${s.cat}">${SUPPL_ICONS[s.id]||''}</div></div>
         <div class="suppl-card-body">
           <div class="suppl-card-name">${dn}</div>
           ${s.desc?`<div class="suppl-card-desc">${s.desc}</div>`:''}
@@ -3941,7 +3965,13 @@ function updateSupplFloatBar(){
     if(s) total+=s.price*qty;
   });
   const el=document.getElementById('suppl-float-price');
-  if(el) el.textContent=(total>0?'+':'')+total.toFixed(2).replace('.',',')+'€';
+  if(!el) return;
+  const next=(total>0?'+':'')+total.toFixed(2).replace('.',',')+'€';
+  if(el.textContent===next) return;
+  el.classList.remove('suppl-price-pop');
+  void el.offsetWidth;
+  el.textContent=next;
+  el.classList.add('suppl-price-pop');
 }
 
 function ouvrirSupplements(){
