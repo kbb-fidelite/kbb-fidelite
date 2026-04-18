@@ -1071,6 +1071,26 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .conf-suivi-btn{width:100%;padding:1.05rem;background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(255,107,43,.35);display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
 .conf-suivi-btn:active{opacity:.87;}
 
+/* ══ FEEDBACK OVERLAY ══ */
+.feedback-overlay{position:fixed;inset:0;z-index:9000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.45);animation:fbov-in .25s ease;}
+@keyframes fbov-in{from{opacity:0}to{opacity:1}}
+.feedback-card{width:100%;max-width:480px;background:var(--card);border-radius:var(--radius) var(--radius) 0 0;padding:1.5rem 1.25rem 2rem;box-shadow:0 -8px 40px rgba(0,0,0,.25);animation:fbcard-in .3s cubic-bezier(.22,.61,.36,1);}
+@keyframes fbcard-in{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.feedback-title{font-size:17px;font-weight:700;color:var(--text1);text-align:center;margin-bottom:1.25rem;line-height:1.35;}
+.fb-stars{display:flex;justify-content:center;gap:8px;margin-bottom:1.1rem;}
+.fb-star{font-size:38px;cursor:pointer;transition:transform .12s;line-height:1;-webkit-tap-highlight-color:transparent;filter:grayscale(1) opacity(.4);}
+.fb-star.lit{filter:none;}
+.fb-star:active{transform:scale(.88);}
+.fb-comment{width:100%;box-sizing:border-box;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg2);color:var(--text1);font-family:var(--font);font-size:14px;padding:.7rem .85rem;resize:none;height:76px;margin-bottom:1rem;outline:none;}
+.fb-comment:focus{border-color:var(--fire);}
+.fb-submit{width:100%;padding:.9rem;background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;margin-bottom:.6rem;}
+.fb-skip{display:block;width:100%;text-align:center;font-size:13px;color:var(--text3);background:none;border:none;font-family:var(--font);cursor:pointer;padding:.35rem;}
+/* Admin feedbacks */
+.fb-admin-item{background:var(--card);border-radius:var(--radius-sm);padding:.85rem 1rem;margin-bottom:.6rem;border:1px solid var(--border2);}
+.fb-admin-stars{font-size:18px;letter-spacing:2px;margin-bottom:.3rem;}
+.fb-admin-comment{font-size:13px;color:var(--text2);margin-top:.3rem;font-style:italic;}
+.fb-admin-meta{font-size:11px;color:var(--text3);margin-top:.4rem;}
+
 /* ══ KDS (Kitchen Display System) — PRO ══ */
 #page-kds{background:#0d0d0d;}
 #page-comptoir{background:var(--coal);}
@@ -2201,6 +2221,23 @@ body{
   </div>
 </div>
 
+<!-- FEEDBACK OVERLAY -->
+<div id="feedback-overlay" class="feedback-overlay" style="display:none">
+  <div class="feedback-card">
+    <div class="feedback-title">Votre avis nous aide à nous améliorer 🙏</div>
+    <div class="fb-stars" id="fb-stars">
+      <span class="fb-star" data-star="1" onclick="fbSetStar(1)">★</span>
+      <span class="fb-star" data-star="2" onclick="fbSetStar(2)">★</span>
+      <span class="fb-star" data-star="3" onclick="fbSetStar(3)">★</span>
+      <span class="fb-star" data-star="4" onclick="fbSetStar(4)">★</span>
+      <span class="fb-star" data-star="5" onclick="fbSetStar(5)">★</span>
+    </div>
+    <textarea id="fb-comment" class="fb-comment" placeholder="Un commentaire ? Un problème à signaler ? (optionnel)"></textarea>
+    <button class="fb-submit" id="fb-submit-btn" onclick="fbSubmit()">Envoyer mon avis</button>
+    <button class="fb-skip" onclick="fbSkip()">Passer</button>
+  </div>
+</div>
+
 <!-- SUIVI COMMANDE -->
 <div class="page" id="page-suivi">
   <div class="topbar">
@@ -2442,6 +2479,7 @@ body{
     <div class="etab" onclick="etab('commandes')" id="tab-commandes">Commandes</div>
     <div class="etab" onclick="etab('service')" id="tab-service">Service</div>
     <div class="etab" onclick="etab('dashboard')" id="tab-dashboard" style="display:none">Stats</div>
+    <div class="etab" onclick="etab('feedbacks')" id="tab-feedbacks" style="display:none">Avis</div>
     <div class="etab" onclick="etab('reglages')" id="tab-reglages" style="display:none">Réglages</div>
   </div>
   <div class="epanel active" id="epanel-commande">
@@ -2456,6 +2494,9 @@ body{
   </div>
   <div class="epanel" id="epanel-dashboard">
     <div id="dashboard-content"><div class="empty"><div class="big">📊</div><p>Chargement des stats...</p></div></div>
+  </div>
+  <div class="epanel" id="epanel-feedbacks">
+    <div id="feedbacks-content" style="padding:.75rem 1rem 5rem;"><div class="empty"><div class="big">⭐</div><p>Chargement des avis…</p></div></div>
   </div>
   <div class="epanel" id="epanel-reglages">
     <div class="settings-block" id="recompenses-block">
@@ -3604,7 +3645,7 @@ async function stripePayInPlace(){
   setActiveOrder({...ao,supaId:supaId||null,statut:'en_attente',orderNum:realNum}); updateCommandesTile();
   renderConfirmation(realNum, pending.label, pending.grouped, pending.total);
   go('page-confirmation');
-  setTimeout(()=>goToSuivi(), 2500);
+  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
 }
 
 async function handleStripeReturn(){
@@ -3708,7 +3749,7 @@ async function _stripeFinalize(sessionId, vData, pending){
     validateRewardServerSide(supaId, pending.reward_client_id, pending.reward_id);
   }
   _stripeCleanup();
-  setTimeout(()=>goToSuivi(), 2500);
+  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
 }
 
 // Retry verify-payment — 15 tentatives × 2 s = 30 s d'attente max.
@@ -4990,7 +5031,7 @@ async function _submitSurPlaceDirect({total,grouped,itemsArr,itemsText,clientTel
   updateCommandesTile();
   renderConfirmation(realNum, label, grouped, total);
   go('page-confirmation');
-  setTimeout(()=>goToSuivi(), 2500);
+  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
 }
 
 function renderConfirmation(orderNum, label, grouped, total){
@@ -5020,6 +5061,84 @@ function goToSuivi(){
   go('page-suivi');
   renderSuivi();
   startSuiviPolling();
+}
+
+// ── Feedback client ──────────────────────────────────────────────────────────
+let _fbCommandeId = null;
+let _fbNote = 0;
+
+function showFeedbackOverlay(commandeId){
+  _fbCommandeId = commandeId || null;
+  _fbNote = 0;
+  document.getElementById('fb-comment').value = '';
+  document.querySelectorAll('.fb-star').forEach(s=>s.classList.remove('lit'));
+  document.getElementById('fb-submit-btn').disabled = false;
+  document.getElementById('fb-submit-btn').textContent = 'Envoyer mon avis';
+  document.getElementById('feedback-overlay').style.display = 'flex';
+}
+
+function fbSetStar(n){
+  _fbNote = n;
+  document.querySelectorAll('.fb-star').forEach(s=>{
+    if(parseInt(s.dataset.star)<=n) s.classList.add('lit');
+    else s.classList.remove('lit');
+  });
+}
+
+async function fbSubmit(){
+  if(!_fbNote){ showToast('Choisissez une note avant d\'envoyer'); return; }
+  const btn = document.getElementById('fb-submit-btn');
+  btn.disabled = true; btn.textContent = '⏳ Envoi…';
+  const commentaire = document.getElementById('fb-comment').value.trim() || null;
+  try{
+    if(supaOk()){
+      await supabase
+        .from('feedbacks')
+        .insert({ commande_id: _fbCommandeId, note: _fbNote, commentaire });
+    }
+  }catch(e){ console.warn('feedback insert:', e); }
+  document.getElementById('feedback-overlay').style.display = 'none';
+  showToast('Merci pour votre avis ! 🙏');
+  goToSuivi();
+}
+
+function fbSkip(){
+  document.getElementById('feedback-overlay').style.display = 'none';
+  goToSuivi();
+}
+
+async function loadFeedbacks(){
+  const el = document.getElementById('feedbacks-content');
+  el.innerHTML = '<div class="empty"><div class="big">⭐</div><p>Chargement…</p></div>';
+  if(!supaOk()){ el.innerHTML='<div class="empty"><p>Supabase non configuré</p></div>'; return; }
+  try{
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .select('id,commande_id,note,commentaire,created_at')
+      .order('created_at',{ascending:false})
+      .limit(20);
+    if(error) throw error;
+    if(!data||!data.length){ el.innerHTML='<div class="empty"><div class="big">⭐</div><p>Aucun avis pour l\'instant</p></div>'; return; }
+    const avg = (data.reduce((s,r)=>s+r.note,0)/data.length).toFixed(1);
+    let html = `<div style="text-align:center;margin-bottom:1rem;padding:.75rem;background:var(--card);border-radius:var(--radius-sm);">
+      <div style="font-size:28px;font-weight:800;color:var(--fire);">${avg}/5</div>
+      <div style="font-size:12px;color:var(--text3);">${data.length} avis récents</div>
+    </div>`;
+    html += data.map(r=>{
+      const stars = '★'.repeat(r.note)+'☆'.repeat(5-r.note);
+      const starColor = r.note>=4?'#FF8C00':r.note>=3?'#f0a830':'#aaa';
+      const date = new Date(r.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      return `<div class="fb-admin-item">
+        <div class="fb-admin-stars" style="color:${starColor}">${stars}</div>
+        ${r.commande_id?`<div style="font-size:11px;color:var(--text3);">Commande #${String(r.commande_id).padStart(3,'0')}</div>`:''}
+        ${r.commentaire?`<div class="fb-admin-comment">"${r.commentaire}"</div>`:''}
+        <div class="fb-admin-meta">${date}</div>
+      </div>`;
+    }).join('');
+    el.innerHTML = html;
+  }catch(e){
+    el.innerHTML=`<div class="empty"><p>Erreur : ${e.message}</p></div>`;
+  }
 }
 
 function cartMinus(idx){
@@ -6952,13 +7071,13 @@ async function cptPtsCreateConfirm(){
 /* ══ EMPLOYEE ══ */
 async function etab(n){
   // 1. Guard client rapide (rôle mémoire) — bloque sans aller sur le réseau
-  if((n==='reglages'||n==='dashboard')&&empRole!=='patron'){
+  if((n==='reglages'||n==='dashboard'||n==='feedbacks')&&empRole!=='patron'){
     showToast('Accès réservé au patron');
     return;
   }
 
   // 2. Pour les sections patron : vérification serveur du token via Edge Function
-  if(n==='reglages'||n==='dashboard'){
+  if(n==='reglages'||n==='dashboard'||n==='feedbacks'){
     const tok=_getEmpToken();
     if(!tok){
       empRole=null; localStorage.removeItem('kbb_emp_token');
@@ -6989,6 +7108,7 @@ async function etab(n){
   if(n==='clients') renderClist();
   if(n==='reglages'){ loadSettingsUI(); renderHorairesForm().catch(()=>{}); }
   if(n==='dashboard') loadDashboard();
+  if(n==='feedbacks') loadFeedbacks();
   if(n==='commandes'){ loadEmpCommandes(); startEmpRealtime(); }
   else if(n==='service'){ loadEmpService(); startEmpRealtime(); }
   else stopEmpRealtime();
@@ -6999,9 +7119,11 @@ async function refreshEmp(){
   document.getElementById('emp-badge').textContent=db.length+' client'+(db.length>1?'s':'');
   // Show/hide patron tabs
   const dashTab=document.getElementById('tab-dashboard');
+  const feedbacksTab=document.getElementById('tab-feedbacks');
   const reglagesTab=document.getElementById('tab-reglages');
   const isP=empRole==='patron';
   if(dashTab) dashTab.style.display=isP?'':'none';
+  if(feedbacksTab) feedbacksTab.style.display=isP?'':'none';
   if(reglagesTab) reglagesTab.style.display=isP?'':'none';
   const badge=document.getElementById('emp-badge');
   if(badge) badge.style.background=isP?'rgba(255,184,48,.15)':'rgba(255,107,43,.12)';
