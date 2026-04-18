@@ -1072,19 +1072,20 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .conf-suivi-btn:active{opacity:.87;}
 
 /* ══ FEEDBACK OVERLAY ══ */
-.feedback-overlay{position:fixed;inset:0;z-index:9500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.85);animation:fbov-in .25s ease;}
+.feedback-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.92);animation:fbov-in .2s ease;padding:1rem;}
 @keyframes fbov-in{from{opacity:0}to{opacity:1}}
-.feedback-card{width:100%;max-width:480px;background:var(--card);border-radius:var(--radius) var(--radius) 0 0;padding:1.5rem 1.25rem 2rem;box-shadow:0 -8px 40px rgba(0,0,0,.25);animation:fbcard-in .3s cubic-bezier(.22,.61,.36,1);}
-@keyframes fbcard-in{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
-.feedback-title{font-size:17px;font-weight:700;color:var(--text1);text-align:center;margin-bottom:1.25rem;line-height:1.35;}
-.fb-stars{display:flex;justify-content:center;gap:8px;margin-bottom:1.1rem;}
-.fb-star{font-size:38px;cursor:pointer;transition:transform .12s;line-height:1;-webkit-tap-highlight-color:transparent;filter:grayscale(1) opacity(.4);}
-.fb-star.lit{filter:none;}
-.fb-star:active{transform:scale(.88);}
-.fb-comment{width:100%;box-sizing:border-box;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg2);color:var(--text1);font-family:var(--font);font-size:14px;padding:.7rem .85rem;resize:none;height:76px;margin-bottom:1rem;outline:none;}
-.fb-comment:focus{border-color:var(--fire);}
-.fb-submit{width:100%;padding:.9rem;background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;margin-bottom:.6rem;}
-.fb-skip{display:block;width:100%;text-align:center;font-size:13px;color:var(--text3);background:none;border:none;font-family:var(--font);cursor:pointer;padding:.35rem;}
+.feedback-card{width:100%;max-width:440px;background:#1a1a1a;border-radius:16px;padding:1.75rem 1.5rem 1.5rem;box-shadow:0 24px 64px rgba(0,0,0,.8);animation:fbcard-in .3s cubic-bezier(.22,.61,.36,1);}
+@keyframes fbcard-in{from{transform:scale(.94) translateY(12px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.feedback-title{font-size:17px;font-weight:700;color:#ffffff;text-align:center;margin-bottom:1.4rem;line-height:1.4;}
+.fb-stars{display:flex;justify-content:center;gap:6px;margin-bottom:1.2rem;}
+.fb-star{font-size:44px;cursor:pointer;transition:transform .12s;line-height:1;-webkit-tap-highlight-color:transparent;color:#444;user-select:none;}
+.fb-star.lit{color:#FF8C00;}
+.fb-star:active{transform:scale(.84);}
+.fb-comment{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:#2a2a2a;color:#ffffff;font-family:var(--font);font-size:14px;padding:.75rem .9rem;resize:none;height:78px;margin-bottom:1rem;outline:none;}
+.fb-comment::placeholder{color:#aaaaaa;}
+.fb-comment:focus{border-color:#FF8C00;}
+.fb-submit{width:100%;padding:.95rem;background:linear-gradient(130deg,var(--fire),var(--fire2));color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;margin-bottom:.55rem;}
+.fb-skip{display:block;width:100%;text-align:center;font-size:13px;color:#888;background:none;border:none;font-family:var(--font);cursor:pointer;padding:.4rem;}
 /* Admin feedbacks */
 .fb-admin-item{background:var(--card);border-radius:var(--radius-sm);padding:.85rem 1rem;margin-bottom:.6rem;border:1px solid var(--border2);}
 .fb-admin-stars{font-size:18px;letter-spacing:2px;margin-bottom:.3rem;}
@@ -2218,23 +2219,6 @@ body{
         <button class="abtn sec" onclick="go('page-dashboard')">Retour à l'accueil</button>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- FEEDBACK OVERLAY -->
-<div id="feedback-overlay" class="feedback-overlay" style="display:none">
-  <div class="feedback-card">
-    <div class="feedback-title">Votre avis nous aide à nous améliorer 🙏</div>
-    <div class="fb-stars" id="fb-stars">
-      <span class="fb-star" data-star="1" onclick="fbSetStar(1)">★</span>
-      <span class="fb-star" data-star="2" onclick="fbSetStar(2)">★</span>
-      <span class="fb-star" data-star="3" onclick="fbSetStar(3)">★</span>
-      <span class="fb-star" data-star="4" onclick="fbSetStar(4)">★</span>
-      <span class="fb-star" data-star="5" onclick="fbSetStar(5)">★</span>
-    </div>
-    <textarea id="fb-comment" class="fb-comment" placeholder="Un commentaire ? Un problème à signaler ? (optionnel)"></textarea>
-    <button class="fb-submit" id="fb-submit-btn" onclick="fbSubmit()">Envoyer mon avis</button>
-    <button class="fb-skip" onclick="fbSkip()">Passer</button>
   </div>
 </div>
 
@@ -3645,7 +3629,7 @@ async function stripePayInPlace(){
   setActiveOrder({...ao,supaId:supaId||null,statut:'en_attente',orderNum:realNum}); updateCommandesTile();
   renderConfirmation(realNum, pending.label, pending.grouped, pending.total);
   go('page-confirmation');
-  setTimeout(()=>showFeedbackOverlay(supaId), 3500);
+  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
 }
 
 async function handleStripeReturn(){
@@ -3749,7 +3733,7 @@ async function _stripeFinalize(sessionId, vData, pending){
     validateRewardServerSide(supaId, pending.reward_client_id, pending.reward_id);
   }
   _stripeCleanup();
-  setTimeout(()=>showFeedbackOverlay(supaId), 3500);
+  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
 }
 
 // Retry verify-payment — 15 tentatives × 2 s = 30 s d'attente max.
@@ -4389,11 +4373,20 @@ function _cartSuggestGroups(){
   if(!cart.length) return [];
   const hasMain=cart.some(c=>{const cat=MENU_DATA[typeof c==='object'?c.idx:c]?.cat;return cat&&!['accompagnements','boissons','desserts'].includes(cat);});
   if(!hasMain) return [];
+  // Menu = item avec menu:true (accompagnement et boisson inclus dans le menu)
   const hasMenu=cart.some(c=>typeof c==='object'&&c.menu===true);
+  // Accompagnement : item standalone cat=accompagnements
   const hasAccomp=cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements');
-  const hasBoisson=cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='boissons');
+  // Boisson : item standalone cat=boissons OU boisson choisie dans un menu (c.boisson)
+  const hasBoisson=cart.some(c=>{
+    if(MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='boissons') return true;
+    if(typeof c==='object'&&c.boisson) return true;
+    return false;
+  });
   const groups=[];
+  // Menu inclut déjà accompagnement → ne pas proposer
   if(!hasMenu&&!hasAccomp) groups.push('accompagnement');
+  // Menu inclut déjà une boisson → ne pas proposer
   if(!hasBoisson) groups.push('boisson');
   return groups.slice(0,2);
 }
@@ -5080,7 +5073,7 @@ async function _submitSurPlaceDirect({total,grouped,itemsArr,itemsText,clientTel
   updateCommandesTile();
   renderConfirmation(realNum, label, grouped, total);
   go('page-confirmation');
-  setTimeout(()=>showFeedbackOverlay(supaId), 3500);
+  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
 }
 
 function renderConfirmation(orderNum, label, grouped, total){
@@ -10299,6 +10292,23 @@ if('serviceWorker' in navigator){
     <span class="gnav-lbl">Profil</span>
   </button>
 </nav>
+
+<!-- FEEDBACK OVERLAY — hors de #root pour éviter overflow-x:hidden iOS Safari -->
+<div id="feedback-overlay" class="feedback-overlay" style="display:none">
+  <div class="feedback-card">
+    <div class="feedback-title">Votre avis nous aide à nous améliorer 🙏</div>
+    <div class="fb-stars" id="fb-stars">
+      <span class="fb-star" data-star="1" onclick="fbSetStar(1)">★</span>
+      <span class="fb-star" data-star="2" onclick="fbSetStar(2)">★</span>
+      <span class="fb-star" data-star="3" onclick="fbSetStar(3)">★</span>
+      <span class="fb-star" data-star="4" onclick="fbSetStar(4)">★</span>
+      <span class="fb-star" data-star="5" onclick="fbSetStar(5)">★</span>
+    </div>
+    <textarea id="fb-comment" class="fb-comment" placeholder="Un commentaire ? Un problème à signaler ? (optionnel)"></textarea>
+    <button class="fb-submit" id="fb-submit-btn" onclick="fbSubmit()">Envoyer mon avis</button>
+    <button class="fb-skip" onclick="fbSkip()">Passer</button>
+  </div>
+</div>
 
 </body>
 </html>
