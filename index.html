@@ -795,10 +795,13 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .ps-accord-badge{background:rgba(230,81,0,.15);color:#c04020;border-radius:99px;font-size:10px;font-weight:700;padding:2px 7px;margin-left:7px;vertical-align:middle;}
 /* Improved ingredient chip removed state */
 .ps-ingr-chip.removed{border-color:#8b2800;background:rgba(139,40,0,.12);color:rgba(255,112,67,.6);text-decoration:line-through;opacity:.65;}
-/* ── Format selector dans la fiche produit ── */
-#ps-fmt-selector{margin:.25rem 0 1.25rem;}
-#ps-fmt-selector .fmt-opt-label{font-size:12.5px;}
-#ps-fmt-selector .fmt-opt-price{font-size:11.5px;}
+/* ── Format badge lecture seule dans la fiche produit ── */
+.ps-fmt-badge{display:inline-flex;align-items:center;gap:7px;margin:.25rem 0 1.25rem;padding:.45rem .9rem;background:rgba(255,140,0,.08);border:1px solid rgba(255,140,0,.25);border-radius:99px;}
+.ps-fmt-badge--solo{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09);}
+.ps-fmt-badge-ico{font-size:14px;line-height:1;}
+.ps-fmt-badge-label{font-size:12.5px;font-weight:700;color:#FF8C00;letter-spacing:.1px;}
+.ps-fmt-badge--solo .ps-fmt-badge-label{color:rgba(255,255,255,.38);}
+.ps-fmt-badge-check{font-size:11px;font-weight:700;color:#FF8C00;margin-left:1px;}
 /* Price pop animation */
 @keyframes psPricePop{0%{opacity:0;transform:translateY(6px)}60%{transform:translateY(-2px)}100%{opacity:1;transform:translateY(0)}}
 .ps-price-pop{animation:psPricePop .22s cubic-bezier(.34,1.56,.64,1) both;}
@@ -3762,17 +3765,7 @@ function calcSheetPrice(){
   return p;
 }
 
-// setSheetFormat — bascule Solo/Menu dans la fiche sans re-render complet.
-// Patch le DOM in-place (pilule + labels) et met à jour la sticky bar.
-function setSheetFormat(fmt){
-  _menuFormats[sheetIdx]=fmt;
-  const sel=document.getElementById('ps-fmt-selector');
-  if(sel){
-    sel.style.setProperty('--fmt-pos', fmt==='menu'?'1':'0');
-    sel.querySelectorAll('.fmt-opt').forEach(o=>o.classList.toggle('active', o.dataset.fmt===fmt));
-  }
-  _renderStickyBar();
-}
+
 function _rerender(scrollTargetId){
   const scroll=document.getElementById('prod-sheet-scroll');
   const sv=scroll?scroll.scrollTop:0;
@@ -3826,9 +3819,10 @@ function openProductSheet(idx){
   }
   const bar=document.getElementById('ps-sticky-bar');
   if(bar) bar.dataset.price='';
-  // Réinitialise le format à 'solo' à chaque ouverture (évite que l'état
-  // du produit précédent ou d'une session précédente ne persiste)
-  _menuFormats[idx]='solo';
+  // Conserve le format choisi sur la carte (Solo / Menu).
+  // Si le produit n'a jamais eu de format sélectionné, on défault à 'solo'.
+  // On ne force plus 'solo' ici pour ne pas écraser le choix du client.
+  if(!_menuFormats[idx]) _menuFormats[idx]='solo';
   renderProdSheetBody();
   document.getElementById('prod-wrap').classList.add('show');
   document.body.style.overflow='hidden';
@@ -3933,21 +3927,15 @@ function renderProdSheetBody(){
   if(m.badge) html+=`<div class="prod-sheet-badges"><span class="mi-badge">${m.badge}</span></div>`;
   html+=`<div class="prod-sheet-desc">${m.desc}</div>`;
 
-  /* ── Format Solo / Menu Expérience (kebabs & tacos éligibles) ── */
+  /* ── Format choisi sur la carte — badge lecture seule (non modifiable ici) ── */
   const _sheetMenuP=getMenuPrice(m);
   if(_sheetMenuP){
     const _sheetFmt=_menuFormats[sheetIdx]||'solo';
-    const _soloP=m.price.toFixed(2).replace('.',',');
-    const _menuPStr=_sheetMenuP.toFixed(2).replace('.',',');
-    html+=`<div class="format-selector" id="ps-fmt-selector" style="--fmt-pos:${_sheetFmt==='menu'?'1':'0'}">
-      <div class="fmt-opt${_sheetFmt==='solo'?' active':''}" data-fmt="solo" onclick="setSheetFormat('solo')">
-        <span class="fmt-opt-label">Solo</span>
-        <span class="fmt-opt-price">${_soloP}€</span>
-      </div>
-      <div class="fmt-opt${_sheetFmt==='menu'?' active':''}" data-fmt="menu" onclick="setSheetFormat('menu')">
-        <span class="fmt-opt-label">Menu Expérience 🍟</span>
-        <span class="fmt-opt-price">${_menuPStr}€</span>
-      </div>
+    const isMenu=_sheetFmt==='menu';
+    html+=`<div class="ps-fmt-badge${isMenu?'':' ps-fmt-badge--solo'}">
+      <span class="ps-fmt-badge-ico">${isMenu?'🍟':'🥙'}</span>
+      <span class="ps-fmt-badge-label">${isMenu?'Menu Expérience':'Solo'}</span>
+      ${isMenu?'<span class="ps-fmt-badge-check">✓</span>':''}
     </div>`;
   }
 
