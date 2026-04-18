@@ -316,27 +316,27 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .suppl-check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);background:var(--coal4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;transition:all .15s;}
 .suppl-check.on{background:var(--fire);border-color:var(--fire);}
 /* ── Premium Supplements ── */
-/* Section header with "feu de bois" radial glow */
-.suppl-section-head{display:flex;align-items:center;gap:10px;padding:.55rem .75rem;margin-bottom:.6rem;border-radius:10px;background:radial-gradient(ellipse 90% 120% at 0% 50%,rgba(62,20,0,.75) 0%,transparent 70%);border:none;}
-.suppl-section-icon{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#c47a00,#8b3500);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(180,80,0,.35);}
-.suppl-section-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.4px;color:#7a5a3a;font-family:'Inter',sans-serif;}
-/* Cards */
-.suppl-card{display:flex;align-items:center;gap:12px;padding:11px 13px;background:#161616;border:1px solid rgba(255,255,255,.06);border-radius:14px;margin-bottom:8px;transition:border-color .22s,background .22s,box-shadow .22s;}
-.suppl-card.active{border-color:#e65100;background:rgba(230,81,0,.07);box-shadow:0 0 0 1px rgba(230,81,0,.15),0 4px 16px rgba(230,81,0,.08);}
-@media(hover:hover){.suppl-card:hover{background:#1e1e1e;border-color:rgba(230,81,0,.28);}}
-/* Icon slot */
-.suppl-card-img{width:46px;height:46px;border-radius:10px;background:#1f1f1f;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+/* ── Supplement section: minimal separator style ── */
+.suppl-section-head{display:flex;align-items:center;gap:9px;padding:0 0 .6rem;margin:.25rem 0 .65rem;border-bottom:1px solid rgba(255,255,255,.05);background:none;border-radius:0;}
+.suppl-section-icon{font-size:13px;line-height:1;flex-shrink:0;}
+.suppl-section-title{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,.28);font-family:'Inter',sans-serif;}
+/* Cards — fond sombre, bordure fine uniquement */
+.suppl-card{display:flex;align-items:center;gap:13px;padding:12px 14px;background:#0f0f0f;border:1px solid rgba(255,255,255,.06);border-radius:14px;margin-bottom:7px;transition:border-color .22s,background .22s,box-shadow .22s;}
+.suppl-card.active{border-color:#e65100;background:rgba(230,81,0,.06);box-shadow:0 0 0 1px rgba(230,81,0,.12),0 4px 16px rgba(230,81,0,.07);}
+@media(hover:hover){.suppl-card:hover{background:#151515;border-color:rgba(230,81,0,.22);}}
+/* Icon slot — transparent, juste l'icône SVG flottante */
+.suppl-card-img{width:34px;height:34px;border-radius:0;background:transparent;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .suppl-card-img img{width:100%;height:100%;object-fit:cover;}
-.suppl-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;}
+.suppl-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;}
 .suppl-icon svg{width:100%;height:100%;}
-.suppl-icon-premium{color:#bf6e00;}
-.suppl-icon-extra{color:#6a6a6a;}
+.suppl-icon-premium{color:rgba(196,122,0,.9);}
+.suppl-icon-extra{color:rgba(120,120,120,.75);}
 /* Text */
 .suppl-card-body{flex:1;min-width:0;}
-.suppl-card-name{font-size:14.5px;font-weight:700;color:#f0ebe3;font-family:'Inter',sans-serif;line-height:1.25;letter-spacing:.1px;}
-.suppl-card-desc{font-size:11px;color:#4e4e4e;margin-top:3px;font-family:'Inter',sans-serif;line-height:1.45;}
+.suppl-card-name{font-size:14px;font-weight:700;color:#ece7df;font-family:'Inter',sans-serif;line-height:1.25;letter-spacing:.05px;}
+.suppl-card-desc{font-size:11px;color:rgba(255,255,255,.22);margin-top:3px;font-family:'Inter',sans-serif;line-height:1.45;}
 .suppl-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;}
-.suppl-card-price{font-size:13px;font-weight:700;color:#c25000;letter-spacing:.2px;}
+.suppl-card-price{font-size:13px;font-weight:700;color:rgba(196,122,0,.85);letter-spacing:.2px;}
 /* Buttons */
 .suppl-add-btn{width:32px;height:32px;border-radius:99px;border:none;background:linear-gradient(135deg,#c47a00,#8b3500);color:#fff;font-size:22px;font-weight:300;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;padding-bottom:1px;transition:transform .15s,box-shadow .15s;flex-shrink:0;box-shadow:0 2px 10px rgba(180,80,0,.4);}
 .suppl-add-btn:active{transform:scale(.88);box-shadow:none;}
@@ -362,8 +362,8 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .suppl-toggle-btn.is-active{background:rgba(230,81,0,.1);border:1.5px solid rgba(230,81,0,.6);color:#e65100;font-size:17px;font-weight:700;box-shadow:inset 0 0 0 1px rgba(230,81,0,.08);}
 .suppl-toggle-btn.is-active:active{background:rgba(230,81,0,.22);}
 /* ── État sélectionné de la carte ── */
-.suppl-card.is-active{border-color:#e65100;background:rgba(230,81,0,.07);box-shadow:0 0 0 1px rgba(230,81,0,.15),0 4px 16px rgba(230,81,0,.08);}
-@media(hover:hover){.suppl-card:not(.is-active):hover{background:#1e1e1e;border-color:rgba(230,81,0,.28);}}
+.suppl-card.is-active{border-color:rgba(230,81,0,.7);background:rgba(196,90,0,.08);box-shadow:0 0 0 1px rgba(230,81,0,.12),0 6px 20px rgba(196,90,0,.1);}
+@media(hover:hover){.suppl-card:not(.is-active):hover{background:#151515;border-color:rgba(230,81,0,.2);}}
 /* ── Icône : transition couleur vers braise quand active ── */
 .suppl-card .suppl-icon{transition:color .22s;}
 .suppl-card.is-active .suppl-icon-premium{color:#e65100;}
@@ -493,30 +493,31 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 
 /* ══ MENU ══ */
 .menu-wrap{padding:0 0 2rem;overflow-y:auto;flex:1;}
-.menu-cat{padding:1rem 1.25rem .5rem;}
-.menu-cat-title{font-family:var(--font-d);font-size:28px;color:var(--fire);letter-spacing:1px;line-height:1;}
-.menu-cat-sub{font-size:11px;color:var(--text3);margin-top:2px;}
-.menu-items{padding:0 1.25rem;display:flex;flex-direction:column;gap:8px;}
-.mi{display:flex;gap:12px;padding:.85rem;background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius-sm);transition:border-color .15s;}
+.menu-cat{padding:1.1rem 1.25rem .5rem;}
+.menu-cat-title{font-family:var(--font-d);font-size:32px;color:var(--text);letter-spacing:2.5px;line-height:1;text-transform:uppercase;}
+.menu-cat-title span{color:var(--fire);}
+.menu-cat-sub{font-size:11px;color:var(--text3);margin-top:3px;letter-spacing:.3px;}
+.menu-items{padding:0 1.25rem;display:flex;flex-direction:column;gap:10px;}
+.mi{display:flex;gap:12px;padding:.85rem;background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius-sm);transition:border-color .15s,transform .1s;}
 .mi-ico{font-size:28px;flex-shrink:0;width:38px;text-align:center;line-height:38px;}
 .mi-info{flex:1;min-width:0;}
-.mi-name{font-size:14px;font-weight:700;color:var(--text);}
-.mi-desc{font-size:11px;color:var(--text3);line-height:1.4;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.mi-price{font-family:var(--font-d);font-size:22px;color:var(--fire);flex-shrink:0;align-self:center;}
+.mi-name{font-size:14.5px;font-weight:800;color:var(--text);letter-spacing:.1px;}
+.mi-desc{font-size:11px;color:var(--text3);line-height:1.45;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.mi-price{font-family:var(--font-d);font-size:22px;color:var(--fire);flex-shrink:0;align-self:center;letter-spacing:.5px;}
 .mi-badge{display:inline-block;font-size:9px;font-weight:700;color:var(--gold);background:rgba(255,184,48,.1);border:1px solid rgba(255,184,48,.15);border-radius:99px;padding:1px 7px;margin-top:3px;text-transform:uppercase;letter-spacing:.3px;}
 .menu-sep{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin:1rem 1.25rem .5rem;}
 .menu-info{margin:1rem 1.25rem;padding:.8rem 1rem;background:var(--fire-glow);border:1px solid rgba(255,107,43,.2);border-radius:var(--radius-sm);font-size:12px;color:var(--fire3);line-height:1.5;text-align:center;}
 .menu-info strong{color:var(--fire);}
 /* ── Menu tagline (remplace le bloc menu-info) ── */
 .menu-tagline{padding:.4rem 1.25rem .1rem;font-size:12px;font-style:italic;font-weight:300;color:rgba(255,255,255,.45);letter-spacing:.25px;line-height:1.5;}
-/* ── Format selector : pilule coulissante Solo / Expérience Menu ── */
-.format-selector{position:relative;display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:99px;padding:3px;margin:.75rem .875rem .875rem;overflow:hidden;}
-.format-selector::before{content:'';position:absolute;top:3px;bottom:3px;border-radius:99px;width:calc(50% - 3px);left:calc(3px + var(--fmt-pos,0) * (50% - 3px));background:linear-gradient(135deg,#c47a00,#8b3500);box-shadow:0 2px 8px rgba(180,80,0,.4);transition:left .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
-.fmt-opt{position:relative;z-index:1;min-height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:99px;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:4px 2px;}
-.fmt-opt-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.38);letter-spacing:.15px;font-family:'Inter',sans-serif;transition:color .22s;line-height:1.1;}
-.fmt-opt-price{font-size:11px;font-weight:600;color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;transition:color .22s;}
-.fmt-opt.active .fmt-opt-label{color:#fff;}
-.fmt-opt.active .fmt-opt-price{color:rgba(255,255,255,.82);}
+/* ── Format selector : pilule coulissante Solo / En Menu ── */
+.format-selector{position:relative;display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:99px;padding:3px;margin:.65rem .875rem .875rem;overflow:hidden;}
+.format-selector::before{content:'';position:absolute;top:3px;bottom:3px;border-radius:99px;width:calc(50% - 3px);left:calc(3px + var(--fmt-pos,0) * (50% - 3px));background:linear-gradient(135deg,#c47a00,#8b3500);box-shadow:0 2px 10px rgba(180,80,0,.45);transition:left .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
+.fmt-opt{position:relative;z-index:1;min-height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:99px;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:4px 6px;}
+.fmt-opt-label{font-size:12px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.2px;font-family:'Inter',sans-serif;transition:color .22s;line-height:1.1;}
+.fmt-opt-price{font-size:10.5px;font-weight:600;color:rgba(255,255,255,.18);font-family:'Inter',sans-serif;transition:color .22s;}
+.fmt-opt.active .fmt-opt-label{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3);}
+.fmt-opt.active .fmt-opt-price{color:rgba(255,255,255,.75);}
 
 /* ══ CART ══ */
 .cart-bar{position:fixed;bottom:64px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:linear-gradient(130deg,var(--fire),var(--fire2));padding:.85rem 1.25rem;display:flex;align-items:center;gap:10px;z-index:60;cursor:pointer;box-shadow:0 -4px 24px rgba(0,0,0,.4);}
@@ -572,11 +573,17 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 
 .heure-bar-fill{height:100%;background:linear-gradient(90deg,var(--fire),var(--gold));border-radius:99px;}
 
-.mi-photo{width:100%;height:160px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0;display:block;margin:-0.85rem -0.85rem 0.75rem -0.85rem;width:calc(100% + 1.7rem);}
-.mi.has-photo{flex-direction:column;align-items:stretch;padding:0;}
-.mi.has-photo .mi-body{display:flex;gap:12px;padding:.85rem;}
-.mi.has-photo .mi-ico{font-size:28px;flex-shrink:0;width:38px;text-align:center;line-height:38px;}
-.mi.has-photo .mi-qty{top:6px;right:6px;}
+.mi-photo{width:100%;height:190px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0;display:block;transition:transform .3s ease;}
+.mi.has-photo{flex-direction:column;align-items:stretch;padding:0;background:#0d0d0d;overflow:hidden;border-color:rgba(255,255,255,.06);}
+.mi.has-photo:active{transform:scale(.985);}
+.mi.has-photo .mi-photo-wrap{position:relative;overflow:hidden;border-radius:var(--radius-sm) var(--radius-sm) 0 0;}
+.mi.has-photo .mi-photo-wrap::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgba(0,0,0,.62) 100%);pointer-events:none;}
+.mi.has-photo .mi-body{display:flex;gap:10px;padding:.875rem .875rem .65rem;align-items:flex-start;}
+.mi.has-photo .mi-ico{display:none;}
+.mi.has-photo .mi-name{font-size:16px;font-weight:800;letter-spacing:.15px;}
+.mi.has-photo .mi-desc{font-size:11.5px;color:rgba(255,255,255,.42);margin-top:4px;-webkit-line-clamp:2;}
+.mi.has-photo .mi-price{font-size:24px;letter-spacing:.5px;align-self:center;flex-shrink:0;}
+.mi.has-photo .mi-qty{top:8px;right:8px;}
 /* ══ ORDER MODE ══ */
 .order-mode-section{margin-top:1rem;}
 .order-mode-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.65rem;}
@@ -3279,11 +3286,12 @@ function initMenu(){
           <div class="fmt-opt${fmt==='solo'?' active':''}" data-fmt="solo" onclick="updateProductFormat(${idx},'solo',event)"><span class="fmt-opt-label">Solo</span><span class="fmt-opt-price">${m.price.toFixed(2).replace('.',',')}€</span></div>
           <div class="fmt-opt${fmt==='menu'?' active':''}" data-fmt="menu" onclick="updateProductFormat(${idx},'menu',event)"><span class="fmt-opt-label">Menu 🍟</span><span class="fmt-opt-price">${menuP.toFixed(2).replace('.',',')}€</span></div>
         </div>`:'';
-        return `<div class="mi has-photo" data-mi-idx="${idx}" onclick="addToCart(${idx})" style="transition:transform .1s;">
+        return `<div class="mi has-photo" data-mi-idx="${idx}" onclick="addToCart(${idx})">
           ${qty?`<div class="mi-qty">${qty}</div>`:''}
-          <img class="mi-photo" src="${imgSrc}" alt="${m.name}">
+          <div class="mi-photo-wrap">
+            <img class="mi-photo" src="${imgSrc}" alt="${m.name}" loading="lazy" decoding="async">
+          </div>
           <div class="mi-body">
-            <div class="mi-ico">${m.icon}</div>
             <div class="mi-info"><div class="mi-name">${m.name}</div><div class="mi-desc">${m.desc}</div>${m.badge?`<div class="mi-badge">${m.badge}</div>`:''}</div>
             <div class="mi-price" data-price-solo="${m.price}" data-price-menu="${menuP||m.price}">${dPrice}€</div>
           </div>
@@ -3762,6 +3770,27 @@ function openProductSheet(idx){
 // Design toggle on/off : le bouton + se transforme en ✓ avec transition CSS.
 // Hauteur min 44px pour le touch target mobile (WCAG 2.5.5).
 // Doit être appellé après que selectedSupplements soit initialisé.
+// renderSupplementsList(supplements) — composant standalone
+// Groupe par catégorie, affiche les headers séparateurs, délègue à renderSupplement.
+// Utilisable depuis renderProdSheetBody() et tout autre contexte.
+function renderSupplementsList(supplements){
+  const groups=[
+    {key:'premium',label:'Nos Incontournables',icon:'🔥'},
+    {key:'extra',  label:'Les Petits Plus',    icon:'✨'},
+  ];
+  return groups.map(g=>{
+    const items=supplements.filter(s=>s.cat===g.key);
+    if(!items.length) return '';
+    return `<div class="suppl-group">
+      <div class="suppl-section-head">
+        <span class="suppl-section-icon">${g.icon}</span>
+        <span class="suppl-section-title">${g.label}</span>
+      </div>
+      ${items.map(renderSupplement).join('')}
+    </div>`;
+  }).join('');
+}
+
 function renderSupplement(supp){
   const sel=!!(selectedSupplements[supp.id]>0);
   const dn=supp.name.replace(/^Supplément\s+/i,'');
@@ -3876,14 +3905,7 @@ function renderProdSheetBody(){
 
   /* ── Suppléments ── */
   if(hasSuppl&&SUPPLEMENTS.length){
-    html+=`<div id="ps-sect-suppls"><div class="ps-section-title">${S()} Suppléments</div>`;
-    [{key:'premium',label:'Nos Incontournables',icon:'🔥'},{key:'extra',label:'Les Petits Plus',icon:'✨'}].forEach(g=>{
-      const items=SUPPLEMENTS.filter(x=>x.cat===g.key);
-      if(!items.length) return;
-      html+=`<div class="suppl-section-head"><div class="suppl-section-icon">${g.icon}</div><div class="suppl-section-title">${g.label}</div></div>`;
-      items.forEach(x=>{ html+=renderSupplement(x); });
-    });
-    html+=`</div>`;
+    html+=`<div id="ps-sect-suppls"><div class="ps-section-title">${S()} Suppléments</div>${renderSupplementsList(SUPPLEMENTS)}</div>`;
   }
 
   /* ── Retrait ingrédients (accordion) ── */
