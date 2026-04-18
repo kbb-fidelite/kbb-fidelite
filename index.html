@@ -584,29 +584,41 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .mi.has-photo .mi-desc{font-size:11.5px;color:rgba(255,255,255,.42);margin-top:4px;-webkit-line-clamp:2;}
 .mi.has-photo .mi-price{font-size:24px;letter-spacing:.5px;align-self:center;flex-shrink:0;}
 .mi.has-photo .mi-qty{top:8px;right:8px;}
-/* ══ ORDER MODE ══ */
+/* ══ ORDER MODE v2 — 2 grandes cartes ══ */
 .order-mode-section{margin-top:1rem;}
-.order-mode-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.65rem;}
-.order-mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
-.order-mode-card{background:var(--coal3);border:2px solid var(--border);border-radius:var(--radius);padding:1rem .75rem;text-align:center;cursor:pointer;transition:all .15s;}
-.order-mode-card.selected{border-color:var(--fire);background:var(--fire-glow);}
-.order-mode-card:active{opacity:.8;}
-.order-mode-ico{font-size:30px;margin-bottom:.4rem;}
-.order-mode-name{font-size:13px;font-weight:700;color:var(--text);}
-.order-mode-desc{font-size:11px;color:var(--text3);margin-top:2px;}
-.order-detail-box{background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;}
-.order-detail-label{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:.6rem;}
+/* Cartes de mode */
+.omc-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;}
+.omc{background:#121212;border:1.5px solid rgba(255,255,255,.07);border-radius:16px;padding:1.1rem .875rem 1rem;cursor:pointer;transition:border-color .2s,background .2s,transform .12s;-webkit-tap-highlight-color:transparent;text-align:center;position:relative;overflow:hidden;}
+.omc.selected{border-color:#e65100;background:rgba(230,81,0,.07);}
+.omc.selected::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 120% 80% at 50% 0%,rgba(230,81,0,.08) 0%,transparent 70%);pointer-events:none;}
+.omc:active{transform:scale(.96);}
+.omc-icon{width:48px;height:48px;border-radius:14px;background:#1a1a1a;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;transition:background .2s,border-color .2s;}
+.omc.selected .omc-icon{background:rgba(230,81,0,.13);border-color:rgba(230,81,0,.32);}
+.omc-name{font-size:13px;font-weight:700;color:var(--text);letter-spacing:.05px;line-height:1.3;}
+.omc-desc{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4;}
+/* Détail zone créneaux */
+.order-detail-box{background:#0f0f0f;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:1rem;margin-bottom:.875rem;}
+.order-detail-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:.75rem;}
 .table-num-input{width:100%;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.75rem 1rem;color:var(--text);font-family:var(--font);font-size:28px;font-weight:700;text-align:center;letter-spacing:4px;box-sizing:border-box;}
-.time-slots{display:flex;flex-wrap:wrap;gap:8px;}
-.time-slot{padding:.45rem .9rem;background:var(--coal2);border:1px solid var(--border2);border-radius:99px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;}
-.time-slot.selected{background:var(--fire);border-color:var(--fire);color:#fff;}
-.time-slot.slot-full{opacity:.38;text-decoration:line-through;cursor:not-allowed;pointer-events:none;border-style:dashed;}
+.time-slots{display:flex;flex-wrap:wrap;gap:7px;}
+.time-slot{padding:.45rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:99px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;min-height:36px;}
+.time-slot.selected{background:rgba(230,81,0,.15);border-color:#e65100;color:#ff9a6c;}
+.time-slot.slot-full{opacity:.32;text-decoration:line-through;cursor:not-allowed;pointer-events:none;border-style:dashed;}
 .slot-avail{font-size:10px;font-weight:700;color:#4CAF74;white-space:nowrap;}
 .slot-avail.slot-low{color:#FF8C42;}
 .slot-avail.slot-full-lbl{color:#E53935;}
-.time-slot.selected .slot-avail{color:rgba(255,255,255,.8);}
-.order-submit-btn{width:100%;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:var(--radius);padding:1rem;color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:.5rem;}
-.order-submit-btn:disabled{opacity:.4;cursor:not-allowed;}
+.time-slot.selected .slot-avail{color:rgba(255,255,255,.7);}
+/* ── Toggle service: Sur place / À emporter ── */
+.svc-toggle{position:relative;display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:99px;padding:3px;margin:.25rem 0 1rem;overflow:hidden;}
+.svc-toggle::before{content:'';position:absolute;top:3px;bottom:3px;border-radius:99px;width:calc(50% - 3px);left:calc(3px + var(--svc-pos,0) * (50% - 3px));background:linear-gradient(135deg,#c47a00,#8b3500);box-shadow:0 2px 10px rgba(180,80,0,.45);transition:left .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
+.svc-opt{position:relative;z-index:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:6px 10px;}
+.svc-opt-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.svc-opt-label{font-size:13px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.15px;transition:color .22s;line-height:1;}
+.svc-opt.active .svc-opt-label{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3);}
+/* Submit */
+.order-submit-btn{width:100%;background:linear-gradient(135deg,#c47a00,#8b3500);border:none;border-radius:14px;padding:1.05rem;color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:.25rem;box-shadow:0 4px 20px rgba(180,80,0,.35);transition:opacity .15s,transform .12s;letter-spacing:.2px;}
+.order-submit-btn:active{opacity:.88;transform:scale(.99);}
+.order-submit-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none;}
 /* ══ EMP COMMANDES ══ */
 .cmd-card{background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;transition:border-color .2s;}
 .cmd-card.table{border-left:3px solid var(--gold);}
@@ -3229,7 +3241,9 @@ const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,accompagnements:
 const TVA_DEFAULT=0.10;
 
 let cart=[];
-let orderMode=null; // 'sur_place' | 'click_collect' | 'reservation'
+let orderMode=null;      // 'sur_place'|'a_emporter'|'reservation'|'click_collect' — dérivé de _syncOrderMode
+let orderCardMode=null;  // 'avance'|'immediat' — quelle carte est sélectionnée
+let orderServiceMode='sur_place'; // 'sur_place'|'a_emporter' — toggle dans la carte
 let orderTableNum='';
 let selectedPickupTime='';
 
@@ -4382,12 +4396,20 @@ function renderCart(){
         <div class="cart-pts-info">🔥 +${pts} points fidélité</div>
       </div>
       <div class="cart-total-val">${total.toFixed(2).replace('.',',')}€</div>
-    </div>
-    <div class="cart-recap" id="cart-recap"><strong>Récapitulatif à dicter au téléphone :</strong>\n${Object.entries(grouped).map(([k,{item,qty}])=>{const p=typeof item==='object'?item.price:MENU_DATA[item].price;const n=typeof item==='object'?item.name:MENU_DATA[item].name;return `${qty}x ${n} (${(p*qty).toFixed(2).replace('.',',')}€)`;}).join('\n')}\n\n<strong>Total : ${total.toFixed(2).replace('.',',')}€</strong></div>`;
+    </div>`;
   const clearBtn=document.getElementById('cart-clear-btn');
   if(clearBtn) clearBtn.style.display='';
   renderOrderOptions();
 }
+
+// SVG icône horloge (commande à l'avance)
+const _SVG_CLOCK=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>`;
+// SVG éclair (je suis sur place)
+const _SVG_ZAP=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
+// SVG chaise (sur place)
+const _SVG_CHAIR=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="11" rx="2"/><path d="M4 13h16"/><path d="M8 13v7M16 13v7"/></svg>`;
+// SVG sac kraft (à emporter)
+const _SVG_BAG=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>`;
 
 function renderOrderOptions(){
   const section=document.getElementById('cart-order-options');
@@ -4402,10 +4424,11 @@ function renderOrderOptions(){
     </div>`;
     return;
   }
-  const needsTime=orderMode==='click_collect'||orderMode==='reservation';
-  let sr=null,slotsMsg='';
+
+  // Créneaux — uniquement pour mode "avance"
+  let sr=null, slotsMsg='';
   const todayKey=new Date().toISOString().slice(0,10);
-  if(needsTime){
+  if(orderCardMode==='avance'){
     if(_statusCache===null){
       _loadScheduleForSlots();
       slotsMsg='<div style="padding:.5rem;font-size:13px;color:var(--text3);text-align:center;">⏳ Chargement des horaires…</div>';
@@ -4415,11 +4438,10 @@ function renderOrderOptions(){
         slotsMsg=`<div style="padding:.65rem .75rem;font-size:13px;font-weight:600;color:var(--fire);background:rgba(255,107,43,.08);border-radius:6px;margin-top:.5rem;text-align:center;">🔒 ${sr.reason}</div>`;
         sr=null;
       }
-      // Déclencher le chargement de la disponibilité si pas encore fait
       if(!_slotAvailability||_slotAvailability.date!==todayKey) _loadSlotAvailability();
     }
   }
-  // Génère le HTML d'un créneau avec badge disponibilité
+
   const slotHtml=(t)=>{
     const booked=(sr?.counts||{})[t]||0;
     const cap=sr?.capacite??999;
@@ -4427,72 +4449,107 @@ function renderOrderOptions(){
     const full=booked>=cap;
     const sel=selectedPickupTime===t;
     let hint, hintCls;
-    if(full){
-      hint='Complet'; hintCls='slot-full-lbl';
-    } else if(cap===999){
-      hint=null; hintCls=''; // capacité inconnue (données pas encore chargées)
-    } else if(avail<=2){
-      hint=`${avail} place${avail>1?'s':''} restante${avail>1?'s':''}`; hintCls='slot-low';
-    } else {
-      hint=`${avail} places disponibles`; hintCls='';
-    }
+    if(full){ hint='Complet'; hintCls='slot-full-lbl'; }
+    else if(cap===999){ hint=null; hintCls=''; }
+    else if(avail<=2){ hint=`${avail} place${avail>1?'s':''} restante${avail>1?'s':''}`; hintCls='slot-low'; }
+    else { hint=`${avail} places dispo`; hintCls=''; }
     return `<div class="time-slot${full?' slot-full':''}${sel?' selected':''}" ${full?'':'onclick="selectPickupTime(\''+t+'\')"'}>
       ${t}${hint?`<span class="slot-avail ${hintCls}">${hint}</span>`:''}
     </div>`;
   };
   const slotsHtml=sr?.slots.length?`<div class="time-slots">${sr.slots.map(slotHtml).join('')}</div>`:slotsMsg;
-  const submitDisabled=(needsTime&&(!selectedPickupTime||!sr?.slots.length))||(!sr&&needsTime&&!slotsMsg.includes('🔒')&&_statusCache===null);
+
+  // Disabled si mode avance sans créneau sélectionné
+  const submitDisabled = orderCardMode==='avance' && (!selectedPickupTime || (!sr && _statusCache!==null && !slotsMsg.includes('🔒')));
+
+  // Toggle service : pilule glissante Sur place / À emporter
+  const svcPos=orderServiceMode==='a_emporter'?'1':'0';
+  const svcToggleHtml=`
+    <div class="svc-toggle" style="--svc-pos:${svcPos}">
+      <div class="svc-opt${orderServiceMode==='sur_place'?' active':''}" data-svc="sur_place" onclick="selectServiceMode('sur_place',event)">
+        <span class="svc-opt-icon" style="color:${orderServiceMode==='sur_place'?'#fff':'rgba(255,255,255,.3)'}">${_SVG_CHAIR}</span>
+        <span class="svc-opt-label">Sur place</span>
+      </div>
+      <div class="svc-opt${orderServiceMode==='a_emporter'?' active':''}" data-svc="a_emporter" onclick="selectServiceMode('a_emporter',event)">
+        <span class="svc-opt-icon" style="color:${orderServiceMode==='a_emporter'?'#fff':'rgba(255,255,255,.3)'}">${_SVG_BAG}</span>
+        <span class="svc-opt-label">À emporter</span>
+      </div>
+    </div>`;
+
   section.innerHTML=`
     <div class="order-mode-section">
-      <div class="order-mode-title">Comment souhaitez-vous commander ?</div>
-      <div class="order-mode-cards" style="grid-template-columns:1fr 1fr 1fr;">
-        <div class="order-mode-card ${orderMode==='sur_place'?'selected':''}" onclick="selectOrderMode('sur_place')">
-          <div class="order-mode-ico">🪑</div>
-          <div class="order-mode-name">Sur place</div>
-          <div class="order-mode-desc">Je mange ici</div>
+      <div class="omc-wrap">
+        <div class="omc${orderCardMode==='avance'?' selected':''}" onclick="selectOrderCard('avance')">
+          <div class="omc-icon" style="color:${orderCardMode==='avance'?'#e65100':'rgba(255,255,255,.4)'}">${_SVG_CLOCK}</div>
+          <div class="omc-name">Je commande à l'avance</div>
+          <div class="omc-desc">Choisissez votre heure</div>
         </div>
-        <div class="order-mode-card ${orderMode==='reservation'?'selected':''}" onclick="selectOrderMode('reservation')">
-          <div class="order-mode-ico">📅</div>
-          <div class="order-mode-name">Réservation</div>
-          <div class="order-mode-desc">J'arrive plus tard</div>
-        </div>
-        <div class="order-mode-card ${orderMode==='click_collect'?'selected':''}" onclick="selectOrderMode('click_collect')">
-          <div class="order-mode-ico">🏃</div>
-          <div class="order-mode-name">À emporter</div>
-          <div class="order-mode-desc">Je repars avec</div>
+        <div class="omc${orderCardMode==='immediat'?' selected':''}" onclick="selectOrderCard('immediat')">
+          <div class="omc-icon" style="color:${orderCardMode==='immediat'?'#e65100':'rgba(255,255,255,.4)'}">${_SVG_ZAP}</div>
+          <div class="omc-name">Je suis sur place</div>
+          <div class="omc-desc">Commande immédiate</div>
         </div>
       </div>
-      ${orderMode==='reservation'?`
+
+      ${orderCardMode?svcToggleHtml:''}
+
+      ${orderCardMode==='avance'?`
         <div class="order-detail-box">
-          <div class="order-detail-label">Heure d'arrivée prévue</div>
+          <div class="order-detail-label">${orderServiceMode==='a_emporter'?'Heure de retrait':'Heure d\'arrivée'}</div>
           ${slotsHtml}
         </div>
       `:''}
-      ${orderMode==='click_collect'?`
-        <div class="order-detail-box">
-          <div class="order-detail-label">Heure de retrait souhaitée</div>
-          ${slotsHtml}
-        </div>
-      `:''}
-      ${orderMode==='sur_place'?`
+
+      ${orderCardMode==='immediat'?`
         <div class="presence-input-wrap">
           <div class="presence-input-label">🔑 Code de présence</div>
           <input class="presence-input" id="presence-code-input" type="tel" inputmode="numeric"
             maxlength="4" placeholder="····" autocomplete="off"
-            oninput="this.value=this.value.replace(/\D/g,'').slice(0,4);_presenceInputChanged()"
-          >
-          <div style="font-size:11px;color:var(--text3);margin-top:.4rem;">📍 Demandez votre code au comptoir — il change toutes les 15 minutes</div>
+            oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4);_presenceInputChanged()">
+          <div style="font-size:11px;color:var(--text3);margin-top:.5rem;line-height:1.5;">📍 Demandez votre code au comptoir — il change toutes les 15 minutes</div>
           <div class="presence-msg" id="presence-msg"></div>
         </div>
       `:''}
-      ${orderMode?`
+
+      ${orderCardMode?`
         <button class="order-submit-btn" onclick="submitClientOrder()" ${submitDisabled?'disabled':''}>
-          Envoyer ma commande →
+          ${orderCardMode==='immediat'?'⚡ Envoyer ma commande':'📅 Confirmer ma commande'} →
         </button>
       `:''}
     </div>`;
 }
 
+// Sélection d'une des 2 grandes cartes (avance / immediat)
+function selectOrderCard(card){
+  orderCardMode=card;
+  selectedPickupTime='';
+  orderTableNum='';
+  _syncOrderMode();
+  renderOrderOptions();
+}
+
+// Toggle sur_place / a_emporter — patch DOM in-place ou re-render
+function selectServiceMode(mode, e){
+  if(e) e.stopPropagation();
+  orderServiceMode=mode;
+  _syncOrderMode();
+  renderOrderOptions();
+}
+
+// Dérive orderMode (routing backend) depuis orderCardMode + orderServiceMode
+function _syncOrderMode(){
+  if(orderCardMode==='immediat'){
+    // Immédiat : paiement en caisse, code présence requis dans tous les cas
+    orderMode=orderServiceMode==='a_emporter'?'a_emporter':'sur_place';
+  } else if(orderCardMode==='avance'){
+    // À l'avance : Stripe, créneau requis
+    orderMode=orderServiceMode==='a_emporter'?'click_collect':'reservation';
+  } else {
+    orderMode=null;
+  }
+}
+
+// Compatibilité ascendante — plus utilisé en interne, conservé pour appels éventuels
 function selectOrderMode(mode){
   orderMode=mode; selectedPickupTime=''; orderTableNum='';
   renderOrderOptions();
@@ -4689,17 +4746,20 @@ function _startCptCodeCountdown(){
 }
 
 async function submitClientOrder(){
-  if(!orderMode) return;
+  if(!orderCardMode) return;
   if(!currentPortalClient){
     localStorage.setItem('kbb_post_login','cart');
     go('page-client-login');
     showToast('Connectez-vous pour commander 🔥');
     return;
   }
-  if(orderMode==='click_collect'&&!selectedPickupTime){showToast('Choisissez une heure de retrait');return;}
-  if(orderMode==='reservation'&&!selectedPickupTime){showToast("Choisissez votre heure d'arrivée");return;}
-  // ── Vérification code de présence pour les commandes sur place ────────────
-  if(orderMode==='sur_place'){
+  // Créneau requis seulement pour le mode "avance"
+  if(orderCardMode==='avance'&&!selectedPickupTime){
+    showToast(orderServiceMode==='a_emporter'?'Choisissez une heure de retrait':"Choisissez votre heure d'arrivée");
+    return;
+  }
+  // Code présence requis pour le mode "immediat" (sur place ou à emporter)
+  if(orderCardMode==='immediat'){
     const ok=await _verifyPresenceCode();
     if(!ok) return;
   }
@@ -4728,7 +4788,9 @@ async function submitClientOrder(){
   const levelObj=currentPortalClient?getLevel(clientPts):null;
   const levelKey=levelObj?levelObj.label.toLowerCase():'bronze';
   const fee=getStripeFee(levelKey);
-  const label=orderMode==='sur_place'?'Sur place':orderMode==='reservation'?'Réservation — arrivée à '+selectedPickupTime:'Retrait à '+selectedPickupTime;
+  const label=orderCardMode==='immediat'
+    ?(orderServiceMode==='a_emporter'?'À emporter — immédiat':'Sur place — immédiat')
+    :(orderServiceMode==='a_emporter'?'À emporter — retrait à '+selectedPickupTime:'Sur place — arrivée à '+selectedPickupTime);
 
   // ── Stocker le contexte dans la variable globale ──
   _pendingOrderCtx={total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,clientPts,levelKey,fee,label};
@@ -4749,8 +4811,10 @@ async function _doSubmitOrder(selectedReward){
   if(!ctx) return;
   const {total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,levelKey,fee,label}=ctx;
 
-  // Capturer avant reset — orderMode et presence_token sont nuls après
-  const isSurPlace = orderMode === 'sur_place';
+  // Capturer avant reset — orderMode/orderCardMode/orderServiceMode sont nuls après
+  const isSurPlace = orderCardMode === 'immediat'; // les deux modes immédiats → caisse
+  const capturedOrderMode = orderMode;             // 'sur_place'|'a_emporter'|'reservation'|'click_collect'
+  const capturedServiceMode = orderServiceMode;    // 'sur_place'|'a_emporter'
   const tok = _presenceToken;
 
   const localId='local_'+Date.now();
@@ -4758,19 +4822,20 @@ async function _doSubmitOrder(selectedReward){
 
   // Sauvegarde locale (historique client)
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
-  localOrders.push({id:localId,type:isSurPlace?'sur_place':orderMode,items:itemsText,montant:total,statut:'en_attente',created_at:new Date().toISOString(),client_telephone:clientTel});
+  localOrders.push({id:localId,type:capturedOrderMode||'sur_place',items:itemsText,montant:total,statut:'en_attente',created_at:new Date().toISOString(),client_telephone:clientTel});
   localStorage.setItem('kbb_client_orders',JSON.stringify(localOrders.slice(-100)));
 
   // Reset panier (avant await pour éviter double-soumission)
   _presenceToken=null;
-  cart=[]; orderMode=null; orderTableNum=''; selectedPickupTime='';
+  cart=[]; orderMode=null; orderCardMode=null; orderServiceMode='sur_place'; orderTableNum=''; selectedPickupTime='';
   updateCartBar();
 
-  // ── Routage : Sur place → direct en cuisine, sinon Stripe ────────────────
+  // ── Routage : Immédiat → direct en cuisine (caisse), Avance → Stripe ────────
   if(isSurPlace){
     await _submitSurPlaceDirect({
       total, grouped, itemsArr, itemsText, clientTel, pts_a_crediter, label,
       presenceToken: tok,
+      serviceMode: capturedServiceMode,
       reward_id: selectedReward?.id||null,
       reward_pts: selectedReward?.points_requis||0,
       reward_nom: selectedReward?.nom||null,
@@ -4782,13 +4847,13 @@ async function _doSubmitOrder(selectedReward){
   // ── Stocker le contexte complet pour handleStripeReturn (Stripe uniquement) ──
   localStorage.setItem('kbb_stripe_pending',JSON.stringify({
     orderId: localId, orderNum, label, grouped, total, levelKey, fee, clientTel, pts_a_crediter,
-    presence_token: null, // sur_place n'atteint plus ce chemin
+    presence_token: null,
     reward_id: selectedReward?.id||null,
     reward_pts: selectedReward?.points_requis||0,
     reward_nom: selectedReward?.nom||null,
     reward_client_id: currentPortalClient?.id||null,
     clientData: currentPortalClient||null,
-    activeOrder:{supaId:null,statut:'en_attente',type:orderMode||'click_collect',tableNum:orderTableNum,
+    activeOrder:{supaId:null,statut:'en_attente',type:capturedOrderMode||'click_collect',tableNum:orderTableNum,
       heure:selectedPickupTime,items:itemsText,montant:total.toFixed(2),
       clientTel,expectedPts:pts_a_crediter,orderNum}
   }));
@@ -4798,11 +4863,13 @@ async function _doSubmitOrder(selectedReward){
 
 // Finalise une commande sur place sans paiement Stripe.
 // Le paiement se fait en caisse à la remise — points crédités au "Remis au client".
-async function _submitSurPlaceDirect({total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,label,presenceToken,reward_id,reward_pts,reward_nom,localId}){
+async function _submitSurPlaceDirect({total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,label,presenceToken,serviceMode,reward_id,reward_pts,reward_nom,localId}){
   let supaId=null;
   if(supaOk()){
+    // 'sur_place' = immédiat mange sur place | 'a_emporter' = immédiat emporté
+    const orderType=serviceMode==='a_emporter'?'a_emporter':'sur_place';
     const orderPayload={
-      type:'sur_place',
+      type:orderType,
       items:itemsText,
       montant:total,
       statut:'en_attente',
@@ -4834,7 +4901,7 @@ async function _submitSurPlaceDirect({total,grouped,itemsArr,itemsText,clientTel
   }
 
   const realNum=supaId?'#KBB-'+String(supaId).padStart(3,'0'):'#KBB-???';
-  setActiveOrder({supaId:supaId||null,statut:'en_attente',type:'sur_place',orderNum:realNum});
+  setActiveOrder({supaId:supaId||null,statut:'en_attente',type:serviceMode==='a_emporter'?'a_emporter':'sur_place',orderNum:realNum});
   updateCommandesTile();
   renderConfirmation(realNum, label, grouped, total);
   go('page-confirmation');
@@ -6885,12 +6952,13 @@ async function loadEmpCommandes(){
   const sectionHdrs={1:'🔴 URGENT — Sur place',2:'🟡 Bientôt — Approche',3:'🔵 Plus tard'};
   const renderCard=o=>{
     const isSurPlace=o.type==='sur_place'||o.type==='table';
+    const isAEmporter=o.type==='a_emporter';
     const isResa=o.type==='reservation';
     const isCnC=o.type==='click_collect';
-    const typeKey=o.type==='table'?'table':o.type==='sur_place'?'sur_place':isResa?'reservation':'click_collect';
-    const typeIcon=isSurPlace?'🪑 Sur place':isResa?'📅 Résa '+(o.heure_retrait||''):'🏃 Retrait '+(o.heure_retrait||'');
+    const typeKey=o.type==='table'?'table':o.type==='sur_place'?'sur_place':isResa?'reservation':isCnC?'click_collect':'a_emporter';
+    const typeIcon=isSurPlace?'🪑 Sur place':isAEmporter?'🛍 À emporter — immédiat':isResa?'📅 Résa '+(o.heure_retrait||''):'🏃 Retrait '+(o.heure_retrait||'');
     const badgeUrgent=_cmdPriorityGroup(o)===1?' urgent':'';
-    const cardClass=(isSurPlace?'table':isResa?'reservation':'cnc')+(o.statut==='pret'?' pret-glow':'');
+    const cardClass=(isSurPlace||isAEmporter?'table':isResa?'reservation':'cnc')+(o.statut==='pret'?' pret-glow':'');
     const sb=o.statut==='en_attente'?'attente':o.statut==='en_cours'?'encours':'pret';
     const sl=o.statut==='en_attente'?'⏳ En attente':o.statut==='en_cours'?'🔥 En préparation':'✅ Prête !';
     const t=new Date(o.created_at);
@@ -7056,8 +7124,9 @@ async function loadEmpService(){
   el.innerHTML=orders.map(o=>{
     const orderNum=o.id?'#KBB-'+String(o.id).padStart(3,'0'):'—';
     const isSurPlace=o.type==='sur_place'||o.type==='table';
+    const isAEmporter=o.type==='a_emporter';
     const isResa=o.type==='reservation';
-    const typeLabel=isSurPlace?'Sur place':isResa?'Réservation — '+(o.heure_retrait||''):'À emporter — '+(o.heure_retrait||'');
+    const typeLabel=isSurPlace?'Sur place':isAEmporter?'À emporter — immédiat':isResa?'Réservation — '+(o.heure_retrait||''):'À emporter — '+(o.heure_retrait||'');
     return `<div class="serv-card">
       <div class="serv-num">${orderNum}</div>
       <div class="serv-type">${typeLabel}</div>
