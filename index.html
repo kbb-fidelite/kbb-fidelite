@@ -2417,16 +2417,15 @@ body{
 </div>
 
 <!-- REWARD SELECTION OVERLAY -->
-<div id="reward-overlay" class="reward-overlay" style="display:none;" onclick="if(event.target===this)rewardOverlaySkip()">
+<div id="reward-overlay" class="reward-overlay" style="display:none;" onclick="if(event.target===this)rewardOverlayConfirm()">
   <div class="reward-sheet">
-    <div style="font-size:17px;font-weight:800;margin-bottom:.2rem;">🎁 Vos récompenses disponibles</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:1rem;">Choisissez une récompense ou continuez sans.</div>
+    <div style="font-size:17px;font-weight:800;margin-bottom:.2rem;">🎁 Vos récompenses</div>
+    <div id="reward-overlay-pts-hint" style="font-size:12px;color:var(--text3);margin-bottom:1rem;"></div>
     <div id="reward-overlay-list"></div>
-    <div style="margin-top:1rem;display:flex;gap:8px;">
-      <button onclick="rewardOverlaySkip()" style="flex:1;padding:.7rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--coal4);color:var(--text2);font-family:var(--font);font-size:13px;cursor:pointer;">Sans récompense</button>
-      <button id="reward-overlay-btn" onclick="rewardOverlayConfirm()" style="flex:2;padding:.7rem;border-radius:var(--radius-sm);border:none;background:var(--green);color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;">Valider et payer</button>
+    <div style="margin-top:1rem;">
+      <button id="reward-overlay-btn" onclick="rewardOverlayConfirm()" style="width:100%;padding:.9rem;border-radius:var(--radius-sm);border:none;background:linear-gradient(130deg,#FF9A1E,#FF8C00);color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;min-height:50px;">Confirmer →</button>
     </div>
-    <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:.6rem;">Les points seront déduits uniquement après paiement confirmé.</div>
+    <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:.6rem;">Les points sont déduits immédiatement à la validation.</div>
   </div>
 </div>
 
@@ -3704,6 +3703,10 @@ async function _stripeFinalize(sessionId, vData, pending){
     catch(e){ console.error('[stripe-finalize] createFactureFromPending échoué:',e); showToast('⚠️ Facture non générée — contactez le restaurant'); }
   }
 
+  // ── Déduire les points de la récompense via Edge Function (service_role) ──
+  if(supaId && pending?.reward_id && pending?.reward_client_id){
+    validateRewardServerSide(supaId, pending.reward_client_id, pending.reward_id);
+  }
   _stripeCleanup();
   setTimeout(()=>goToSuivi(), 2500);
 }
@@ -4873,10 +4876,10 @@ async function submitClientOrder(){
   // ── Stocker le contexte dans la variable globale ──
   _pendingOrderCtx={total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,clientPts,levelKey,fee,label};
 
-  // ── Afficher l'overlay récompenses seulement si le client a des récompenses éligibles ──
+  // ── Afficher l'overlay récompenses si des récompenses actives existent ──
   const allRecs=await loadRecompenses();
-  const eligibles=allRecs.filter(r=>r.actif!==false&&clientPts>=r.points_requis&&total>=parseFloat(r.commande_minimum||0));
-  if(eligibles.length>0){
+  const activeRecs=allRecs.filter(r=>r.actif!==false);
+  if(activeRecs.length>0){
     rewardOverlayShow(allRecs,clientPts,total);
   } else {
     _doSubmitOrder(null);
@@ -4975,6 +4978,10 @@ async function _submitSurPlaceDirect({total,grouped,itemsArr,itemsText,clientTel
     if(supaId){
       try{ await createFactureSimple(supaId, total, currentPortalClient?.prenom||''); }
       catch(e){ console.error('_submitSurPlaceDirect createFactureSimple:',e); }
+      // ── Déduire les points de la récompense via Edge Function (service_role) ──
+      if(reward_id && currentPortalClient?.id){
+        validateRewardServerSide(supaId, currentPortalClient.id, reward_id);
+      }
     }
   }
 
@@ -7899,15 +7906,21 @@ async function rewardOverlayShow(allRecs, clientPts, cartTotal){
   _selectedReward=null;
   const list=document.getElementById('reward-overlay-list');
   if(!list){ _doSubmitOrder(null); return; } // DOM manquant → soumettre quand même
+
+  // Hint solde
+  const hintEl=document.getElementById('reward-overlay-pts-hint');
+  if(hintEl) hintEl.innerHTML=`Votre solde&nbsp;: <strong style="color:#e65100;">${clientPts} pts</strong>`;
+
   const icons=['🥤','🍰','🥙','👑','🎁'];
-  // Carte "Sans récompense" — sélectionnée par défaut (aucun point dépensé)
+  // Carte "Sans récompense" — sélectionnée par défaut
   let html='<div class="reward-card selected" id="rwcard-none" onclick="rewardCardSelectNone(this)">'
     +'<div class="reward-card-top">'
       +'<span class="reward-card-name">⊘ Sans récompense</span>'
-      +'<span class="reward-card-pts" style="color:var(--text3);">0 pts</span>'
+      +'<span class="reward-card-pts" style="color:var(--text3);">0 pt</span>'
     +'</div>'
     +'<div class="reward-card-none-hint">Continuer sans utiliser de points</div>'
   +'</div>';
+
   const active=allRecs.filter(r=>r.actif!==false);
   if(!active.length){
     html+='<div style="color:var(--text3);font-size:13px;padding:.5rem;text-align:center;">Aucune récompense disponible en ce moment.</div>';
@@ -7916,14 +7929,17 @@ async function rewardOverlayShow(allRecs, clientPts, cartTotal){
       const hasPoints=clientPts>=r.points_requis;
       const hasMin=cartTotal>=parseFloat(r.commande_minimum||0);
       const eligible=hasPoints&&hasMin;
-      const manquePts=!hasPoints?(r.points_requis-clientPts)+' pts manquants':'';
-      const manqueMin=!hasMin?(parseFloat(r.commande_minimum||0)-cartTotal).toFixed(2).replace('.',',')+'€ de plus requis':'';
-      const hint=manquePts||(manqueMin?'Commande min. '+parseFloat(r.commande_minimum||0).toFixed(0)+'€ ('+manqueMin+')':'');
+      const manquePts=!hasPoints?(r.points_requis-clientPts)+' pt'+((r.points_requis-clientPts)>1?'s':'')+' manquants':'';
+      const minCmd=parseFloat(r.commande_minimum||0);
+      const manqueMin=!hasMin?(minCmd-cartTotal).toFixed(2).replace('.',',')+'€ de plus requis':'';
+      const hint=manquePts||(manqueMin?'Commande min. '+minCmd.toFixed(0)+'€ ('+manqueMin+')':'');
+      const desc=r.description?`<div style="font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4;">${r.description}</div>`:'';
       html+='<div class="reward-card'+(eligible?'':' locked')+'" id="rwcard-'+r.id+'" '+(eligible?'onclick="rewardCardSelect(this,\''+r.id+'\')"':'')+'>'
         +'<div class="reward-card-top">'
-          +'<span class="reward-card-name">'+(icons[i]||'🎁')+' '+r.nom+'</span>'
+          +'<span class="reward-card-name">'+(icons[i%icons.length]||'🎁')+' '+r.nom+'</span>'
           +'<span class="reward-card-pts">'+r.points_requis+' pts</span>'
         +'</div>'
+        +desc
         +(hint?'<div class="reward-card-hint">'+hint+'</div>':'')
       +'</div>';
     });
