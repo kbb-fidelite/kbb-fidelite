@@ -356,6 +356,18 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 /* Float bar price pop animation */
 @keyframes supplPricePop{0%{opacity:0;transform:translateY(5px)}60%{transform:translateY(-2px)}100%{opacity:1;transform:translateY(0)}}
 .suppl-price-pop{animation:supplPricePop .22s cubic-bezier(.34,1.56,.64,1) both;}
+/* ── suppl-toggle-btn : remplace suppl-add-btn + compteur +/− ── */
+.suppl-toggle-btn{width:36px;height:36px;border-radius:99px;border:none;background:linear-gradient(135deg,#c47a00,#8b3500);color:#fff;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;box-shadow:0 2px 10px rgba(180,80,0,.4);transition:transform .15s,background .22s,box-shadow .22s,color .22s,font-size .1s;-webkit-tap-highlight-color:transparent;/* touch target garanti via min-width/height sur wrapper */}
+.suppl-toggle-btn:active{transform:scale(.88);box-shadow:none;}
+.suppl-toggle-btn.is-active{background:rgba(230,81,0,.1);border:1.5px solid rgba(230,81,0,.6);color:#e65100;font-size:17px;font-weight:700;box-shadow:inset 0 0 0 1px rgba(230,81,0,.08);}
+.suppl-toggle-btn.is-active:active{background:rgba(230,81,0,.22);}
+/* ── État sélectionné de la carte ── */
+.suppl-card.is-active{border-color:#e65100;background:rgba(230,81,0,.07);box-shadow:0 0 0 1px rgba(230,81,0,.15),0 4px 16px rgba(230,81,0,.08);}
+@media(hover:hover){.suppl-card:not(.is-active):hover{background:#1e1e1e;border-color:rgba(230,81,0,.28);}}
+/* ── Icône : transition couleur vers braise quand active ── */
+.suppl-card .suppl-icon{transition:color .22s;}
+.suppl-card.is-active .suppl-icon-premium{color:#e65100;}
+.suppl-card.is-active .suppl-icon-extra{color:#c25000;}
 .cart-upsell-hint{background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.2);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:.875rem;font-size:12px;color:var(--gold);line-height:1.5;}
 .flash-timer{font-family:var(--font-d);font-size:32px;color:var(--fire);letter-spacing:2px;text-align:center;margin:.5rem 0;}
 .flash-badge{display:inline-block;background:var(--fire);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:3px 10px;margin-bottom:.5rem;}
@@ -3250,16 +3262,20 @@ function initMenu(){
 }
 
 /* ══ SUPPLÉMENTS ══ */
+// ── SVG icons — stroke-width:1.5 (style Lucide, look fin & premium) ──────────
 const SUPPL_ICONS={
-  vkeb:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M7 7h10"/><path d="M6 12h12"/><path d="M7 17h10"/><ellipse cx="12" cy="7" rx="5" ry="1.5"/><ellipse cx="12" cy="12" rx="6" ry="1.5"/><ellipse cx="12" cy="17" rx="4" ry="1.5"/></svg>`,
-  vpou:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4c3 1 5 4 4 7s-4 5-5 8"/><path d="M14 4c-3 1-4 4-3 7s3 5 2 8"/><path d="M11 19h4M9 22h8"/></svg>`,
-  bur: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><circle cx="9" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".8" fill="currentColor" stroke="none"/></svg>`,
-  ten: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14c0-4 3-7 7-7s7 2 7 6-3 7-7 7-7-2-7-6z"/><line x1="10" y1="9" x2="11" y2="15"/><line x1="14" y1="8" x2="15" y2="14"/></svg>`,
-  che: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19L12 4l10 15H2z"/><circle cx="12" cy="14" r="1.5"/><circle cx="7.5" cy="17.5" r="1"/></svg>`,
-  fet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="13" height="8" rx="2"/><path d="M16 10l5-3v14l-5-3"/><line x1="7" y1="10" x2="7" y2="18"/><line x1="11" y1="10" x2="11" y2="18"/></svg>`,
-  fro: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11c0-3 2.5-5 6-5s6 2 6 5-2.7 6-6 6-6-2.5-6-6z"/><path d="M12 17v2M10 19h4"/><circle cx="10" cy="11" r=".8" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r=".8" fill="currentColor" stroke="none"/></svg>`,
-  jal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3c2 1 3 3 2 6s-3 5-3 8"/><path d="M13 3c-2 1-3 3-2 6s2 5 2 8"/><path d="M15 4c2-2 4-2 4 0"/></svg>`,
+  vkeb:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M7 7h10"/><path d="M6 12h12"/><path d="M7 17h10"/><ellipse cx="12" cy="7" rx="5" ry="1.5"/><ellipse cx="12" cy="12" rx="6" ry="1.5"/><ellipse cx="12" cy="17" rx="4" ry="1.5"/></svg>`,
+  vpou:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4c3 1 5 4 4 7s-4 5-5 8"/><path d="M14 4c-3 1-4 4-3 7s3 5 2 8"/><path d="M11 19h4M9 22h8"/></svg>`,
+  bur: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><circle cx="9" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".8" fill="currentColor" stroke="none"/></svg>`,
+  ten: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14c0-4 3-7 7-7s7 2 7 6-3 7-7 7-7-2-7-6z"/><line x1="10" y1="9" x2="11" y2="15"/><line x1="14" y1="8" x2="15" y2="14"/></svg>`,
+  che: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19L12 4l10 15H2z"/><circle cx="12" cy="14" r="1.5"/><circle cx="7.5" cy="17.5" r="1"/></svg>`,
+  fet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="13" height="8" rx="2"/><path d="M16 10l5-3v14l-5-3"/><line x1="7" y1="10" x2="7" y2="18"/><line x1="11" y1="10" x2="11" y2="18"/></svg>`,
+  fro: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11c0-3 2.5-5 6-5s6 2 6 5-2.7 6-6 6-6-2.5-6-6z"/><path d="M12 17v2M10 19h4"/><circle cx="10" cy="11" r=".8" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r=".8" fill="currentColor" stroke="none"/></svg>`,
+  jal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3c2 1 3 3 2 6s-3 5-3 8"/><path d="M13 3c-2 1-3 3-2 6s2 5 2 8"/><path d="M15 4c2-2 4-2 4 0"/></svg>`,
 };
+
+// getIcon(name) — accès fonctionnel aux icônes (signature API propre pour les composants)
+function getIcon(name){ return SUPPL_ICONS[name]||''; }
 const SUPPLEMENTS=[
   // Nos Incontournables
   {id:'vkeb',name:'Supplément viande de kebab',   price:2.50,cat:'premium'},
@@ -3684,6 +3700,60 @@ function openProductSheet(idx){
   document.body.style.overflow='hidden';
 }
 
+// ══ COMPOSANTS SUPPLÉMENTS ════════════════════════════════════════════════
+
+// renderSupplement(supp) — génère le HTML d'une ligne de supplément.
+// Design toggle on/off : le bouton + se transforme en ✓ avec transition CSS.
+// Hauteur min 44px pour le touch target mobile (WCAG 2.5.5).
+// Doit être appellé après que selectedSupplements soit initialisé.
+function renderSupplement(supp){
+  const sel=!!(selectedSupplements[supp.id]>0);
+  const dn=supp.name.replace(/^Supplément\s+/i,'');
+  return `<div class="suppl-card${sel?' is-active':''}" data-suppl-id="${supp.id}" style="min-height:44px;">
+    <div class="suppl-card-img"><div class="suppl-icon suppl-icon-${supp.cat}">${getIcon(supp.id)}</div></div>
+    <div class="suppl-card-body">
+      <div class="suppl-card-name">${dn}</div>
+      ${supp.desc?`<div class="suppl-card-desc">${supp.desc}</div>`:''}
+    </div>
+    <div class="suppl-card-right">
+      <div class="suppl-card-price">+${supp.price.toFixed(2).replace('.',',')}€</div>
+      <button class="suppl-toggle-btn${sel?' is-active':''}"
+        onclick="toggleSupplement('${supp.id}')"
+        aria-label="${sel?'Retirer':'Ajouter'} ${dn}"
+        aria-pressed="${sel}">${sel?'✓':'+'}</button>
+    </div>
+  </div>`;
+}
+
+// toggleSupplement(id) — bascule on/off, patch DOM in-place (zéro scroll-jump),
+// met à jour la barre sticky et synchronise le draft en sessionStorage.
+function toggleSupplement(id){
+  const wasSelected=!!(selectedSupplements[id]>0);
+  if(wasSelected){ delete selectedSupplements[id]; }
+  else { selectedSupplements[id]=1; }
+  const isSelected=!wasSelected;
+
+  const card=document.querySelector(`[data-suppl-id="${id}"]`);
+  if(card){
+    const s=SUPPLEMENTS.find(x=>x.id===id);
+    if(!s) return;
+    const dn=s.name.replace(/^Supplément\s+/i,'');
+    // Patch classe carte
+    card.classList.toggle('is-active',isSelected);
+    // Patch uniquement la colonne droite — icône & nom restent intacts
+    card.querySelector('.suppl-card-right').innerHTML=
+      `<div class="suppl-card-price">+${s.price.toFixed(2).replace('.',',')}€</div>`+
+      `<button class="suppl-toggle-btn${isSelected?' is-active':''}" onclick="toggleSupplement('${id}')" aria-label="${isSelected?'Retirer':'Ajouter'} ${dn}" aria-pressed="${isSelected}">${isSelected?'✓':'+'}</button>`;
+    // Mise à jour des barres de prix (prod-sheet sticky + overlay legacy)
+    _renderStickyBar();
+    updateSupplFloatBar();
+  } else {
+    _rerender(null);
+  }
+  // Draft sessionStorage : persiste la sélection sans valider le panier
+  try{ sessionStorage.setItem('kbb_suppl_draft_'+sheetIdx, JSON.stringify(selectedSupplements)); }catch(_){}
+}
+
 function renderProdSheetBody(){
   const m=MENU_DATA[sheetIdx];
 
@@ -3755,17 +3825,7 @@ function renderProdSheetBody(){
       const items=SUPPLEMENTS.filter(x=>x.cat===g.key);
       if(!items.length) return;
       html+=`<div class="suppl-section-head"><div class="suppl-section-icon">${g.icon}</div><div class="suppl-section-title">${g.label}</div></div>`;
-      items.forEach(x=>{
-        const qty=(selectedSupplements[x.id]||0),dn=x.name.replace(/^Supplément\s+/i,'');
-        html+=`<div class="suppl-card${qty>0?' active':''}" data-suppl-id="${x.id}">
-          <div class="suppl-card-img"><div class="suppl-icon suppl-icon-${x.cat}">${SUPPL_ICONS[x.id]||''}</div></div>
-          <div class="suppl-card-body"><div class="suppl-card-name">${dn}</div>${x.desc?`<div class="suppl-card-desc">${x.desc}</div>`:''}</div>
-          <div class="suppl-card-right">
-            <div class="suppl-card-price">+${x.price.toFixed(2).replace('.',',')}€</div>
-            ${qty>0?`<div class="suppl-qty-wrap"><button class="suppl-qty-btn" onclick="changeSheetSuppl('${x.id}',-1)">−</button><span class="suppl-qty-val">${qty}</span><button class="suppl-qty-btn" onclick="changeSheetSuppl('${x.id}',1)">+</button></div>`
-              :`<button class="suppl-add-btn" onclick="changeSheetSuppl('${x.id}',1)">+</button>`}
-          </div></div>`;
-      });
+      items.forEach(x=>{ html+=renderSupplement(x); });
     });
     html+=`</div>`;
   }
@@ -3817,27 +3877,8 @@ function toggleSheetSansSauce(){
   if(sheetSansSauce) sheetSauces=[];
   _rerender(sheetSansSauce?'ps-sect-suppls':null);
 }
-function changeSheetSuppl(id, delta){
-  const cur=(selectedSupplements[id]||0)+delta;
-  if(cur<=0) delete selectedSupplements[id];
-  else selectedSupplements[id]=cur;
-  // In-place patch — évite le saut de scroll sur ±1
-  const card=document.querySelector(`[data-suppl-id="${id}"]`);
-  if(card){
-    const qty=selectedSupplements[id]||0;
-    const s=SUPPLEMENTS.find(x=>x.id===id);
-    if(!s) return;
-    card.classList.toggle('active',qty>0);
-    card.querySelector('.suppl-card-right').innerHTML=
-      `<div class="suppl-card-price">+${s.price.toFixed(2).replace('.',',')}€</div>`+
-      (qty>0
-        ?`<div class="suppl-qty-wrap"><button class="suppl-qty-btn" onclick="changeSheetSuppl('${id}',-1)">−</button><span class="suppl-qty-val">${qty}</span><button class="suppl-qty-btn" onclick="changeSheetSuppl('${id}',1)">+</button></div>`
-        :`<button class="suppl-add-btn" onclick="changeSheetSuppl('${id}',1)">+</button>`);
-    _renderStickyBar();
-  } else {
-    _rerender(null);
-  }
-}
+// changeSheetSuppl : backward-compat — délègue au nouveau système toggle
+function changeSheetSuppl(id, _delta){ toggleSupplement(id); }
 
 function toggleAccordRetrait(){
   _accordRetrait=!_accordRetrait;
@@ -4030,24 +4071,7 @@ function _renderSupplOverlayList(){
     const items=dispo.filter(s=>s.cat===g.key);
     if(!items.length) return;
     html+=`<div class="suppl-section-head"><div class="suppl-section-icon">${g.icon}</div><div class="suppl-section-title">${g.label}</div></div>`;
-    items.forEach(s=>{
-      const qty=(selectedSupplements[s.id]||0);
-      const dn=s.name.replace(/^Supplément\s+/i,'');
-      html+=`<div class="suppl-card${qty>0?' active':''}">
-        <div class="suppl-card-img"><div class="suppl-icon suppl-icon-${s.cat}">${SUPPL_ICONS[s.id]||''}</div></div>
-        <div class="suppl-card-body">
-          <div class="suppl-card-name">${dn}</div>
-          ${s.desc?`<div class="suppl-card-desc">${s.desc}</div>`:''}
-        </div>
-        <div class="suppl-card-right">
-          <div class="suppl-card-price">+${s.price.toFixed(2).replace('.',',')}€</div>
-          ${qty>0
-            ?`<div class="suppl-qty-wrap"><button class="suppl-qty-btn" onclick="changeSuppl('${s.id}',-1)">−</button><span class="suppl-qty-val">${qty}</span><button class="suppl-qty-btn" onclick="changeSuppl('${s.id}',1)">+</button></div>`
-            :`<button class="suppl-add-btn" onclick="changeSuppl('${s.id}',1)">+</button>`
-          }
-        </div>
-      </div>`;
-    });
+    items.forEach(s=>{ html+=renderSupplement(s); });
   });
   list.innerHTML=html;
 }
@@ -4078,13 +4102,9 @@ function ouvrirSupplements(){
   document.getElementById('overlay-supplements').classList.add('show');
 }
 
-function changeSuppl(id, delta){
-  const cur=(selectedSupplements[id]||0)+delta;
-  if(cur<=0) delete selectedSupplements[id];
-  else selectedSupplements[id]=cur;
-  _renderSupplOverlayList();
-  updateSupplFloatBar();
-}
+// changeSuppl : backward-compat overlay legacy — délègue au système toggle
+// toggleSupplement() appelle déjà updateSupplFloatBar() en interne
+function changeSuppl(id, _delta){ toggleSupplement(id); }
 
 function validerSupplements(){
   document.getElementById('overlay-supplements').classList.remove('show');
