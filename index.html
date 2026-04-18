@@ -4358,37 +4358,67 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain,
   showToast(`✓ ${name} ajouté${extras.length?' — '+extras.join(' | '):''}`);
   pendingIdx=null; pendingTaille=null; selectedSupplements={};
   sheetRemovedIngredients=[]; sheetSauces=[]; sheetPain=null;
-  // Suggestion accompagnement : uniquement si plat principal, pas de menu et pas déjà un accompagnement
+  // Suggestion accompagnement au moment de l'ajout (popup) — uniquement si plat principal
   const _skipCats=['accompagnements','boissons','desserts'];
   if(!_skipCats.includes(m.cat)){
-    const _isMenu=menuUpgrade===true;
-    const _cartHasMenu=cart.some(c=>typeof c==='object'&&c.menu===true);
-    const _hasAccomp=cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements');
-    if(!_isMenu&&!_cartHasMenu&&!_hasAccomp) setTimeout(showAccompagnementSuggest,350);
+    // Le panier couvre-t-il déjà un accompagnement ?
+    // Oui si : item cat=accompagnements OU item avec menu:true (le menu inclut les frites)
+    const _hasAccompCovered=cart.some(c=>{
+      if(MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements') return true;
+      if(typeof c==='object'&&c.menu===true) return true;
+      return false;
+    });
+    if(!_hasAccompCovered) setTimeout(showAccompagnementSuggest,350);
   }
 }
 
-// Retourne les catégories manquantes à suggérer (max 2) — null si rien à proposer
+// ── Analyse du panier pour suggestions upsell (max 2) ────────────────────────
+// Règles :
+//   Accompagnement couvert : item cat=accompagnements OU item menu (frites incluses dans le menu)
+//   Boisson couverte       : item cat=boissons OU champ boisson d'un menu (c.boisson truthy)
+//   Cas menu : vérifier si le menu couvre accomp ET/OU boisson
+//   Cas solo : vérifier le panier global
+//   Mixte    : vérification globale — proposer uniquement ce qui manque
+//   0 suggestion → aucun bloc affiché (panier direct)
 function _cartSuggestGroups(){
   if(!cart.length) return [];
-  const hasMain=cart.some(c=>{const cat=MENU_DATA[typeof c==='object'?c.idx:c]?.cat;return cat&&!['accompagnements','boissons','desserts'].includes(cat);});
+
+  // Au moins un plat principal dans le panier ?
+  const hasMain=cart.some(c=>{
+    const cat=MENU_DATA[typeof c==='object'?c.idx:c]?.cat;
+    return cat&&!['accompagnements','boissons','desserts'].includes(cat);
+  });
   if(!hasMain) return [];
-  // Menu = item avec menu:true (accompagnement et boisson inclus dans le menu)
-  const hasMenu=cart.some(c=>typeof c==='object'&&c.menu===true);
-  // Accompagnement : item standalone cat=accompagnements
-  const hasAccomp=cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements');
-  // Boisson : item standalone cat=boissons OU boisson choisie dans un menu (c.boisson)
+
+  // ── Accompagnement couvert ? ─────────────────────────────────────────────
+  // Standalone (cat=accompagnements) OU item menu (les menus incluent les frites)
+  const hasAccomp=cart.some(c=>{
+    if(MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements') return true;
+    if(typeof c==='object'&&c.menu===true) return true;
+    return false;
+  });
+
+  // ── Boisson couverte ? ──────────────────────────────────────────────────
+  // Standalone (cat=boissons) OU boisson choisie dans un menu (c.boisson truthy)
   const hasBoisson=cart.some(c=>{
     if(MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='boissons') return true;
     if(typeof c==='object'&&c.boisson) return true;
     return false;
   });
+
   const groups=[];
-  // Menu inclut déjà accompagnement → ne pas proposer
-  if(!hasMenu&&!hasAccomp) groups.push('accompagnement');
-  // Menu inclut déjà une boisson → ne pas proposer
+  if(!hasAccomp) groups.push('accompagnement');
   if(!hasBoisson) groups.push('boisson');
-  return groups.slice(0,2);
+  const result=groups.slice(0,2);
+
+  // ── Debug console ────────────────────────────────────────────────────────
+  const dbg=cart.map(c=>typeof c==='object'
+    ?{name:c.name,cat:MENU_DATA[c.idx]?.cat??c.cat,menu:c.menu,boisson:c.boisson||null}
+    :{name:MENU_DATA[c]?.name,cat:MENU_DATA[c]?.cat});
+  console.log('[upsell] panier:',JSON.stringify(dbg));
+  console.log('[upsell] hasMain:',hasMain,'| hasAccomp:',hasAccomp,'| hasBoisson:',hasBoisson,'→ suggestions:',result.length?result:'aucune');
+
+  return result;
 }
 
 function showAccompagnementSuggest(){
