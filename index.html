@@ -325,7 +325,7 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .suppl-card.active{border-color:#e65100;background:rgba(230,81,0,.06);box-shadow:0 0 0 1px rgba(230,81,0,.12),0 4px 16px rgba(230,81,0,.07);}
 @media(hover:hover){.suppl-card:hover{background:#151515;border-color:rgba(230,81,0,.22);}}
 /* Icon slot — transparent, juste l'icône SVG flottante */
-.suppl-card-img{width:34px;height:34px;border-radius:0;background:transparent;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.suppl-card-img{width:36px;height:36px;border-radius:50%;background:rgba(255,140,0,.04);border:1px solid rgba(255,140,0,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .suppl-card-img img{width:100%;height:100%;object-fit:cover;}
 .suppl-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;}
 .suppl-icon svg{width:100%;height:100%;}
@@ -809,9 +809,12 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 /* ══ PRODUCT SHEET v2 ══ */
 .ps-section-title{font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:1.25rem 0 .65rem;}
 .ps-ingr-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1.25rem;}
-.ps-ingr-chip{display:inline-flex;align-items:center;gap:4px;padding:.45rem .8rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--coal3);font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;user-select:none;}
+.ps-ingr-chip{display:inline-flex;align-items:center;gap:6px;padding:.6rem 1rem;border-radius:12px;border:1.5px solid rgba(255,255,255,.12);background:#2a2a2a;font-size:14px;font-weight:600;color:#ffffff;cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;user-select:none;min-height:44px;}
 .ps-ingr-chip:active{transform:scale(.95);}
-.ps-ingr-chip.removed{border-color:#FF5722;background:rgba(255,87,34,.1);color:#FF7043;text-decoration:line-through;}
+.ps-ingr-chip.removed{border-color:rgba(200,0,0,.4);background:rgba(200,0,0,.18);color:#ff6b6b;text-decoration:line-through;}
+.ps-retrait-title{font-size:13px;font-weight:800;color:#ffffff;text-transform:uppercase;letter-spacing:.6px;margin:1.25rem 0 .65rem;padding-top:.75rem;border-top:1px solid rgba(230,81,0,.3);}
+.ps-sauce-confirm-btn{width:100%;margin-top:.6rem;padding:.75rem 1rem;border:none;border-radius:12px;background:linear-gradient(130deg,#FF9A1E,#FF8C00);color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;min-height:44px;}
+.ps-sauce-confirm-btn:active{opacity:.85;}
 .ps-sauce-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:.6rem;}
 .ps-sauce-chip{display:inline-flex;align-items:center;gap:4px;padding:.45rem .8rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--coal3);font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;user-select:none;}
 .ps-sauce-chip:active{transform:scale(.95);}
@@ -1136,12 +1139,16 @@ body.has-gnav #pwa-banner{bottom:64px;}
 @media(min-width:440px){.reward-overlay{align-items:center;}}
 .reward-sheet{background:var(--coal2);border-radius:var(--radius) var(--radius) 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:420px;border-top:1px solid var(--border2);max-height:85vh;overflow-y:auto;}
 @media(min-width:440px){.reward-sheet{border-radius:var(--radius);border:1px solid var(--border2);}}
-.reward-card{padding:.8rem 1rem;border-radius:var(--radius-sm);border:2px solid var(--border2);margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s;}
-.reward-card.selected{border-color:var(--green);background:rgba(76,175,116,.08);}
-.reward-card.locked{opacity:.5;cursor:default;}
-.reward-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
-.reward-card-name{font-size:14px;font-weight:700;color:var(--text);}
-.reward-card-pts{font-size:12px;font-weight:700;color:var(--gold);}
+.reward-card{position:relative;padding:.8rem 1rem;border-radius:var(--radius-sm);border:2px solid rgba(255,255,255,.1);background:#1a1a1a;margin-bottom:8px;cursor:pointer;transition:border-color .18s,background .18s;}
+.reward-card.selected{border-color:#e65100;background:rgba(230,81,0,.15);}
+.reward-card.selected::after{content:'✓';position:absolute;top:.85rem;right:1rem;font-size:14px;font-weight:800;color:#e65100;}
+.reward-card-none-hint{font-size:11px;color:var(--text3);margin-top:2px;}
+.reward-card.locked{opacity:.45;cursor:default;}
+.reward-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;padding-right:1.5rem;}
+.reward-card-name{font-size:14px;font-weight:700;color:#888888;transition:color .18s;}
+.reward-card.selected .reward-card-name{color:#ffffff;}
+.reward-card-pts{font-size:12px;font-weight:700;color:#555555;transition:color .18s;}
+.reward-card.selected .reward-card-pts{color:#e65100;}
 .reward-card-hint{font-size:11px;color:var(--fire);margin-top:2px;}
 .reclist-row{display:flex;align-items:center;gap:.5rem;padding:.65rem .75rem;background:var(--coal4);border-radius:var(--radius-sm);margin-bottom:6px;}
 .reclist-info{flex:1;min-width:0;}
@@ -1157,10 +1164,13 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .stripe-pay-opts{display:flex;flex-direction:column;gap:.75rem;}
 .stripe-pay-btn{width:100%;padding:1.05rem 1rem;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;justify-content:center;transition:opacity .15s;}
 .stripe-pay-btn:active{opacity:.87;}
-.stripe-pay-btn.online{background:linear-gradient(130deg,#635BFF,#8B84FF);color:#fff;}
+.stripe-pay-btn.online{background:linear-gradient(130deg,#FF9A1E,#FF8C00);color:#fff;border-radius:16px;min-height:54px;justify-content:space-between;padding:0 1.25rem;}
+.stripe-btn-price-tag{font-size:16px;font-weight:800;opacity:.92;letter-spacing:.3px;}
 .stripe-pay-btn.inplace{background:var(--coal3);border:1.5px solid var(--border2);color:var(--text);}
 .stripe-lvl-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(255,215,0,.2);color:#FFD700;margin-left:4px;}
 .stripe-fee-badge{font-size:11px;font-weight:700;color:var(--fire);background:rgba(255,107,43,.12);border:1px solid rgba(255,107,43,.2);border-radius:99px;padding:2px 9px;display:inline-block;margin-bottom:1.25rem;}
+@keyframes stripe-shimmer{0%,100%{opacity:1}50%{opacity:.5}}
+.stripe-fee-free{font-size:12px;font-weight:700;color:#FF9A1E;display:inline-block;margin-bottom:1.25rem;animation:stripe-shimmer 2.2s ease-in-out infinite;letter-spacing:.1px;}
 /* ══ COMPTOIR ══ */
 .cpt-header{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;background:var(--coal2);border-bottom:3px solid var(--green);flex-shrink:0;}
 .cpt-title{font-family:var(--font-d);font-size:24px;letter-spacing:2px;color:var(--green);}
@@ -1923,7 +1933,7 @@ body{
     <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;text-align:center;">🍟 Un accompagnement ?</div>
     <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1rem;">Complétez votre commande</div>
     <div id="accompagnement-suggest-list"></div>
-    <button onclick="closeAccompagnementSuggest()" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.75rem 0 0;">Non merci</button>
+    <button onclick="closeAccompagnementSuggest()" style="width:100%;background:none;border:none;color:#ffffff;font-size:15px;font-weight:500;cursor:pointer;padding:.85rem 0;min-height:44px;opacity:.72;letter-spacing:.1px;">Non merci</button>
   </div>
 </div>
 
@@ -2400,7 +2410,7 @@ body{
     <div class="stripe-sheet-amount" id="stripe-sheet-amount">0,00€</div>
     <div id="stripe-fee-zone"></div>
     <div class="stripe-pay-opts">
-      <button class="stripe-pay-btn online" id="stripe-btn-online" onclick="stripePayOnline()">💳 Payer par carte</button>
+      <button class="stripe-pay-btn online" id="stripe-btn-online" onclick="stripePayOnline()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span id="stripe-btn-label">Payer en ligne</span><span id="stripe-btn-price" class="stripe-btn-price-tag">—</span></button>
       <button class="stripe-pay-btn inplace" id="stripe-btn-inplace" style="display:none;" onclick="stripePayInPlace()">🪑 Payer sur place <span class="stripe-lvl-badge">👑 Or</span></button>
     </div>
   </div>
@@ -3327,16 +3337,16 @@ function initMenu(){
 // ── SVG icons — stroke-width:1.5 (style Lucide, look fin & premium) ──────────
 const SUPPL_ICONS={
   // Broche verticale — tranches de viande kebab superposées (plus large au centre)
-  vkeb:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  vkeb:`<svg viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <line x1="12" y1="2" x2="12" y2="22"/>
-    <polygon points="12,2 13.2,4.5 12,3.8 10.8,4.5" fill="currentColor" stroke="none"/>
+    <polygon points="12,2 13.2,4.5 12,3.8 10.8,4.5" fill="#C0392B" stroke="none"/>
     <path d="M8 7 Q12 5.5 16 7 Q14 8.5 12 8.5 Q10 8.5 8 7Z"/>
     <path d="M6.5 11 Q12 9 17.5 11 Q15 12.5 12 12.5 Q9 12.5 6.5 11Z"/>
     <path d="M7 15 Q12 13 17 15 Q14.5 16.5 12 16.5 Q9.5 16.5 7 15Z"/>
     <path d="M9 19 Q12 17.5 15 19 Q13.5 20 12 20 Q10.5 20 9 19Z"/>
   </svg>`,
   // Cuisse de poulet grillée avec marques de grillades
-  vpou:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  vpou:`<svg viewBox="0 0 24 24" fill="none" stroke="#E59A22" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M9 19.5 Q7 15 8 10.5 Q9.5 6.5 12.5 6 Q15.5 5.5 16 8.5 Q16.5 12 14.5 15.5 Q13 18.5 14.5 19.5"/>
     <line x1="8.5" y1="20" x2="15" y2="20"/>
     <circle cx="11.8" cy="21.8" r="1.3"/>
@@ -3344,7 +3354,7 @@ const SUPPL_ICONS={
     <path d="M9.5 14 Q11.5 13 14 14"/>
   </svg>`,
   // Bourse de burrata nouée sur le dessus — sphère + lien + fils
-  bur:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  bur:`<svg viewBox="0 0 24 24" fill="none" stroke="#D9C8A0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M6.5 13 Q6 19 12 20.5 Q18 19 17.5 13 Q17 8 12 7 Q7 8 6.5 13Z"/>
     <path d="M9.5 7.5 Q12 5.5 14.5 7.5"/>
     <line x1="10.5" y1="6" x2="10" y2="4"/>
@@ -3352,7 +3362,7 @@ const SUPPL_ICONS={
     <line x1="13.5" y1="6" x2="14" y2="4"/>
   </svg>`,
   // Pilon de poulet crispy — contour irrégulier croustillant + marques texture
-  ten:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  ten:`<svg viewBox="0 0 24 24" fill="none" stroke="#D4892A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M8.5 17.5 Q6 14 7 9.5 Q8.5 5.5 12 5 Q15.5 5.5 16 8.5 Q16.5 12.5 14 16 Q12 18.5 13 19.5"/>
     <line x1="8" y1="20" x2="13.5" y2="20"/>
     <circle cx="10.5" cy="21.8" r="1.2"/>
@@ -3362,13 +3372,13 @@ const SUPPL_ICONS={
     <line x1="9.5" y1="13" x2="8.5" y2="14.5"/>
   </svg>`,
   // Deux tranches de cheddar superposées — celle du dessus qui dégouline
-  che:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  che:`<svg viewBox="0 0 24 24" fill="none" stroke="#F4952A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <rect x="4" y="13.5" width="16" height="5" rx="1.5"/>
     <rect x="5" y="8" width="14" height="5" rx="1.5"/>
     <path d="M15 13.5 Q15.5 16 15.2 18.5"/>
   </svg>`,
   // Trois cubes de fêta en perspective
-  fet:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  fet:`<svg viewBox="0 0 24 24" fill="none" stroke="#A8B8C4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <rect x="3" y="12" width="7" height="5" rx="0.5"/>
     <path d="M3 12 L5 10 L12 10 L10 12"/>
     <path d="M10 12 L12 10 L12 15 L10 17"/>
@@ -3377,7 +3387,7 @@ const SUPPL_ICONS={
     <path d="M19.5 14 L21 12.5 L21 16.5 L19.5 18"/>
   </svg>`,
   // Petite casserole avec sauce fromagère qui coule sur le côté
-  fro:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  fro:`<svg viewBox="0 0 24 24" fill="none" stroke="#E8C540" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M7 10.5 H17 Q18 10.5 18 11.5 L18 17.5 Q18 18.5 17 18.5 H7 Q6 18.5 6 17.5 L6 11.5 Q6 10.5 7 10.5Z"/>
     <line x1="3.5" y1="12.5" x2="6" y2="12.5"/>
     <path d="M11 18.5 Q11 20.5 10.5 22"/>
@@ -3385,7 +3395,7 @@ const SUPPL_ICONS={
     <path d="M8 14.5 Q10 13.5 12.5 14 Q15 14.5 16.5 13.5"/>
   </svg>`,
   // Piment jalapeño incurvé + sparkle 4 branches
-  jal:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  jal:`<svg viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M8.5 18.5 Q5.5 15 6.5 11 Q7.5 7 10 6 Q12.5 5 13.5 7 Q14.5 9.5 12.5 12.5 Q10.5 15.5 11.5 18.5"/>
     <path d="M10 6 Q11.5 3 13.5 2.5"/>
     <line x1="18" y1="8" x2="18" y2="6"/>
@@ -3480,8 +3490,10 @@ function stripeModalOpen(orderId, total, fee, levelKey, label){
   if(fee>0){
     feeZone.innerHTML=`<div class="stripe-fee-badge">+${fee.toFixed(2).replace('.',',')}€ frais de service (offerts dès Argent)</div>`;
   } else {
-    feeZone.innerHTML='';
+    feeZone.innerHTML='<span class="stripe-fee-free">Frais de service offerts ✨</span>';
   }
+  const priceEl=document.getElementById('stripe-btn-price');
+  if(priceEl) priceEl.textContent=totalWithFee.toFixed(2).replace('.',',')+'€';
   // "Payer sur place" masqué — sur_place ne passe plus par Stripe (paiement en caisse)
   document.getElementById('stripe-btn-inplace').style.display='none';
   document.getElementById('stripe-overlay').style.display='flex';
@@ -3496,7 +3508,9 @@ async function stripePayOnline(){
   const ctx=_stripePendingCtx;
   if(!ctx) return;
   const btn=document.getElementById('stripe-btn-online');
-  btn.disabled=true; btn.textContent='⏳ Redirection…';
+  btn.disabled=true;
+  const _lbl=document.getElementById('stripe-btn-label');
+  if(_lbl) _lbl.textContent='⏳ Redirection…'; else btn.textContent='⏳ Redirection…';
   try{
     const amountCents=Math.round((ctx.total+ctx.fee)*100);
     const feeCents=Math.round(ctx.fee*100);
@@ -3535,7 +3549,9 @@ async function stripePayOnline(){
     }
     window.location.href=url;
   }catch(e){
-    btn.disabled=false; btn.textContent='💳 Payer par carte';
+    btn.disabled=false;
+    const _lbl2=document.getElementById('stripe-btn-label');
+    if(_lbl2) _lbl2.textContent='Payer en ligne'; else btn.textContent='💳 Payer par carte';
     if(e.message.startsWith('CRENEAU_PLEIN')){
       const nextSlot=e.message.split('|')[1]||'';
       stripeModalClose();
@@ -3788,10 +3804,16 @@ function toggleSheetIngredient(name){
   _rerender(null);
 }
 function toggleSheetSauce(name){
-  const wasEmpty=!sheetSauces.length&&!sheetSansSauce;
   const i=sheetSauces.indexOf(name);
-  if(i>=0) sheetSauces.splice(i,1); else sheetSauces.push(name);
-  _rerender(wasEmpty&&sheetSauces.length===1?'ps-sect-suppls':null);
+  if(i>=0){ sheetSauces.splice(i,1); }
+  else if(sheetSauces.length<SAUCES_FREE){ sheetSauces.push(name); }
+  _rerender(null);
+}
+
+function scrollToSuppls(){
+  const scroll=document.getElementById('prod-sheet-scroll');
+  const el=document.getElementById('ps-sect-suppls');
+  if(scroll&&el) scroll.scrollTo({top:Math.max(0,el.offsetTop-55),behavior:'smooth'});
 }
 
 function openProductSheet(idx){
@@ -3968,43 +3990,43 @@ function renderProdSheetBody(){
     html+=`</div></div>`;
   }
 
-  /* ── Sauces ── */
-  if(hasSauces){
-    const n=sheetSauces.length,extra=Math.max(0,n-SAUCES_FREE);
-    let cTxt;
-    if(sheetSansSauce) cTxt=`<span style="color:var(--text3);">🚫 Sans sauce</span>`;
-    else if(n===0) cTxt=`<span style="color:#c04020;">Choisissez au moins une sauce</span>`;
-    else if(n<=SAUCES_FREE) cTxt=`✓ ${n} sauce${n>1?'s':''} — ${SAUCES_FREE-n} gratuite${SAUCES_FREE-n>1?'s':''} restante${SAUCES_FREE-n>1?'s':''}`;
-    else cTxt=`✓ ${SAUCES_FREE} gratuites <span class="s-extra">+${extra} suppl. : +${(extra*SAUCE_EXTRA_PRICE).toFixed(2).replace('.',',')}€</span>`;
-    html+=`<div id="ps-sect-sauces"><div class="ps-section-title">${S()} Sauces <span class="ps-required">obligatoire</span></div><div class="ps-sauce-grid">`;
-    html+=SAUCES_LIST.map(sc=>{ const sel=sheetSauces.includes(sc),dis=sheetSansSauce;
-      return `<div class="ps-sauce-chip${sel?' sel':''}${dis?' disabled':''}" onclick="${dis?'':'toggleSheetSauce(\''+sc.replace(/'/g,"\\'")+'\')'}" style="${dis?'opacity:.3;pointer-events:none;':''}">
-        ${sel?'🥫 ':''} ${sc}</div>`;
-    }).join('');
-    html+=`<div class="ps-sauce-chip${sheetSansSauce?' sel':''}" onclick="toggleSheetSansSauce()" style="border-color:${sheetSansSauce?'#FF7043':'var(--border)'};background:${sheetSansSauce?'rgba(255,112,67,.15)':'var(--coal3)'};">🚫 Sans sauce</div>`;
-    html+=`</div><div class="ps-sauce-counter">${cTxt}</div></div>`;
-  }
-
-  /* ── Suppléments ── */
-  if(hasSuppl&&SUPPLEMENTS.length){
-    html+=`<div id="ps-sect-suppls"><div class="ps-section-title">${S()} Suppléments</div>${renderSupplementsList(SUPPLEMENTS)}</div>`;
-  }
-
-  /* ── Retrait ingrédients (accordion) ── */
+  /* ── ② Retrait ingrédients (toujours visible, priorité haute) ── */
   if(hasRetrait){
-    const nR=sheetRemovedIngredients.length,isOpen=_accordRetrait||nR>0;
-    html+=`<div id="ps-sect-retrait" class="ps-accord${isOpen?' open':''}">
-      <div class="ps-accord-head" onclick="toggleAccordRetrait()">
-        <div class="ps-section-title" style="margin:0;">${S()} Je retire des ingrédients${nR>0?`<span class="ps-accord-badge">${nR} retrait${nR>1?'s':''}</span>`:''}</div>
-        <svg class="ps-accord-chevron" width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 6l5 5 5-5" stroke="rgba(255,255,255,.35)" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </div>
-      <div class="ps-accord-body${isOpen?' open':''}">
-        <div class="ps-ingr-grid" style="margin-top:.75rem;">`;
+    const nR=sheetRemovedIngredients.length;
+    html+=`<div id="ps-sect-retrait">
+      <div class="ps-retrait-title">🚫 Retirer des ingrédients${nR>0?` <span style="font-size:11px;font-weight:700;background:rgba(200,0,0,.25);color:#ff6b6b;border-radius:99px;padding:1px 8px;margin-left:4px;">${nR} retrait${nR>1?'s':''}</span>`:''}</div>
+      <div class="ps-ingr-grid">`;
     html+=m.ingredients.map(ing=>{ const rm=sheetRemovedIngredients.includes(ing);
       return `<div class="ps-ingr-chip${rm?' removed':''}" onclick="toggleSheetIngredient('${ing.replace(/'/g,"\\'")}')">
         ${rm?'✗ ':''} ${ing}</div>`;
     }).join('');
-    html+=`</div></div></div>`;
+    html+=`</div></div>`;
+  }
+
+  /* ── ③ Sauces ── */
+  if(hasSauces){
+    const n=sheetSauces.length,atMax=n>=SAUCES_FREE;
+    let cTxt;
+    if(sheetSansSauce) cTxt=`<span style="color:var(--text3);">🚫 Sans sauce</span>`;
+    else if(n===0) cTxt=`<span style="color:#c04020;">Choisissez au moins une sauce — 2 maximum</span>`;
+    else if(n<SAUCES_FREE) cTxt=`✓ ${n} sauce — encore ${SAUCES_FREE-n} possible`;
+    else cTxt=`✓ 2 sauces sélectionnées`;
+    html+=`<div id="ps-sect-sauces"><div class="ps-section-title">${S()} Sauces <span class="ps-required">obligatoire</span></div><div class="ps-sauce-grid">`;
+    html+=SAUCES_LIST.map(sc=>{ const sel=sheetSauces.includes(sc),dis=sheetSansSauce||(atMax&&!sel);
+      return `<div class="ps-sauce-chip${sel?' sel':''}${dis&&!sel?' disabled':''}" onclick="${dis&&!sel?'':'toggleSheetSauce(\''+sc.replace(/'/g,"\\'")+'\')'}" style="${dis&&!sel?'opacity:.3;pointer-events:none;':''}">
+        ${sel?'🥫 ':''} ${sc}</div>`;
+    }).join('');
+    html+=`<div class="ps-sauce-chip${sheetSansSauce?' sel':''}" onclick="toggleSheetSansSauce()" style="border-color:${sheetSansSauce?'#FF7043':'var(--border)'};background:${sheetSansSauce?'rgba(255,112,67,.15)':'var(--coal3)'};">🚫 Sans sauce</div>`;
+    html+=`</div><div class="ps-sauce-counter">${cTxt}</div>`;
+    if(n>0&&!sheetSansSauce){
+      html+=`<button class="ps-sauce-confirm-btn" onclick="scrollToSuppls()">Valider mes sauces →</button>`;
+    }
+    html+=`</div>`;
+  }
+
+  /* ── ④ Suppléments ── */
+  if(hasSuppl&&SUPPLEMENTS.length){
+    html+=`<div id="ps-sect-suppls"><div class="ps-section-title">${S()} Suppléments</div>${renderSupplementsList(SUPPLEMENTS)}</div>`;
   }
 
   /* ── Récapitulatif ── */
@@ -4380,7 +4402,7 @@ function renderCart(){
   const totalSection=document.getElementById('cart-total-section');
   const clearBtn2=document.getElementById('cart-clear-btn');
   if(!cart.length){
-    items.innerHTML='<div class="empty"><div class="big">🛒</div><p>Votre panier est vide</p></div>';
+    items.innerHTML='<div class="empty"><div class="big">🛒</div><p>Votre panier est vide</p><button class="order-submit-btn" style="margin-top:1rem;max-width:220px;" onclick="go(\'page-menu\')">Découvrir la carte →</button></div>';
     totalSection.innerHTML='';
     if(clearBtn2) clearBtn2.style.display='none';
     const opt=document.getElementById('cart-order-options');if(opt) opt.innerHTML='';
@@ -4515,6 +4537,8 @@ function renderOrderOptions(){
 
   // Disabled si mode avance sans créneau sélectionné
   const submitDisabled = orderCardMode==='avance' && (!selectedPickupTime || (!sr && _statusCache!==null && !slotsMsg.includes('🔒')));
+  const _submitTotal=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
+  const _submitTotalStr=_submitTotal.toFixed(2).replace('.',',')+'€';
 
   // Toggle service : pilule glissante Sur place / À emporter
   const svcPos=orderServiceMode==='a_emporter'?'1':'0';
@@ -4567,7 +4591,7 @@ function renderOrderOptions(){
 
       ${orderCardMode?`
         <button class="order-submit-btn" onclick="submitClientOrder()" ${submitDisabled?'disabled':''}>
-          ${orderCardMode==='immediat'?'⚡ Envoyer ma commande':'📅 Confirmer ma commande'} →
+          ${orderCardMode==='immediat'?`⚡ Envoyer — ${_submitTotalStr}`:`Confirmer ma commande — ${_submitTotalStr}`}
         </button>
       `:''}
     </div>`;
@@ -7876,10 +7900,17 @@ async function rewardOverlayShow(allRecs, clientPts, cartTotal){
   const list=document.getElementById('reward-overlay-list');
   if(!list){ _doSubmitOrder(null); return; } // DOM manquant → soumettre quand même
   const icons=['🥤','🍰','🥙','👑','🎁'];
-  let html='';
+  // Carte "Sans récompense" — sélectionnée par défaut (aucun point dépensé)
+  let html='<div class="reward-card selected" id="rwcard-none" onclick="rewardCardSelectNone(this)">'
+    +'<div class="reward-card-top">'
+      +'<span class="reward-card-name">⊘ Sans récompense</span>'
+      +'<span class="reward-card-pts" style="color:var(--text3);">0 pts</span>'
+    +'</div>'
+    +'<div class="reward-card-none-hint">Continuer sans utiliser de points</div>'
+  +'</div>';
   const active=allRecs.filter(r=>r.actif!==false);
   if(!active.length){
-    html='<div style="color:var(--text3);font-size:13px;padding:.5rem;text-align:center;">Aucune récompense disponible en ce moment.</div>';
+    html+='<div style="color:var(--text3);font-size:13px;padding:.5rem;text-align:center;">Aucune récompense disponible en ce moment.</div>';
   } else {
     active.forEach((r,i)=>{
       const hasPoints=clientPts>=r.points_requis;
@@ -7888,7 +7919,7 @@ async function rewardOverlayShow(allRecs, clientPts, cartTotal){
       const manquePts=!hasPoints?(r.points_requis-clientPts)+' pts manquants':'';
       const manqueMin=!hasMin?(parseFloat(r.commande_minimum||0)-cartTotal).toFixed(2).replace('.',',')+'€ de plus requis':'';
       const hint=manquePts||(manqueMin?'Commande min. '+parseFloat(r.commande_minimum||0).toFixed(0)+'€ ('+manqueMin+')':'');
-      html+='<div class="reward-card'+(eligible?' eligible':'  locked')+'" id="rwcard-'+r.id+'" '+(eligible?'onclick="rewardCardSelect(this,\''+r.id+'\')"':'')+'>'
+      html+='<div class="reward-card'+(eligible?'':' locked')+'" id="rwcard-'+r.id+'" '+(eligible?'onclick="rewardCardSelect(this,\''+r.id+'\')"':'')+'>'
         +'<div class="reward-card-top">'
           +'<span class="reward-card-name">'+(icons[i]||'🎁')+' '+r.nom+'</span>'
           +'<span class="reward-card-pts">'+r.points_requis+' pts</span>'
@@ -7904,11 +7935,20 @@ async function rewardOverlayShow(allRecs, clientPts, cartTotal){
 function rewardCardSelect(el, rewardId){
   document.querySelectorAll('.reward-card.selected').forEach(c=>c.classList.remove('selected'));
   if(_selectedReward&&String(_selectedReward.id)===String(rewardId)){
-    _selectedReward=null; // deselect
+    // Déselection : retour sur "Sans récompense"
+    _selectedReward=null;
+    const noneCard=document.getElementById('rwcard-none');
+    if(noneCard) noneCard.classList.add('selected');
   } else {
     el.classList.add('selected');
     _selectedReward=(_recompensesCache||[]).find(r=>String(r.id)===String(rewardId))||null;
   }
+}
+
+function rewardCardSelectNone(el){
+  document.querySelectorAll('.reward-card.selected').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  _selectedReward=null;
 }
 
 function rewardOverlaySkip(){
