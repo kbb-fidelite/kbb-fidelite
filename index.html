@@ -3746,6 +3746,10 @@ function openProductSheet(idx){
   }
   const bar=document.getElementById('ps-sticky-bar');
   if(bar) bar.dataset.price='';
+  // Reset scroll avant le rendu — évite que le conteneur parte du bas lors
+  // d'une deuxième ouverture (le scrollTop de la session précédente est mémorisé)
+  const scroll=document.getElementById('prod-sheet-scroll');
+  if(scroll) scroll.scrollTop=0;
   renderProdSheetBody();
   document.getElementById('prod-wrap').classList.add('show');
   document.body.style.overflow='hidden';
