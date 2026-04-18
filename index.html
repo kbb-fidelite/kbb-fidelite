@@ -3805,8 +3805,7 @@ function toggleSheetIngredient(name){
 }
 function toggleSheetSauce(name){
   const i=sheetSauces.indexOf(name);
-  if(i>=0){ sheetSauces.splice(i,1); }
-  else if(sheetSauces.length<SAUCES_FREE){ sheetSauces.push(name); }
+  if(i>=0) sheetSauces.splice(i,1); else sheetSauces.push(name);
   _rerender(null);
 }
 
@@ -3961,7 +3960,20 @@ function renderProdSheetBody(){
     </div>`;
   }
 
-  /* ── ① Pain / Galette (kebabs) ── */
+  /* ── ① Retrait ingrédients — EN PREMIER (base de la personnalisation) ── */
+  if(hasRetrait){
+    const nR=sheetRemovedIngredients.length;
+    html+=`<div id="ps-sect-retrait">
+      <div class="ps-retrait-title">🚫 Retirer des ingrédients${nR>0?` <span style="font-size:11px;font-weight:700;background:rgba(200,0,0,.25);color:#ff6b6b;border-radius:99px;padding:1px 8px;margin-left:4px;">${nR} retrait${nR>1?'s':''}</span>`:''}</div>
+      <div class="ps-ingr-grid">`;
+    html+=m.ingredients.map(ing=>{ const rm=sheetRemovedIngredients.includes(ing);
+      return `<div class="ps-ingr-chip${rm?' removed':''}" onclick="toggleSheetIngredient('${ing.replace(/'/g,"\\'")}')">
+        ${rm?'✗ ':''} ${ing}</div>`;
+    }).join('');
+    html+=`</div></div>`;
+  }
+
+  /* ── ② Pain / Galette (kebabs) ── */
   if(hasPain){
     html+=`<div id="ps-sect-pain">
       <div class="ps-section-title">${S()} Pain ou galette <span class="ps-required">obligatoire</span></div>
@@ -3990,30 +4002,18 @@ function renderProdSheetBody(){
     html+=`</div></div>`;
   }
 
-  /* ── ② Retrait ingrédients (toujours visible, priorité haute) ── */
-  if(hasRetrait){
-    const nR=sheetRemovedIngredients.length;
-    html+=`<div id="ps-sect-retrait">
-      <div class="ps-retrait-title">🚫 Retirer des ingrédients${nR>0?` <span style="font-size:11px;font-weight:700;background:rgba(200,0,0,.25);color:#ff6b6b;border-radius:99px;padding:1px 8px;margin-left:4px;">${nR} retrait${nR>1?'s':''}</span>`:''}</div>
-      <div class="ps-ingr-grid">`;
-    html+=m.ingredients.map(ing=>{ const rm=sheetRemovedIngredients.includes(ing);
-      return `<div class="ps-ingr-chip${rm?' removed':''}" onclick="toggleSheetIngredient('${ing.replace(/'/g,"\\'")}')">
-        ${rm?'✗ ':''} ${ing}</div>`;
-    }).join('');
-    html+=`</div></div>`;
-  }
-
-  /* ── ③ Sauces ── */
+  /* ── ③ Sauces — 2 offertes, payantes au-delà ── */
   if(hasSauces){
-    const n=sheetSauces.length,atMax=n>=SAUCES_FREE;
+    const n=sheetSauces.length, extra=Math.max(0,n-SAUCES_FREE);
     let cTxt;
     if(sheetSansSauce) cTxt=`<span style="color:var(--text3);">🚫 Sans sauce</span>`;
-    else if(n===0) cTxt=`<span style="color:#c04020;">Choisissez au moins une sauce — 2 maximum</span>`;
-    else if(n<SAUCES_FREE) cTxt=`✓ ${n} sauce — encore ${SAUCES_FREE-n} possible`;
-    else cTxt=`✓ 2 sauces sélectionnées`;
+    else if(n===0) cTxt=`<span style="color:#c04020;">Choisissez au moins une sauce — 2 sauces offertes</span>`;
+    else if(n<SAUCES_FREE) cTxt=`✓ ${n} sauce offertes — encore ${SAUCES_FREE-n} gratuite${SAUCES_FREE-n>1?'s':''}`;
+    else if(n===SAUCES_FREE) cTxt=`✓ 2 sauces offertes incluses`;
+    else cTxt=`✓ 2 offertes <span style="color:#FF9A1E;font-weight:700;">+${extra} suppl. : +${(extra*SAUCE_EXTRA_PRICE).toFixed(2).replace('.',',')}€</span>`;
     html+=`<div id="ps-sect-sauces"><div class="ps-section-title">${S()} Sauces <span class="ps-required">obligatoire</span></div><div class="ps-sauce-grid">`;
-    html+=SAUCES_LIST.map(sc=>{ const sel=sheetSauces.includes(sc),dis=sheetSansSauce||(atMax&&!sel);
-      return `<div class="ps-sauce-chip${sel?' sel':''}${dis&&!sel?' disabled':''}" onclick="${dis&&!sel?'':'toggleSheetSauce(\''+sc.replace(/'/g,"\\'")+'\')'}" style="${dis&&!sel?'opacity:.3;pointer-events:none;':''}">
+    html+=SAUCES_LIST.map(sc=>{ const sel=sheetSauces.includes(sc),dis=sheetSansSauce;
+      return `<div class="ps-sauce-chip${sel?' sel':''}${dis?' disabled':''}" onclick="${dis?'':'toggleSheetSauce(\''+sc.replace(/'/g,"\\'")+'\')'}" style="${dis?'opacity:.3;pointer-events:none;':''}">
         ${sel?'🥫 ':''} ${sc}</div>`;
     }).join('');
     html+=`<div class="ps-sauce-chip${sheetSansSauce?' sel':''}" onclick="toggleSheetSansSauce()" style="border-color:${sheetSansSauce?'#FF7043':'var(--border)'};background:${sheetSansSauce?'rgba(255,112,67,.15)':'var(--coal3)'};">🚫 Sans sauce</div>`;
