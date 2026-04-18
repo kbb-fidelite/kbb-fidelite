@@ -1,4 +1,4 @@
-const VERSION = 'kbb-v171';
+const VERSION = 'kbb-v172';
 const CACHE = VERSION;
 
 // Fichiers critiques — l'app ne fonctionne pas sans eux
@@ -14,7 +14,19 @@ const ASSETS_OPTIONAL = [
   './icon-192x192.png',
   './icon-512x512.png',
   './apple-touch-icon.png',
-  './favicon.ico'
+  './favicon.ico',
+  // Images produit GitHub Pages — pré-cachées à l'install pour le mode hors-ligne
+  './assets/images/accompagnements/frites-classiques.png',
+  './assets/images/accompagnements/frites-cheddar.png',
+  './assets/images/accompagnements/nuggets.png',
+  './assets/images/boissons/coca-cola.png',
+  './assets/images/boissons/pepsi.png',
+  './assets/images/boissons/pepsi-cherry.png',
+  './assets/images/boissons/orangina.png',
+  './assets/images/boissons/schweppes-agrumes.png',
+  './assets/images/boissons/oasis-tropical.png',
+  './assets/images/boissons/perrier.png',
+  './assets/images/boissons/cristaline.png',
 ];
 
 self.addEventListener('install', e => {
