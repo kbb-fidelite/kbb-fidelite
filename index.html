@@ -507,6 +507,16 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .menu-sep{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin:1rem 1.25rem .5rem;}
 .menu-info{margin:1rem 1.25rem;padding:.8rem 1rem;background:var(--fire-glow);border:1px solid rgba(255,107,43,.2);border-radius:var(--radius-sm);font-size:12px;color:var(--fire3);line-height:1.5;text-align:center;}
 .menu-info strong{color:var(--fire);}
+/* ── Menu tagline (remplace le bloc menu-info) ── */
+.menu-tagline{padding:.4rem 1.25rem .1rem;font-size:12px;font-style:italic;font-weight:300;color:rgba(255,255,255,.45);letter-spacing:.25px;line-height:1.5;}
+/* ── Format selector : pilule coulissante Solo / Expérience Menu ── */
+.format-selector{position:relative;display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:99px;padding:3px;margin:.75rem .875rem .875rem;overflow:hidden;}
+.format-selector::before{content:'';position:absolute;top:3px;bottom:3px;border-radius:99px;width:calc(50% - 3px);left:calc(3px + var(--fmt-pos,0) * (50% - 3px));background:linear-gradient(135deg,#c47a00,#8b3500);box-shadow:0 2px 8px rgba(180,80,0,.4);transition:left .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
+.fmt-opt{position:relative;z-index:1;min-height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:99px;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:4px 2px;}
+.fmt-opt-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.38);letter-spacing:.15px;font-family:'Inter',sans-serif;transition:color .22s;line-height:1.1;}
+.fmt-opt-price{font-size:11px;font-weight:600;color:rgba(255,255,255,.25);font-family:'Inter',sans-serif;transition:color .22s;}
+.fmt-opt.active .fmt-opt-label{color:#fff;}
+.fmt-opt.active .fmt-opt-price{color:rgba(255,255,255,.82);}
 
 /* ══ CART ══ */
 .cart-bar{position:fixed;bottom:64px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:linear-gradient(130deg,var(--fire),var(--fire2));padding:.85rem 1.25rem;display:flex;align-items:center;gap:10px;z-index:60;cursor:pointer;box-shadow:0 -4px 24px rgba(0,0,0,.4);}
@@ -2047,9 +2057,7 @@ body{
   </div>
   <div class="menu-wrap" id="menu-wrap">
 
-    <div class="menu-info">
-      <strong>🔥 Cuisson au feu de bois</strong> — Tous nos kebabs sont braisés artisanalement. Servis en sandwich, galette ou pain.<br><strong>Appuyez sur un plat pour l'ajouter au panier.</strong>
-    </div>
+    <div class="menu-tagline">🔥 Authentique cuisson au feu de bois — Braisés artisanalement</div>
 
     <!-- KEBABS -->
     <div class="menu-cat" id="cat-kebabs">
@@ -3222,6 +3230,41 @@ let orderMode=null; // 'sur_place' | 'click_collect' | 'reservation'
 let orderTableNum='';
 let selectedPickupTime='';
 
+// ══ FORMAT SELECTOR — Solo / Expérience Menu ══════════════════════════════
+// Stocke le format choisi sur la carte (idx → 'solo' | 'menu').
+// Default implicite : 'solo'.
+const _menuFormats={};
+
+// Prix menu pour un produit éligible (kebabs & tacos : prix+3,50€).
+// Retourne null si le produit n'est pas éligible.
+function getMenuPrice(m){
+  if(m.cat==='kebabs'||m.cat==='tacos') return parseFloat((m.price+3.50).toFixed(2));
+  return null;
+}
+
+// Appelée par les options du sélecteur de format.
+// stopPropagation empêche l'onclick de la carte parente d'ouvrir le produit sheet.
+function updateProductFormat(idx, format, e){
+  if(e) e.stopPropagation();
+  _menuFormats[idx]=format;
+  // La carte est identifiée par son attribut data-mi-idx
+  const card=document.querySelector(`.mi[data-mi-idx="${idx}"]`);
+  if(!card) return;
+  const m=MENU_DATA[idx];
+  const menuP=getMenuPrice(m);
+  // Slide la pilule via CSS custom property --fmt-pos (0=Solo, 1=Menu)
+  const sel=card.querySelector('.format-selector');
+  if(sel) sel.style.setProperty('--fmt-pos', format==='menu'?'1':'0');
+  // Active/désactive les labels
+  card.querySelectorAll('.fmt-opt').forEach(o=>o.classList.toggle('active',o.dataset.fmt===format));
+  // Met à jour le prix affiché sur la carte
+  const priceEl=card.querySelector('.mi-price');
+  if(priceEl){
+    const p=(format==='menu'&&menuP)?menuP:m.price;
+    priceEl.textContent=p.toFixed(2).replace('.',',')+'€';
+  }
+}
+
 function initMenu(){
   const cats=['kebabs','tacos','salades','menus','accompagnements','desserts','boissons'];
   cats.forEach(cat=>{
@@ -3233,14 +3276,22 @@ function initMenu(){
       const qty=cart.filter(c=>c===idx).length;
       const imgSrc = m.img ? IMAGE_MAP[m.img] : null;
       if(imgSrc){
-        return `<div class="mi has-photo" onclick="addToCart(${idx})" style="transition:transform .1s;">
+        const menuP=getMenuPrice(m);
+        const fmt=_menuFormats[idx]||'solo';
+        const dPrice=((fmt==='menu'&&menuP)?menuP:m.price).toFixed(2).replace('.',',');
+        const fmtSel=menuP?`<div class="format-selector" style="--fmt-pos:${fmt==='menu'?'1':'0'}">
+          <div class="fmt-opt${fmt==='solo'?' active':''}" data-fmt="solo" onclick="updateProductFormat(${idx},'solo',event)"><span class="fmt-opt-label">Solo</span><span class="fmt-opt-price">${m.price.toFixed(2).replace('.',',')}€</span></div>
+          <div class="fmt-opt${fmt==='menu'?' active':''}" data-fmt="menu" onclick="updateProductFormat(${idx},'menu',event)"><span class="fmt-opt-label">Menu 🍟</span><span class="fmt-opt-price">${menuP.toFixed(2).replace('.',',')}€</span></div>
+        </div>`:'';
+        return `<div class="mi has-photo" data-mi-idx="${idx}" onclick="addToCart(${idx})" style="transition:transform .1s;">
           ${qty?`<div class="mi-qty">${qty}</div>`:''}
           <img class="mi-photo" src="${imgSrc}" alt="${m.name}">
           <div class="mi-body">
             <div class="mi-ico">${m.icon}</div>
             <div class="mi-info"><div class="mi-name">${m.name}</div><div class="mi-desc">${m.desc}</div>${m.badge?`<div class="mi-badge">${m.badge}</div>`:''}</div>
-            <div class="mi-price">${m.price.toFixed(2).replace('.',',')}€</div>
+            <div class="mi-price" data-price-solo="${m.price}" data-price-menu="${menuP||m.price}">${dPrice}€</div>
           </div>
+          ${fmtSel}
         </div>`;
       }
       if(m.image){
@@ -3916,6 +3967,8 @@ function _renderStickyBar(){
     if(sheetTaille==='L') base=11.5;
     else if(sheetTaille==='XL') base=14.5;
   }
+  // Format pré-sélectionné sur la carte → intègre le supplément menu (+3,50€)
+  if(getMenuPrice(m)&&_menuFormats[sheetIdx]==='menu') base+=3.50;
   const sauceExtra=Math.max(0,sheetSauces.length-SAUCES_FREE)*SAUCE_EXTRA_PRICE;
   const supplExtra=Object.entries(selectedSupplements).reduce((acc,[sid,qty])=>{
     const s=SUPPLEMENTS.find(x=>x.id===sid);
@@ -3949,9 +4002,19 @@ function confirmProdSheet(){
   });
   _pendingMenuCtx={idx:sheetIdx,taille:sheetTaille,removed:[...sheetRemovedIngredients],sauces:[...sheetSauces],suppls,pain:sheetPain,sansSauce:sheetSansSauce,viande:sheetViande||null};
   closeProdSheet();
+  const fmt=_menuFormats[sheetIdx]; // 'menu' | 'solo' | undefined
   if(m.name==='Menu Junior'){
     document.getElementById('overlay-junior').classList.add('show');
+  } else if(isCusto && fmt==='menu'){
+    // Format pré-sélectionné → skip overlay upsell, sélection boisson directe
+    _pendingMenuCtx.menuUpgrade=true;
+    showBoissonOverlay('menu',_pendingMenuCtx);
+  } else if(isCusto && fmt==='solo'){
+    // Format Solo confirmé → pas de upsell, ajout direct
+    const ctx=_pendingMenuCtx; _pendingMenuCtx=null;
+    finalAddToCart(ctx.idx,ctx.taille,false,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce,null,ctx.viande);
   } else if(isCusto){
+    // Pas de format selector sur ce produit → comportement legacy (overlay upsell)
     document.getElementById('overlay-menu').classList.add('show');
   } else {
     finalAddToCart(_pendingMenuCtx.idx,_pendingMenuCtx.taille,false,_pendingMenuCtx.removed,_pendingMenuCtx.sauces,_pendingMenuCtx.suppls,_pendingMenuCtx.pain,_pendingMenuCtx.sansSauce,null,_pendingMenuCtx.viande);
