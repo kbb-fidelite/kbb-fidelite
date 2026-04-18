@@ -1072,7 +1072,7 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .conf-suivi-btn:active{opacity:.87;}
 
 /* ══ FEEDBACK OVERLAY ══ */
-.feedback-overlay{position:fixed;inset:0;z-index:9000;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.45);animation:fbov-in .25s ease;}
+.feedback-overlay{position:fixed;inset:0;z-index:9500;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.85);animation:fbov-in .25s ease;}
 @keyframes fbov-in{from{opacity:0}to{opacity:1}}
 .feedback-card{width:100%;max-width:480px;background:var(--card);border-radius:var(--radius) var(--radius) 0 0;padding:1.5rem 1.25rem 2rem;box-shadow:0 -8px 40px rgba(0,0,0,.25);animation:fbcard-in .3s cubic-bezier(.22,.61,.36,1);}
 @keyframes fbcard-in{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -3645,7 +3645,7 @@ async function stripePayInPlace(){
   setActiveOrder({...ao,supaId:supaId||null,statut:'en_attente',orderNum:realNum}); updateCommandesTile();
   renderConfirmation(realNum, pending.label, pending.grouped, pending.total);
   go('page-confirmation');
-  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
+  setTimeout(()=>showFeedbackOverlay(supaId), 3500);
 }
 
 async function handleStripeReturn(){
@@ -3749,7 +3749,7 @@ async function _stripeFinalize(sessionId, vData, pending){
     validateRewardServerSide(supaId, pending.reward_client_id, pending.reward_id);
   }
   _stripeCleanup();
-  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
+  setTimeout(()=>showFeedbackOverlay(supaId), 3500);
 }
 
 // Retry verify-payment — 15 tentatives × 2 s = 30 s d'attente max.
@@ -4374,12 +4374,28 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain,
   showToast(`✓ ${name} ajouté${extras.length?' — '+extras.join(' | '):''}`);
   pendingIdx=null; pendingTaille=null; selectedSupplements={};
   sheetRemovedIngredients=[]; sheetSauces=[]; sheetPain=null;
-  // Suggestion accompagnement : uniquement pour les plats principaux, si aucun accompagnement en panier
+  // Suggestion accompagnement : uniquement si plat principal, pas de menu et pas déjà un accompagnement
   const _skipCats=['accompagnements','boissons','desserts'];
   if(!_skipCats.includes(m.cat)){
+    const _isMenu=menuUpgrade===true;
+    const _cartHasMenu=cart.some(c=>typeof c==='object'&&c.menu===true);
     const _hasAccomp=cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements');
-    if(!_hasAccomp) setTimeout(showAccompagnementSuggest,350);
+    if(!_isMenu&&!_cartHasMenu&&!_hasAccomp) setTimeout(showAccompagnementSuggest,350);
   }
+}
+
+// Retourne les catégories manquantes à suggérer (max 2) — null si rien à proposer
+function _cartSuggestGroups(){
+  if(!cart.length) return [];
+  const hasMain=cart.some(c=>{const cat=MENU_DATA[typeof c==='object'?c.idx:c]?.cat;return cat&&!['accompagnements','boissons','desserts'].includes(cat);});
+  if(!hasMain) return [];
+  const hasMenu=cart.some(c=>typeof c==='object'&&c.menu===true);
+  const hasAccomp=cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements');
+  const hasBoisson=cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='boissons');
+  const groups=[];
+  if(!hasMenu&&!hasAccomp) groups.push('accompagnement');
+  if(!hasBoisson) groups.push('boisson');
+  return groups.slice(0,2);
 }
 
 function showAccompagnementSuggest(){
@@ -4508,6 +4524,39 @@ function renderCart(){
   // Nettoyer les anciens éléments d'upsell s'ils existaient
   const _oldUpsell=document.getElementById('cart-menu-upsell');if(_oldUpsell)_oldUpsell.remove();
   const _oldSuggest=document.getElementById('cart-suggestions');if(_oldSuggest)_oldSuggest.remove();
+
+  // ── Suggestions intelligentes (max 2, contextuelles) ──────────────────────
+  const _suggestGroups=_cartSuggestGroups();
+  if(_suggestGroups.length>0){
+    const suggestEl=document.createElement('div');
+    suggestEl.id='cart-suggestions';
+    suggestEl.style.cssText='margin-bottom:.75rem;';
+    let sgHtml='<div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);margin-bottom:.5rem;">Ajouter à votre commande ?</div>';
+    _suggestGroups.forEach(group=>{
+      if(group==='accompagnement'){
+        const accItems=MENU_DATA.filter(m=>m.cat==='accompagnements').slice(0,2);
+        accItems.forEach(m=>{
+          const idx=MENU_DATA.indexOf(m);
+          sgHtml+=`<button onclick="finalAddToCart(${idx},null,false,[],[],[],null,false,null,null,null);renderCart();" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--card);border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:.6rem .85rem;margin-bottom:.4rem;cursor:pointer;font-family:var(--font);text-align:left;">
+            <span style="font-size:14px;color:var(--text1);">${m.icon||'🍟'} ${m.name}</span>
+            <span style="font-size:13px;color:var(--fire);font-weight:700;">+${m.price.toFixed(2).replace('.',',')}€</span>
+          </button>`;
+        });
+      }
+      if(group==='boisson'){
+        const boissonItems=MENU_DATA.filter(m=>m.cat==='boissons').slice(0,2);
+        boissonItems.forEach(m=>{
+          const idx=MENU_DATA.indexOf(m);
+          sgHtml+=`<button onclick="finalAddToCart(${idx},null,false,[],[],[],null,false,null,null,null);renderCart();" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--card);border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:.6rem .85rem;margin-bottom:.4rem;cursor:pointer;font-family:var(--font);text-align:left;">
+            <span style="font-size:14px;color:var(--text1);">${m.icon||'🥤'} ${m.name}</span>
+            <span style="font-size:13px;color:var(--fire);font-weight:700;">+${m.price.toFixed(2).replace('.',',')}€</span>
+          </button>`;
+        });
+      }
+    });
+    suggestEl.innerHTML=sgHtml;
+    totalSection.insertAdjacentElement('beforebegin',suggestEl);
+  }
 
   totalSection.innerHTML=`
     <div class="cart-total-box">
@@ -5031,7 +5080,7 @@ async function _submitSurPlaceDirect({total,grouped,itemsArr,itemsText,clientTel
   updateCommandesTile();
   renderConfirmation(realNum, label, grouped, total);
   go('page-confirmation');
-  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
+  setTimeout(()=>showFeedbackOverlay(supaId), 3500);
 }
 
 function renderConfirmation(orderNum, label, grouped, total){
