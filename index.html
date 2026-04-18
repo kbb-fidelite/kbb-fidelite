@@ -329,8 +329,8 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .suppl-card-img img{width:100%;height:100%;object-fit:cover;}
 .suppl-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;}
 .suppl-icon svg{width:100%;height:100%;}
-.suppl-icon-premium{color:rgba(196,122,0,.9);}
-.suppl-icon-extra{color:rgba(120,120,120,.75);}
+.suppl-icon-premium{color:rgba(255,140,0,.85);}
+.suppl-icon-extra{color:rgba(255,140,0,.45);}
 /* Text */
 .suppl-card-body{flex:1;min-width:0;}
 .suppl-card-name{font-size:14px;font-weight:700;color:#ece7df;font-family:'Inter',sans-serif;line-height:1.25;letter-spacing:.05px;}
@@ -366,8 +366,8 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 @media(hover:hover){.suppl-card:not(.is-active):hover{background:#151515;border-color:rgba(230,81,0,.2);}}
 /* ── Icône : transition couleur vers braise quand active ── */
 .suppl-card .suppl-icon{transition:color .22s;}
-.suppl-card.is-active .suppl-icon-premium{color:#e65100;}
-.suppl-card.is-active .suppl-icon-extra{color:#c25000;}
+.suppl-card.is-active .suppl-icon-premium{color:#FF8C00;}
+.suppl-card.is-active .suppl-icon-extra{color:#FF8C00;}
 .cart-upsell-hint{background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.2);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:.875rem;font-size:12px;color:var(--gold);line-height:1.5;}
 .flash-timer{font-family:var(--font-d);font-size:32px;color:var(--fire);letter-spacing:2px;text-align:center;margin:.5rem 0;}
 .flash-badge{display:inline-block;background:var(--fire);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:3px 10px;margin-bottom:.5rem;}
@@ -795,6 +795,10 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .ps-accord-badge{background:rgba(230,81,0,.15);color:#c04020;border-radius:99px;font-size:10px;font-weight:700;padding:2px 7px;margin-left:7px;vertical-align:middle;}
 /* Improved ingredient chip removed state */
 .ps-ingr-chip.removed{border-color:#8b2800;background:rgba(139,40,0,.12);color:rgba(255,112,67,.6);text-decoration:line-through;opacity:.65;}
+/* ── Format selector dans la fiche produit ── */
+#ps-fmt-selector{margin:.25rem 0 1.25rem;}
+#ps-fmt-selector .fmt-opt-label{font-size:12.5px;}
+#ps-fmt-selector .fmt-opt-price{font-size:11.5px;}
 /* Price pop animation */
 @keyframes psPricePop{0%{opacity:0;transform:translateY(6px)}60%{transform:translateY(-2px)}100%{opacity:1;transform:translateY(0)}}
 .ps-price-pop{animation:psPricePop .22s cubic-bezier(.34,1.56,.64,1) both;}
@@ -1856,21 +1860,7 @@ body{
   </div>
 </div>
 
-<!-- UPSELL MENU OVERLAY -->
-<div class="upsell-overlay" id="overlay-menu">
-  <div class="upsell-sheet">
-    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;text-align:center;">Passer en menu ?</div>
-    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1.25rem;">Ajoutez frites + boisson pour seulement +3,50€</div>
-    <div class="upsell-opt" onclick="acceptMenu()">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:22px;">🍟</span>
-        <div><div style="font-weight:700;font-size:14px;color:var(--text);">Oui, je prends le menu</div><div style="font-size:12px;color:var(--text3);">Frites + boisson 33cl</div></div>
-      </div>
-      <div style="font-family:var(--font-d);font-size:20px;color:var(--fire);">+3,50€</div>
-    </div>
-    <button onclick="closeUpsellMenu()" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.75rem 0 0;">Non merci, juste le plat</button>
-  </div>
-</div>
+<!-- overlay-menu supprimé — le choix Solo/Menu se fait via le segmented control intégré dans la fiche produit -->
 
 <!-- UPSELL TAILLE TACOS -->
 <div class="upsell-overlay" id="overlay-taille">
@@ -3333,14 +3323,73 @@ function initMenu(){
 /* ══ SUPPLÉMENTS ══ */
 // ── SVG icons — stroke-width:1.5 (style Lucide, look fin & premium) ──────────
 const SUPPL_ICONS={
-  vkeb:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M7 7h10"/><path d="M6 12h12"/><path d="M7 17h10"/><ellipse cx="12" cy="7" rx="5" ry="1.5"/><ellipse cx="12" cy="12" rx="6" ry="1.5"/><ellipse cx="12" cy="17" rx="4" ry="1.5"/></svg>`,
-  vpou:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4c3 1 5 4 4 7s-4 5-5 8"/><path d="M14 4c-3 1-4 4-3 7s3 5 2 8"/><path d="M11 19h4M9 22h8"/></svg>`,
-  bur: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><circle cx="9" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".8" fill="currentColor" stroke="none"/></svg>`,
-  ten: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14c0-4 3-7 7-7s7 2 7 6-3 7-7 7-7-2-7-6z"/><line x1="10" y1="9" x2="11" y2="15"/><line x1="14" y1="8" x2="15" y2="14"/></svg>`,
-  che: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19L12 4l10 15H2z"/><circle cx="12" cy="14" r="1.5"/><circle cx="7.5" cy="17.5" r="1"/></svg>`,
-  fet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="13" height="8" rx="2"/><path d="M16 10l5-3v14l-5-3"/><line x1="7" y1="10" x2="7" y2="18"/><line x1="11" y1="10" x2="11" y2="18"/></svg>`,
-  fro: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11c0-3 2.5-5 6-5s6 2 6 5-2.7 6-6 6-6-2.5-6-6z"/><path d="M12 17v2M10 19h4"/><circle cx="10" cy="11" r=".8" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r=".8" fill="currentColor" stroke="none"/></svg>`,
-  jal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3c2 1 3 3 2 6s-3 5-3 8"/><path d="M13 3c-2 1-3 3-2 6s2 5 2 8"/><path d="M15 4c2-2 4-2 4 0"/></svg>`,
+  // Broche verticale — tranches de viande kebab superposées (plus large au centre)
+  vkeb:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="2" x2="12" y2="22"/>
+    <polygon points="12,2 13.2,4.5 12,3.8 10.8,4.5" fill="currentColor" stroke="none"/>
+    <path d="M8 7 Q12 5.5 16 7 Q14 8.5 12 8.5 Q10 8.5 8 7Z"/>
+    <path d="M6.5 11 Q12 9 17.5 11 Q15 12.5 12 12.5 Q9 12.5 6.5 11Z"/>
+    <path d="M7 15 Q12 13 17 15 Q14.5 16.5 12 16.5 Q9.5 16.5 7 15Z"/>
+    <path d="M9 19 Q12 17.5 15 19 Q13.5 20 12 20 Q10.5 20 9 19Z"/>
+  </svg>`,
+  // Cuisse de poulet grillée avec marques de grillades
+  vpou:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 19.5 Q7 15 8 10.5 Q9.5 6.5 12.5 6 Q15.5 5.5 16 8.5 Q16.5 12 14.5 15.5 Q13 18.5 14.5 19.5"/>
+    <line x1="8.5" y1="20" x2="15" y2="20"/>
+    <circle cx="11.8" cy="21.8" r="1.3"/>
+    <path d="M10 11 Q12 10.2 14 11"/>
+    <path d="M9.5 14 Q11.5 13 14 14"/>
+  </svg>`,
+  // Bourse de burrata nouée sur le dessus — sphère + lien + fils
+  bur:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6.5 13 Q6 19 12 20.5 Q18 19 17.5 13 Q17 8 12 7 Q7 8 6.5 13Z"/>
+    <path d="M9.5 7.5 Q12 5.5 14.5 7.5"/>
+    <line x1="10.5" y1="6" x2="10" y2="4"/>
+    <line x1="12" y1="5.5" x2="12" y2="3.5"/>
+    <line x1="13.5" y1="6" x2="14" y2="4"/>
+  </svg>`,
+  // Pilon de poulet crispy — contour irrégulier croustillant + marques texture
+  ten:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.5 17.5 Q6 14 7 9.5 Q8.5 5.5 12 5 Q15.5 5.5 16 8.5 Q16.5 12.5 14 16 Q12 18.5 13 19.5"/>
+    <line x1="8" y1="20" x2="13.5" y2="20"/>
+    <circle cx="10.5" cy="21.8" r="1.2"/>
+    <line x1="10.5" y1="9.5" x2="11.5" y2="7.5"/>
+    <line x1="13" y1="8.5" x2="14.5" y2="10"/>
+    <line x1="13.5" y1="12" x2="15" y2="11"/>
+    <line x1="9.5" y1="13" x2="8.5" y2="14.5"/>
+  </svg>`,
+  // Deux tranches de cheddar superposées — celle du dessus qui dégouline
+  che:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="13.5" width="16" height="5" rx="1.5"/>
+    <rect x="5" y="8" width="14" height="5" rx="1.5"/>
+    <path d="M15 13.5 Q15.5 16 15.2 18.5"/>
+  </svg>`,
+  // Trois cubes de fêta en perspective
+  fet:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="12" width="7" height="5" rx="0.5"/>
+    <path d="M3 12 L5 10 L12 10 L10 12"/>
+    <path d="M10 12 L12 10 L12 15 L10 17"/>
+    <rect x="13.5" y="14" width="6" height="4" rx="0.5"/>
+    <path d="M13.5 14 L15 12.5 L21 12.5 L19.5 14"/>
+    <path d="M19.5 14 L21 12.5 L21 16.5 L19.5 18"/>
+  </svg>`,
+  // Petite casserole avec sauce fromagère qui coule sur le côté
+  fro:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 10.5 H17 Q18 10.5 18 11.5 L18 17.5 Q18 18.5 17 18.5 H7 Q6 18.5 6 17.5 L6 11.5 Q6 10.5 7 10.5Z"/>
+    <line x1="3.5" y1="12.5" x2="6" y2="12.5"/>
+    <path d="M11 18.5 Q11 20.5 10.5 22"/>
+    <path d="M14.5 18.5 Q14.5 20 14 21.5"/>
+    <path d="M8 14.5 Q10 13.5 12.5 14 Q15 14.5 16.5 13.5"/>
+  </svg>`,
+  // Piment jalapeño incurvé + sparkle 4 branches
+  jal:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.5 18.5 Q5.5 15 6.5 11 Q7.5 7 10 6 Q12.5 5 13.5 7 Q14.5 9.5 12.5 12.5 Q10.5 15.5 11.5 18.5"/>
+    <path d="M10 6 Q11.5 3 13.5 2.5"/>
+    <line x1="18" y1="8" x2="18" y2="6"/>
+    <line x1="17" y1="7" x2="19" y2="7"/>
+    <line x1="16.9" y1="6" x2="19.1" y2="9"/>
+    <line x1="19.1" y1="6" x2="16.9" y2="9"/>
+  </svg>`,
 };
 
 // getIcon(name) — accès fonctionnel aux icônes (signature API propre pour les composants)
@@ -3706,10 +3755,23 @@ function calcSheetPrice(){
   let p=m.price;
   if(sheetTaille==='L') p=11.50;
   if(sheetTaille==='XL') p=14.50;
-  if(sheetMenuUpgrade) p+=3.50;
+  // Format Menu sélectionné dans la fiche (segmented control intégré)
+  if(getMenuPrice(m)&&_menuFormats[sheetIdx]==='menu') p+=3.50;
   p+=Math.max(0,sheetSauces.length-SAUCES_FREE)*SAUCE_EXTRA_PRICE;
   Object.entries(selectedSupplements).forEach(([sid,qty])=>{const s=SUPPLEMENTS.find(x=>x.id===sid);if(s)p+=s.price*qty;});
   return p;
+}
+
+// setSheetFormat — bascule Solo/Menu dans la fiche sans re-render complet.
+// Patch le DOM in-place (pilule + labels) et met à jour la sticky bar.
+function setSheetFormat(fmt){
+  _menuFormats[sheetIdx]=fmt;
+  const sel=document.getElementById('ps-fmt-selector');
+  if(sel){
+    sel.style.setProperty('--fmt-pos', fmt==='menu'?'1':'0');
+    sel.querySelectorAll('.fmt-opt').forEach(o=>o.classList.toggle('active', o.dataset.fmt===fmt));
+  }
+  _renderStickyBar();
 }
 function _rerender(scrollTargetId){
   const scroll=document.getElementById('prod-sheet-scroll');
@@ -3870,6 +3932,24 @@ function renderProdSheetBody(){
   let html=`<div class="prod-sheet-name">${m.name}</div>`;
   if(m.badge) html+=`<div class="prod-sheet-badges"><span class="mi-badge">${m.badge}</span></div>`;
   html+=`<div class="prod-sheet-desc">${m.desc}</div>`;
+
+  /* ── Format Solo / Menu Expérience (kebabs & tacos éligibles) ── */
+  const _sheetMenuP=getMenuPrice(m);
+  if(_sheetMenuP){
+    const _sheetFmt=_menuFormats[sheetIdx]||'solo';
+    const _soloP=m.price.toFixed(2).replace('.',',');
+    const _menuPStr=_sheetMenuP.toFixed(2).replace('.',',');
+    html+=`<div class="format-selector" id="ps-fmt-selector" style="--fmt-pos:${_sheetFmt==='menu'?'1':'0'}">
+      <div class="fmt-opt${_sheetFmt==='solo'?' active':''}" data-fmt="solo" onclick="setSheetFormat('solo')">
+        <span class="fmt-opt-label">Solo</span>
+        <span class="fmt-opt-price">${_soloP}€</span>
+      </div>
+      <div class="fmt-opt${_sheetFmt==='menu'?' active':''}" data-fmt="menu" onclick="setSheetFormat('menu')">
+        <span class="fmt-opt-label">Menu Expérience 🍟</span>
+        <span class="fmt-opt-price">${_menuPStr}€</span>
+      </div>
+    </div>`;
+  }
 
   /* ── ① Pain / Galette (kebabs) ── */
   if(hasPain){
@@ -4050,16 +4130,13 @@ function confirmProdSheet(){
   if(m.name==='Menu Junior'){
     document.getElementById('overlay-junior').classList.add('show');
   } else if(isCusto && fmt==='menu'){
-    // Format Menu pré-sélectionné → skip overlay, boisson directe
+    // Format Menu sélectionné → boisson incluse directe (pas d'overlay)
     _pendingMenuCtx.menuUpgrade=true;
     showBoissonOverlay('menu',_pendingMenuCtx);
-  } else if(isCusto && fmt==='solo'){
-    // Format Solo confirmé → jamais d'overlay, ajout direct sans menu
+  } else if(isCusto){
+    // Solo ou salades (fmt==='solo' ou fmt===null) → ajout direct sans menu
     const ctx=_pendingMenuCtx; _pendingMenuCtx=null;
     finalAddToCart(ctx.idx,ctx.taille,false,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce,null,ctx.viande);
-  } else if(isCusto){
-    // Salades (fmt===null) → comportement legacy : overlay upsell
-    document.getElementById('overlay-menu').classList.add('show');
   } else {
     finalAddToCart(_pendingMenuCtx.idx,_pendingMenuCtx.taille,false,_pendingMenuCtx.removed,_pendingMenuCtx.sauces,_pendingMenuCtx.suppls,_pendingMenuCtx.pain,_pendingMenuCtx.sansSauce,null,_pendingMenuCtx.viande);
     _pendingMenuCtx=null;
@@ -4078,21 +4155,10 @@ function closeProdSheetOutside(e){
 function chooseTaille(taille){
   document.getElementById('overlay-taille').classList.remove('show');
   pendingTaille=taille;
-  // Après taille → proposer menu
-  document.getElementById('overlay-menu').classList.add('show');
+  // overlay-menu supprimé — le choix menu se fait via le segmented control dans la fiche produit
 }
 
-function acceptMenu(){
-  document.getElementById('overlay-menu').classList.remove('show');
-  const ctx=_pendingMenuCtx;
-  if(ctx){ ctx.menuUpgrade=true; showBoissonOverlay('menu',ctx); }
-}
-
-function closeUpsellMenu(){
-  document.getElementById('overlay-menu').classList.remove('show');
-  const ctx=_pendingMenuCtx; _pendingMenuCtx=null;
-  if(ctx) finalAddToCart(ctx.idx,ctx.taille,false,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce,null,ctx.viande);
-}
+// acceptMenu / closeUpsellMenu supprimés — le choix Solo/Menu est intégré dans la fiche produit
 
 function showBoissonOverlay(mode, ctx){
   _boissonMode=mode;
