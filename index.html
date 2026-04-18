@@ -6950,8 +6950,36 @@ async function cptPtsCreateConfirm(){
 }
 
 /* ══ EMPLOYEE ══ */
-function etab(n){
-  if((n==='reglages'||n==='dashboard')&&empRole!=='patron'){showToast('Accès réservé au patron');return;}
+async function etab(n){
+  // 1. Guard client rapide (rôle mémoire) — bloque sans aller sur le réseau
+  if((n==='reglages'||n==='dashboard')&&empRole!=='patron'){
+    showToast('Accès réservé au patron');
+    return;
+  }
+
+  // 2. Pour les sections patron : vérification serveur du token via Edge Function
+  if(n==='reglages'||n==='dashboard'){
+    const tok=_getEmpToken();
+    if(!tok){
+      empRole=null; localStorage.removeItem('kbb_emp_token');
+      showToast('Session expirée — reconnectez-vous');
+      go('page-pin'); return;
+    }
+    try{
+      // manage-recompenses?action=list vérifie HMAC + expiry + role=patron côté serveur
+      const r=await fetch(SURL+'/functions/v1/manage-recompenses',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+        body:JSON.stringify({action:'list',emp_token:tok})
+      });
+      if(r.status===401||r.status===403){
+        empRole=null; localStorage.removeItem('kbb_emp_token');
+        showToast('Session invalide — reconnectez-vous');
+        go('page-pin'); return;
+      }
+    }catch(_){ /* réseau indisponible — UI locale autorisée, les Edge Functions bloqueront les écritures */ }
+  }
+
   document.querySelectorAll('.etab').forEach(t=>t.classList.remove('active'));
   const activeTab=document.getElementById('tab-'+n);
   if(activeTab) activeTab.classList.add('active');
@@ -7497,10 +7525,28 @@ async function refreshFlashCache(){
 // Rafraîchissement périodique toutes les 60 s (les clients voient l'offre démarrer/s'arrêter)
 setInterval(()=>refreshFlashCache().catch(()=>{}), 60000);
 
-// Récupère le token employé depuis localStorage (émis par verify-pin)
+// Récupère le token employé — vérifie l'expiration, supprime si périmé
 function _getEmpToken(){
-  try{ const t=JSON.parse(localStorage.getItem('kbb_emp_token')||'null'); return t?.token||null; }
-  catch(e){ return null; }
+  try{
+    const t=JSON.parse(localStorage.getItem('kbb_emp_token')||'null');
+    if(!t?.token||!t.exp) return null;
+    if(Date.now()>t.exp){
+      localStorage.removeItem('kbb_emp_token');
+      empRole=null;
+      return null;
+    }
+    return t.token;
+  }catch(e){ return null; }
+}
+
+// Restaure empRole depuis le token stocké (appelé au démarrage)
+function _restoreEmpSession(){
+  try{
+    const t=JSON.parse(localStorage.getItem('kbb_emp_token')||'null');
+    if(!t?.token||!t.role||!t.exp) return;
+    if(Date.now()>t.exp){ localStorage.removeItem('kbb_emp_token'); return; }
+    empRole=t.role;
+  }catch(e){}
 }
 
 async function lancerOffreFlash(){
@@ -9884,6 +9930,7 @@ window.addEventListener('load', async function(){
 
   // 1b. Session locale — lecture synchrone localStorage + cookie, zéro réseau, zéro délai.
   //     Si la session est là, currentPortalClient est défini ici, avant go() et avant Stripe.
+  _restoreEmpSession(); // Restaure empRole depuis le token stocké (si non expiré)
   if(window._kioskMode){
     go('page-pin');
   } else {
