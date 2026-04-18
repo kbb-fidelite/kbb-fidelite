@@ -1992,10 +1992,6 @@ body{
     <div class="ph-content">
       <div class="ph-toprow">
         <div class="ph-logo">KBB 🔥</div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button class="ph-exit" onclick="go('page-menu')" style="background:var(--fire);border-color:var(--fire);color:#fff;">🍖 La carte</button>
-          <button class="ph-exit" onclick="go('page-dashboard')">Accueil</button>
-        </div>
       </div>
       <div class="ph-greet" id="portal-greet">Bonjour,</div>
       <div class="ph-name" id="portal-name">—</div>
@@ -3746,13 +3742,18 @@ function openProductSheet(idx){
   }
   const bar=document.getElementById('ps-sticky-bar');
   if(bar) bar.dataset.price='';
-  // Reset scroll avant le rendu — évite que le conteneur parte du bas lors
-  // d'une deuxième ouverture (le scrollTop de la session précédente est mémorisé)
-  const scroll=document.getElementById('prod-sheet-scroll');
-  if(scroll) scroll.scrollTop=0;
+  // Réinitialise le format à 'solo' à chaque ouverture (évite que l'état
+  // du produit précédent ou d'une session précédente ne persiste)
+  _menuFormats[idx]='solo';
   renderProdSheetBody();
   document.getElementById('prod-wrap').classList.add('show');
   document.body.style.overflow='hidden';
+  // Reset scroll APRÈS injection dans le DOM — requestAnimationFrame garantit
+  // que le reset se fait après que le navigateur a calculé la hauteur du contenu
+  requestAnimationFrame(()=>{
+    const scroll=document.getElementById('prod-sheet-scroll');
+    if(scroll) scroll.scrollTop=0;
+  });
 }
 
 // ══ COMPOSANTS SUPPLÉMENTS ════════════════════════════════════════════════
@@ -4006,19 +4007,22 @@ function confirmProdSheet(){
   });
   _pendingMenuCtx={idx:sheetIdx,taille:sheetTaille,removed:[...sheetRemovedIngredients],sauces:[...sheetSauces],suppls,pain:sheetPain,sansSauce:sheetSansSauce,viande:sheetViande||null};
   closeProdSheet();
-  const fmt=_menuFormats[sheetIdx]; // 'menu' | 'solo' | undefined
+  // getMenuPrice détermine si ce produit a un sélecteur de format (kebabs/tacos).
+  // Pour les salades (menuP===null), le format n'est jamais considéré → overlay legacy.
+  const menuP=getMenuPrice(m);
+  const fmt=menuP?(_menuFormats[sheetIdx]||'solo'):null;
   if(m.name==='Menu Junior'){
     document.getElementById('overlay-junior').classList.add('show');
   } else if(isCusto && fmt==='menu'){
-    // Format pré-sélectionné → skip overlay upsell, sélection boisson directe
+    // Format Menu pré-sélectionné → skip overlay, boisson directe
     _pendingMenuCtx.menuUpgrade=true;
     showBoissonOverlay('menu',_pendingMenuCtx);
   } else if(isCusto && fmt==='solo'){
-    // Format Solo confirmé → pas de upsell, ajout direct
+    // Format Solo confirmé → jamais d'overlay, ajout direct sans menu
     const ctx=_pendingMenuCtx; _pendingMenuCtx=null;
     finalAddToCart(ctx.idx,ctx.taille,false,ctx.removed,ctx.sauces,ctx.suppls,ctx.pain,ctx.sansSauce,null,ctx.viande);
   } else if(isCusto){
-    // Pas de format selector sur ce produit → comportement legacy (overlay upsell)
+    // Salades (fmt===null) → comportement legacy : overlay upsell
     document.getElementById('overlay-menu').classList.add('show');
   } else {
     finalAddToCart(_pendingMenuCtx.idx,_pendingMenuCtx.taille,false,_pendingMenuCtx.removed,_pendingMenuCtx.sauces,_pendingMenuCtx.suppls,_pendingMenuCtx.pain,_pendingMenuCtx.sansSauce,null,_pendingMenuCtx.viande);
