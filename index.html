@@ -619,6 +619,59 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .order-submit-btn{width:100%;background:linear-gradient(135deg,#c47a00,#8b3500);border:none;border-radius:14px;padding:1.05rem;color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:.25rem;box-shadow:0 4px 20px rgba(180,80,0,.35);transition:opacity .15s,transform .12s;letter-spacing:.2px;}
 .order-submit-btn:active{opacity:.88;transform:scale(.99);}
 .order-submit-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* ══ ORDER MODE v2 — PREMIUM CARDS ══ */
+.om-section{padding:0 0 1.5rem;}
+.om-card{width:100%;text-align:left;background:#1a1a1a;border:1.5px solid rgba(255,255,255,.05);border-radius:16px;padding:16px 16px 14px;color:#fff;cursor:pointer;font-family:var(--font);transition:background .2s,border-color .2s,box-shadow .2s;position:relative;margin-bottom:10px;display:block;}
+.om-card.selected{background:rgba(255,140,0,.10);border-color:#FF8C00;box-shadow:0 8px 28px rgba(255,140,0,.14);}
+.om-card-hd{display:flex;align-items:center;gap:12px;}
+.om-radio{width:22px;height:22px;border-radius:11px;border:2px solid rgba(255,255,255,.18);background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+.om-card.selected .om-radio{border-color:#FF8C00;background:#FF8C00;}
+.om-radio-dot{width:8px;height:8px;border-radius:4px;background:#1a0a00;}
+.om-card-info{flex:1;min-width:0;}
+.om-card-title{font-size:16px;font-weight:700;letter-spacing:-.2px;}
+.om-card-sub{font-size:12.5px;color:#888;margin-top:3px;letter-spacing:.05px;}
+.om-badge{flex-shrink:0;font-size:10.5px;font-weight:700;letter-spacing:.5px;color:#FF8C00;background:rgba(255,140,0,.12);padding:5px 9px;border-radius:999px;border:1px solid rgba(255,140,0,.25);text-transform:uppercase;white-space:nowrap;}
+/* Expand */
+.om-expand{overflow:hidden;transition:max-height 340ms cubic-bezier(.22,1,.36,1),opacity 260ms ease;}
+.om-expand-inner{padding-top:14px;}
+.om-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,140,0,.28),transparent);margin-bottom:14px;}
+.om-group-lbl{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#888;margin-bottom:10px;}
+/* Segmented */
+.om-seg{position:relative;display:grid;background:#0a0a0a;border-radius:12px;padding:4px;height:40px;border:1px solid rgba(255,255,255,.06);margin-top:2px;}
+.om-seg-2{grid-template-columns:1fr 1fr;}
+.om-seg-pill{position:absolute;top:4px;bottom:4px;left:4px;background:linear-gradient(180deg,#FF9A1E,#FF8C00);border-radius:9px;box-shadow:0 4px 14px rgba(255,140,0,.35);transition:transform 320ms cubic-bezier(.34,1.3,.64,1);pointer-events:none;}
+.om-seg-btn{position:relative;z-index:1;background:transparent;border:none;font-family:var(--font);font-size:13px;font-weight:500;color:#888;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 4px;transition:color .2s;}
+.om-seg-btn.active{color:#1a0a00;font-weight:700;}
+/* Time chips */
+.om-time-scroller{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.om-time-scroller::-webkit-scrollbar{display:none;}
+.om-time-chip{flex-shrink:0;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#0f0f0f;color:#fff;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;letter-spacing:.2px;transition:all .18s;}
+.om-time-chip.sel{border-color:#FF8C00;background:rgba(255,140,0,.15);color:#FF8C00;font-weight:700;}
+.om-time-chip.full{opacity:.32;text-decoration:line-through;cursor:not-allowed;border-style:dashed;pointer-events:none;}
+/* Address form */
+.om-field{display:block;margin-bottom:10px;}
+.om-field-lbl{font-size:10.5px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#888;margin-bottom:6px;display:flex;justify-content:space-between;}
+.om-field-opt{color:#555;font-weight:500;text-transform:none;letter-spacing:0;}
+.om-field-inp{width:100%;box-sizing:border-box;background:#0f0f0f;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;color:#fff;font-family:var(--font);font-size:14px;outline:none;transition:border-color .16s;resize:none;}
+.om-field-inp:focus{border-color:#FF8C00;}
+.om-field-inp::placeholder{color:#555;}
+.om-addr-row{display:grid;grid-template-columns:110px 1fr;gap:10px;}
+/* Fee */
+.om-fee{margin-top:4px;padding:12px 14px;background:linear-gradient(135deg,rgba(255,140,0,.08),rgba(255,140,0,.02));border-radius:10px;border:1px solid rgba(255,140,0,.15);display:flex;align-items:center;justify-content:space-between;}
+.om-fee-val{font-size:15px;font-weight:700;color:#FF8C00;}
+.om-min-warn{margin-top:10px;font-size:12px;color:#ff6b6b;background:rgba(255,107,107,.08);padding:8px 12px;border-radius:8px;}
+/* Info hint */
+.om-hint{margin-top:12px;padding:10px 12px;background:#0f0f0f;border:1px solid rgba(255,255,255,.05);border-radius:10px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:#aaa;line-height:1.45;}
+.om-hint-ico{width:32px;height:32px;border-radius:8px;background:rgba(255,140,0,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* Reassurance */
+.om-reassure{padding:12px;border-radius:12px;background:#0a0a0a;border:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:10px;font-size:12px;color:#888;line-height:1.4;margin-bottom:1.25rem;}
+/* CTA v2 */
+.om-cta{width:100%;height:56px;border-radius:16px;border:none;background:linear-gradient(135deg,#FF9A1E,#FF8C00);color:#1a0a00;font-weight:700;font-size:15.5px;letter-spacing:.2px;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 10px 30px rgba(255,140,0,.35),inset 0 1px 0 rgba(255,255,255,.25);transition:all .22s;}
+.om-cta:disabled{background:#2a2a2a;color:#555;box-shadow:none;cursor:not-allowed;}
+.om-cta:active:not(:disabled){opacity:.88;transform:scale(.99);}
+.om-cta-fee-row{display:flex;justify-content:space-between;font-size:11.5px;color:#888;padding:0 4px 8px;font-variant-numeric:tabular-nums;}
+
 /* ══ EMP COMMANDES ══ */
 .cmd-card{background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem;transition:border-color .2s;}
 .cmd-card.table{border-left:3px solid var(--gold);}
@@ -3268,11 +3321,12 @@ const TVA_RATES={kebabs:0.10,tacos:0.10,salades:0.10,menus:0.10,accompagnements:
 const TVA_DEFAULT=0.10;
 
 let cart=[];
-let orderMode=null;      // 'sur_place'|'a_emporter'|'reservation'|'click_collect' — dérivé de _syncOrderMode
-let orderCardMode=null;  // 'avance'|'immediat' — quelle carte est sélectionnée
+let orderMode=null;      // 'sur_place'|'a_emporter'|'reservation'|'click_collect'|'livraison' — dérivé de _syncOrderMode
+let orderCardMode=null;  // 'avance'|'immediat'|'livraison' — quelle carte est sélectionnée
 let orderServiceMode='sur_place'; // 'sur_place'|'a_emporter' — toggle dans la carte
 let orderTableNum='';
 let selectedPickupTime='';
+let _deliveryAddress={street:'',zip:'',city:'',notes:''}; // adresse livraison
 
 // ══ FORMAT SELECTOR — Solo / Expérience Menu ══════════════════════════════
 // Stocke le format choisi sur la carte (idx → 'solo' | 'menu').
@@ -4634,83 +4688,153 @@ function renderOrderOptions(){
     }
   }
 
-  const slotHtml=(t)=>{
+  // ── Chips créneaux (horizontal scroll) ───────────────────────────────────
+  const slotChip=(t)=>{
     const booked=(sr?.counts||{})[t]||0;
     const cap=sr?.capacite??999;
     const avail=Math.max(0,cap-booked);
     const full=booked>=cap;
     const sel=selectedPickupTime===t;
-    let hint, hintCls;
-    if(full){ hint='Complet'; hintCls='slot-full-lbl'; }
-    else if(cap===999){ hint=null; hintCls=''; }
-    else if(avail<=2){ hint=`${avail} place${avail>1?'s':''} restante${avail>1?'s':''}`; hintCls='slot-low'; }
-    else { hint=`${avail} places dispo`; hintCls=''; }
-    return `<div class="time-slot${full?' slot-full':''}${sel?' selected':''}" ${full?'':'onclick="selectPickupTime(\''+t+'\')"'}>
-      ${t}${hint?`<span class="slot-avail ${hintCls}">${hint}</span>`:''}
-    </div>`;
+    let hint='';
+    if(full) hint='<span class="om-time-chip-hint">Complet</span>';
+    else if(cap<999&&avail<=2) hint=`<span class="om-time-chip-hint" style="color:#FF8C00">${avail} place${avail>1?'s':''}</span>`;
+    return `<button class="om-time-chip${full?' full':''}${sel?' sel':''}" ${full?'disabled':''} onclick="event.stopPropagation();selectPickupTime('${t}')">${t}${hint}</button>`;
   };
-  const slotsHtml=sr?.slots.length?`<div class="time-slots">${sr.slots.map(slotHtml).join('')}</div>`:slotsMsg;
+  const chipScroller=sr?.slots.length
+    ?`<div class="om-time-scroller" onclick="event.stopPropagation()">${sr.slots.map(slotChip).join('')}</div>`
+    :slotsMsg;
 
-  // Disabled si mode avance sans créneau sélectionné
-  const submitDisabled = orderCardMode==='avance' && (!selectedPickupTime || (!sr && _statusCache!==null && !slotsMsg.includes('🔒')));
-  const _submitTotal=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
-  const _submitTotalStr=_submitTotal.toFixed(2).replace('.',',')+'€';
+  // ── Totaux & validation ──────────────────────────────────────────────────
+  const _sub=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
+  const _fee=orderCardMode==='livraison'?3.99:0;
+  const _tot=_sub+_fee;
+  const _subStr=_sub.toFixed(2).replace('.',',')+'€';
+  const _totStr=_tot.toFixed(2).replace('.',',')+'€';
+  const _livOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim()&&_sub>=20;
+  const _canConfirm=orderCardMode==='immediat'||(orderCardMode==='avance'&&!!selectedPickupTime)||(orderCardMode==='livraison'&&_livOk);
+  const _ctaLabel=orderCardMode==='immediat'?'⚡ Envoyer':orderCardMode==='livraison'?'Commander · livraison 🛵':'Confirmer ma commande';
 
-  // Toggle service : pilule glissante Sur place / À emporter
-  const svcPos=orderServiceMode==='a_emporter'?'1':'0';
-  const svcToggleHtml=`
-    <div class="svc-toggle" style="--svc-pos:${svcPos}">
-      <div class="svc-opt${orderServiceMode==='sur_place'?' active':''}" data-svc="sur_place" onclick="selectServiceMode('sur_place',event)">
-        <span class="svc-opt-icon" style="color:${orderServiceMode==='sur_place'?'#fff':'rgba(255,255,255,.3)'}">${_SVG_CHAIR}</span>
-        <span class="svc-opt-label">Sur place</span>
+  // ── Segmented control helper ─────────────────────────────────────────────
+  const _svcIdx=orderServiceMode==='a_emporter'?1:0;
+  const _seg=()=>`
+    <div class="om-seg om-seg-2" onclick="event.stopPropagation()">
+      <div class="om-seg-pill" style="width:calc(50% - 4px);transform:translateX(${_svcIdx*100}%)"></div>
+      <button class="om-seg-btn${orderServiceMode==='sur_place'?' active':''}" onclick="event.stopPropagation();selectServiceMode('sur_place',event)">🍽️ Sur place</button>
+      <button class="om-seg-btn${orderServiceMode==='a_emporter'?' active':''}" onclick="event.stopPropagation();selectServiceMode('a_emporter',event)">🥡 À emporter</button>
+    </div>`;
+
+  // ── Card expand helper ────────────────────────────────────────────────────
+  const _card=(id,sel,title,emoji,sub,badge,inner)=>`
+    <div class="om-card${sel?' selected':''}" onclick="selectOrderCard('${id}')">
+      <div class="om-card-hd">
+        <div class="om-radio">${sel?'<div class="om-radio-dot"></div>':''}</div>
+        <div class="om-card-info">
+          <div class="om-card-title">${title} <span>${emoji}</span></div>
+          <div class="om-card-sub">${sub}</div>
+        </div>
+        ${badge?`<div class="om-badge">${badge}</div>`:''}
       </div>
-      <div class="svc-opt${orderServiceMode==='a_emporter'?' active':''}" data-svc="a_emporter" onclick="selectServiceMode('a_emporter',event)">
-        <span class="svc-opt-icon" style="color:${orderServiceMode==='a_emporter'?'#fff':'rgba(255,255,255,.3)'}">${_SVG_BAG}</span>
-        <span class="svc-opt-label">À emporter</span>
+      <div class="om-expand" style="max-height:${sel?'700':'0'}px;opacity:${sel?1:0}" onclick="event.stopPropagation()">
+        <div class="om-expand-inner">
+          <div class="om-divider"></div>
+          ${inner}
+        </div>
       </div>
     </div>`;
+
+  // ── Card 1 — Je suis là ⚡ ───────────────────────────────────────────────
+  const _c1Inner=`
+    <div class="om-group-lbl">Où souhaitez-vous déguster ?</div>
+    ${_seg()}
+    <div class="om-hint">
+      <div class="om-hint-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#FF8C00" stroke-width="2"/><path d="M12 7v5l3 2" stroke="#FF8C00" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div>${orderServiceMode==='sur_place'
+        ?'Une table sera préparée dès votre arrivée. <strong style="color:#fff">Salle disponible.</strong>'
+        :'Votre commande vous attendra au comptoir <strong style="color:#fff">Express</strong>.'}</div>
+    </div>
+    <div class="presence-input-wrap" style="margin-top:12px">
+      <div class="presence-input-label">🔑 Code de présence</div>
+      <input class="presence-input" id="presence-code-input" type="tel" inputmode="numeric"
+        maxlength="4" placeholder="····" autocomplete="off"
+        oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4);_presenceInputChanged()">
+      <div style="font-size:11px;color:var(--text3);margin-top:.5rem;line-height:1.5;">📍 Demandez votre code au comptoir — il change toutes les 15 minutes</div>
+      <div class="presence-msg" id="presence-msg"></div>
+    </div>`;
+
+  // ── Card 2 — Je commande à l'avance 📅 ──────────────────────────────────
+  const _slotLbl=orderServiceMode==='a_emporter'?'Heure de retrait':'Heure d\'arrivée';
+  const _c2Sub=selectedPickupTime?`Retrait à ${selectedPickupTime} · aujourd'hui`:'Choisissez votre créneau';
+  const _c2Inner=`
+    <div class="om-time-label">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#888" stroke-width="2"/><path d="M12 7v5l3 2" stroke="#888" stroke-width="2" stroke-linecap="round"/></svg>
+      ${_slotLbl} — créneaux disponibles aujourd'hui
+    </div>
+    ${chipScroller}
+    <div class="om-group-lbl" style="margin-top:14px">Où souhaitez-vous déguster ?</div>
+    ${_seg()}`;
+
+  // ── Card 3 — Livraison 🛵 ────────────────────────────────────────────────
+  const _e=(s)=>(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const _c3Inner=`
+    <div>
+      <label class="om-field" onclick="event.stopPropagation()">
+        <div class="om-field-lbl">Rue</div>
+        <input class="om-field-inp" type="text" value="${_e(_deliveryAddress.street)}" placeholder="12 rue de la Braise"
+          oninput="event.stopPropagation();_omAddrUpdate('street',this.value)">
+      </label>
+      <div class="om-addr-row" onclick="event.stopPropagation()">
+        <label class="om-field">
+          <div class="om-field-lbl">Code postal</div>
+          <input class="om-field-inp" type="text" inputmode="numeric" value="${_e(_deliveryAddress.zip)}" placeholder="75011"
+            oninput="event.stopPropagation();_omAddrUpdate('zip',this.value)">
+        </label>
+        <label class="om-field">
+          <div class="om-field-lbl">Ville</div>
+          <input class="om-field-inp" type="text" value="${_e(_deliveryAddress.city)}" placeholder="Paris"
+            oninput="event.stopPropagation();_omAddrUpdate('city',this.value)">
+        </label>
+      </div>
+      <label class="om-field" onclick="event.stopPropagation()">
+        <div class="om-field-lbl"><span>Instructions livreur</span><span class="om-field-opt">optionnel</span></div>
+        <textarea class="om-field-inp" rows="2" placeholder="Digicode, étage, précisions…"
+          oninput="event.stopPropagation();_omAddrUpdate('notes',this.value)">${_e(_deliveryAddress.notes)}</textarea>
+      </label>
+    </div>
+    <div class="om-fee">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:18px">🛵</div>
+        <div>
+          <div style="font-size:13px;font-weight:600">Frais de livraison</div>
+          <div style="font-size:11px;color:#888;margin-top:1px">Zone locale</div>
+        </div>
+      </div>
+      <div class="om-fee-val">3,99 €</div>
+    </div>
+    ${_sub<20?`<div class="om-min-warn">Minimum 20 € — ajoutez ${(20-_sub).toFixed(2).replace('.',',')} € pour livrer.</div>`:''}`;
 
   section.innerHTML=`
-    <div class="order-mode-section">
-      <div class="omc-wrap">
-        <div class="omc${orderCardMode==='avance'?' selected':''}" onclick="selectOrderCard('avance')">
-          <div class="omc-icon" style="color:${orderCardMode==='avance'?'#e65100':'rgba(255,255,255,.4)'}">${_SVG_CLOCK}</div>
-          <div class="omc-name">Je commande à l'avance</div>
-          <div class="omc-desc">Choisissez votre heure</div>
-        </div>
-        <div class="omc${orderCardMode==='immediat'?' selected':''}" onclick="selectOrderCard('immediat')">
-          <div class="omc-icon" style="color:${orderCardMode==='immediat'?'#e65100':'rgba(255,255,255,.4)'}">${_SVG_ZAP}</div>
-          <div class="omc-name">Je suis sur place</div>
-          <div class="omc-desc">Commande immédiate</div>
-        </div>
-      </div>
-
-      ${orderCardMode?svcToggleHtml:''}
-
-      ${orderCardMode==='avance'?`
-        <div class="order-detail-box">
-          <div class="order-detail-label">${orderServiceMode==='a_emporter'?'Heure de retrait':'Heure d\'arrivée'}</div>
-          ${slotsHtml}
-        </div>
-      `:''}
-
-      ${orderCardMode==='immediat'?`
-        <div class="presence-input-wrap">
-          <div class="presence-input-label">🔑 Code de présence</div>
-          <input class="presence-input" id="presence-code-input" type="tel" inputmode="numeric"
-            maxlength="4" placeholder="····" autocomplete="off"
-            oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4);_presenceInputChanged()">
-          <div style="font-size:11px;color:var(--text3);margin-top:.5rem;line-height:1.5;">📍 Demandez votre code au comptoir — il change toutes les 15 minutes</div>
-          <div class="presence-msg" id="presence-msg"></div>
-        </div>
-      `:''}
-
-      ${orderCardMode?`
-        <button class="order-submit-btn" onclick="submitClientOrder()" ${submitDisabled?'disabled':''}>
-          ${orderCardMode==='immediat'?`⚡ Envoyer — ${_submitTotalStr}`:`Confirmer ma commande — ${_submitTotalStr}`}
-        </button>
-      `:''}
+    <div class="om-section">
+      ${_card('immediat',orderCardMode==='immediat','Je suis là','⚡','Commande immédiate · prête en 12–15 min','',_c1Inner)}
+      ${_card('avance',orderCardMode==='avance','Je commande à l\'avance','📅',_c2Sub,'',_c2Inner)}
+      ${_card('livraison',orderCardMode==='livraison','Livraison','🛵','Livraison à domicile · 25–40 min','Min. 20 €',_c3Inner)}
+      <div class="om-reassure"><span style="font-size:16px">🔥</span><span>Toutes nos viandes sont cuites au <strong style="color:#fff">feu de bois</strong>, préparées à la minute.</span></div>
+      ${_fee>0?`<div class="om-cta-fee-row"><span>Sous-total + livraison</span><span>${_subStr} + 3,99 €</span></div>`:''}
+      <button id="om-cta-btn" class="om-cta" onclick="submitClientOrder()" ${_canConfirm&&orderCardMode?'':' disabled'}>
+        <span>${_ctaLabel}</span>
+        <span style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">${_totStr}</span>
+      </button>
     </div>`;
+}
+
+// Mise à jour adresse livraison sans re-render complet
+function _omAddrUpdate(field, val){
+  _deliveryAddress[field]=val;
+  const btn=document.getElementById('om-cta-btn');
+  if(!btn) return;
+  const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
+  const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
+  const ok=orderCardMode==='livraison'&&addrOk&&_sub>=20;
+  btn.disabled=!ok;
 }
 
 // Sélection d'une des 2 grandes cartes (avance / immediat)
@@ -4738,6 +4862,8 @@ function _syncOrderMode(){
   } else if(orderCardMode==='avance'){
     // À l'avance : Stripe, créneau requis
     orderMode=orderServiceMode==='a_emporter'?'click_collect':'reservation';
+  } else if(orderCardMode==='livraison'){
+    orderMode='livraison';
   } else {
     orderMode=null;
   }
@@ -4945,6 +5071,11 @@ async function submitClientOrder(){
     localStorage.setItem('kbb_post_login','cart');
     go('page-client-login');
     showToast('Connectez-vous pour commander 🔥');
+    return;
+  }
+  // Livraison : non encore opérationnelle
+  if(orderCardMode==='livraison'){
+    showToast('🛵 La livraison arrive bientôt — restez connectés !');
     return;
   }
   // Créneau requis seulement pour le mode "avance"
