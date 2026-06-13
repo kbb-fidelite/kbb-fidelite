@@ -7,7 +7,7 @@
 // Secrets requis : UBER_CLIENT_ID, UBER_CLIENT_SECRET
 // Déploiement : supabase functions deploy uber-auth
 
-import { getUberToken } from '../_shared/uber-auth.ts';
+import { getUberToken, getRestaurant } from '../_shared/uber-auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -20,8 +20,18 @@ Deno.serve(async (req) => {
 
   try {
     await getUberToken(); // vérifie que l'auth fonctionne, jette en cas d'erreur
+    const restaurant = getRestaurant();
+    const customerId = Deno.env.get('UBER_CUSTOMER_ID');
+    console.log(`[uber-auth] diagnostic — UBER_CUSTOMER_ID: ${customerId ? 'OK' : 'MANQUANT'} | RESTAURANT_ADDRESS: ${restaurant.address ? 'OK' : 'MANQUANT'}`);
     return new Response(
-      JSON.stringify({ ok: true }),
+      JSON.stringify({
+        ok: true,
+        config: {
+          customer_id_set:      !!customerId,
+          restaurant_addr_set:  !!restaurant.address,
+          restaurant_phone_set: !!restaurant.phone_number,
+        },
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {

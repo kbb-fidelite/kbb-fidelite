@@ -17,7 +17,7 @@
 //                  SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // Déploiement : supabase functions deploy create-uber-delivery
 
-import { getUberToken, RESTAURANT } from '../_shared/uber-auth.ts';
+import { getUberToken, getRestaurant } from '../_shared/uber-auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -54,16 +54,17 @@ Deno.serve(async (req) => {
     if (!customerId) throw new Error('UBER_CUSTOMER_ID non configuré');
 
     const token = await getUberToken();
+    const restaurant = getRestaurant();
 
     // ── Préparation dans 10 minutes (laisser le temps de préparer) ──
     const pickupReadyDt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     const body = {
       pickup: {
-        name:         RESTAURANT.name,
-        address:      RESTAURANT.address,
-        phone_number: RESTAURANT.phone_number,
-        email:        RESTAURANT.email,
+        name:         restaurant.name,
+        address:      restaurant.address,
+        phone_number: restaurant.phone_number,
+        email:        restaurant.email,
       },
       dropoff: {
         name:         client_name || 'Client KBB',
