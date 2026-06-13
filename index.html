@@ -4862,15 +4862,20 @@ function renderOrderOptions(){
           oninput="event.stopPropagation();_omAddrUpdate('notes',this.value)">${_e(_deliveryAddress.notes)}</textarea>
       </label>
     </div>
-    <div class="om-fee">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:18px">🛵</div>
-        <div>
-          <div style="font-size:13px;font-weight:600">Frais de livraison</div>
-          <div style="font-size:11px;color:#888;margin-top:1px" id="om-eta-lbl">${_deliveryQuote?.dropoff_eta?'Livraison en ~'+_deliveryQuote.dropoff_eta+' min':'25–40 min estimées'}</div>
+    <div class="om-fee" style="flex-direction:column;align-items:flex-start;gap:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:18px">🛵</div>
+          <div>
+            <div style="font-size:13px;font-weight:600">Frais de livraison</div>
+            <div style="font-size:11px;color:#888;margin-top:1px" id="om-eta-lbl">${_deliveryQuote?.dropoff_eta?'Livraison en ~'+_deliveryQuote.dropoff_eta+' min':'Calcul en cours…'}</div>
+          </div>
         </div>
+        <div class="om-fee-val" id="om-fee-val">${_quoteLoading?'⏳ …':_deliveryQuote?(_deliveryQuote.fee_cents/100).toFixed(2).replace('.',',')+' €':'—'}</div>
       </div>
-      <div class="om-fee-val" id="om-fee-val">${_quoteLoading?'⏳ …':_deliveryQuote?(_deliveryQuote.fee_cents/100).toFixed(2).replace('.',',')+' €':'3,99 €'}</div>
+      <div style="font-size:12px;color:#FF8C00;font-weight:600;padding:6px 10px;background:rgba(255,140,0,.08);border-radius:8px;width:100%;box-sizing:border-box">
+        🛵 Livraison temporairement indisponible — Revenez bientôt !
+      </div>
     </div>
     ${_sub<20?`<div class="om-min-warn">Minimum 20 € — ajoutez ${(20-_sub).toFixed(2).replace('.',',')} € pour livrer.</div>`:''}`;
 
@@ -4878,7 +4883,7 @@ function renderOrderOptions(){
     <div class="om-section">
       ${_card('immediat',orderCardMode==='immediat','Je suis là','⚡','Commande immédiate · prête en 12–15 min','',_c1Inner)}
       ${_card('avance',orderCardMode==='avance','Je commande à l\'avance','📅',_c2Sub,'',_c2Inner)}
-      ${_card('livraison',orderCardMode==='livraison','Livraison','🛵','Livraison à domicile · 25–40 min','Min. 20 €',_c3Inner)}
+      ${_card('livraison',orderCardMode==='livraison','Livraison','🛵','Livraison à domicile · bientôt disponible','🔜',_c3Inner)}
       <div class="om-reassure"><span style="font-size:16px">🔥</span><span>Toutes nos viandes sont cuites au <strong style="color:#fff">feu de bois</strong>, préparées à la minute.</span></div>
       ${_fee>0?`<div class="om-cta-fee-row"><span>Sous-total + livraison</span><span>${_subStr} + ${_fee.toFixed(2).replace('.',',')} €</span></div>`:''}
       <button id="om-cta-btn" class="om-cta" onclick="submitClientOrder()" ${_canConfirm&&orderCardMode?'':' disabled'}>
@@ -4895,13 +4900,8 @@ function _omAddrUpdate(field, val){
   if(!btn) return;
   const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
   const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
-  const ok=orderCardMode==='livraison'&&addrOk&&_sub>=20&&!_quoteLoading;
-  btn.disabled=!ok;
-  // Déclencher le devis Uber si l'adresse est complète (debounce 900ms)
-  if(addrOk && _sub>=20){
-    clearTimeout(_quoteDebounce);
-    _quoteDebounce=setTimeout(fetchDeliveryQuote, 900);
-  }
+  // CTA toujours désactivé (service Uber Direct en attente d'activation)
+  btn.disabled=true;
 }
 
 // Appel Edge Function get-delivery-quote (sans re-render, mise à jour DOM ciblée)
@@ -4920,9 +4920,8 @@ async function fetchDeliveryQuote(){
     console.log('[get-delivery-quote] ← réponse complète:', JSON.stringify(r));
     if(r?.available===false){
       _deliveryQuote=null;
-      if(feeEl) feeEl.textContent='Indisponible';
-      if(etaEl) etaEl.textContent='Livraison non disponible';
-      showToast(r.error||'Livraison non disponible à cette adresse');
+      if(feeEl) feeEl.textContent='—';
+      if(etaEl) etaEl.textContent='Indisponible';
       console.warn('[get-delivery-quote] indisponible:', r.error);
       return;
     }
@@ -4932,31 +4931,26 @@ async function fetchDeliveryQuote(){
       console.log('[get-delivery-quote] ✅ prix Uber Direct:', feeFmt, '| ETA:', r.dropoff_eta, 'min | quote_id:', r.quote_id);
       if(feeEl) feeEl.textContent=feeFmt;
       if(etaEl) etaEl.textContent=r.dropoff_eta?'Livraison en ~'+r.dropoff_eta+' min':'25–40 min estimées';
-      // MAJ CTA total
       const totalBtn=document.querySelector('#om-cta-btn span:last-child');
       const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
       if(totalBtn) totalBtn.textContent=(_sub+r.fee_cents/100).toFixed(2).replace('.',',')+' €';
-      // MAJ fee row
       const feeRowVal=document.querySelector('.om-cta-fee-row span:last-child');
       if(feeRowVal) feeRowVal.textContent=`${_sub.toFixed(2).replace('.',',')}€ + ${feeFmt}`;
     } else {
-      // fee_cents absent → erreur inattendue
-      console.error('[get-delivery-quote] ✗ fee_cents absent de la réponse:', JSON.stringify(r));
+      console.error('[get-delivery-quote] ✗ fee_cents absent:', JSON.stringify(r));
       _deliveryQuote=null;
-      if(feeEl) feeEl.textContent='Indisponible';
-      showToast('Prix de livraison indisponible — réessayez');
+      if(feeEl) feeEl.textContent='—';
+      if(etaEl) etaEl.textContent='Indisponible';
     }
   }catch(e){
     console.error('[get-delivery-quote] ✗ erreur:', e.message);
     _deliveryQuote=null;
-    if(feeEl) feeEl.textContent='Indisponible';
-    if(etaEl) etaEl.textContent='—';
-    showToast('Erreur devis livraison — réessayez');
+    if(feeEl) feeEl.textContent='—';
+    if(etaEl) etaEl.textContent='Indisponible';
   }finally{
     _quoteLoading=false;
-    const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
-    const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
-    if(btn) btn.disabled=!(orderCardMode==='livraison'&&addrOk&&_sub>=20);
+    // CTA toujours désactivé tant que le service est indisponible (_deliveryQuote === null)
+    if(btn) btn.disabled=true;
   }
 }
 
@@ -5196,13 +5190,10 @@ async function submitClientOrder(){
     showToast('Connectez-vous pour commander 🔥');
     return;
   }
-  // Livraison — validation adresse et minimum commande
+  // Livraison — bloquée jusqu'à activation Uber Direct
   if(orderCardMode==='livraison'){
-    const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
-    if(!addrOk){ showToast('Saisissez votre adresse de livraison complète'); return; }
-    const _sub=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
-    if(_sub<20){ showToast('Minimum 20 € de commande pour la livraison'); return; }
-    if(_deliveryQuote?.available===false){ showToast('Adresse hors zone de livraison'); return; }
+    showToast('🛵 Livraison temporairement indisponible — Revenez bientôt !');
+    return;
   }
   // Créneau requis seulement pour le mode "avance"
   if(orderCardMode==='avance'&&!selectedPickupTime){
