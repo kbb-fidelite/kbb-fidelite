@@ -3327,6 +3327,9 @@ let orderServiceMode='sur_place'; // 'sur_place'|'a_emporter' — toggle dans la
 let orderTableNum='';
 let selectedPickupTime='';
 let _deliveryAddress={street:'',zip:'',city:'',notes:''}; // adresse livraison
+let _deliveryQuote=null;   // {fee_cents, currency, pickup_duration, dropoff_eta, quote_id} | null
+let _quoteDebounce=null;   // timer debounce pour l'appel get-delivery-quote
+let _quoteLoading=false;   // true pendant l'appel API devis
 
 // ══ FORMAT SELECTOR — Solo / Expérience Menu ══════════════════════════════
 // Stocke le format choisi sur la carte (idx → 'solo' | 'menu').
@@ -3549,7 +3552,9 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
         rewardPts:       extraParams?.rewardPts       || 0,
         rewardNom:       extraParams?.rewardNom       || null,
         ptsACrediter:    extraParams?.ptsACrediter    || 0,
-        presence_token:  extraParams?.presence_token  || null,
+        presence_token:   extraParams?.presence_token  || null,
+        deliveryAddress:  extraParams?.deliveryAddress || null,
+        deliveryFeeCents: extraParams?.deliveryFeeCents ?? null,
       })
     });
   }catch(netErr){
@@ -3622,9 +3627,12 @@ async function stripePayOnline(){
       heureRetrait:   pending?.activeOrder?.heure || null,
       rewardId:       pending?.reward_id          || null,
       rewardPts:      pending?.reward_pts         || 0,
-      rewardNom:      pending?.reward_nom         || null,
-      ptsACrediter:   pending?.pts_a_crediter     || 0,
-      presence_token: pending?.presence_token     || null,
+      rewardNom:        pending?.reward_nom           || null,
+      ptsACrediter:     pending?.pts_a_crediter       || 0,
+      presence_token:   pending?.presence_token       || null,
+      // Livraison Uber Direct
+      deliveryAddress:  pending?.deliveryAddress      || null,
+      deliveryFeeCents: pending?.deliveryFeeCents      ?? null,
     };
     const {url, supabaseOrderId}=await callStripeEdgeFunction(ctx.orderId,amountCents,feeCents,ctx.levelKey,ctx.label,extraParams);
     // Stocker l'ID Supabase pré-créé dans le pending context pour handleStripeReturn
@@ -3809,6 +3817,10 @@ async function _stripeFinalize(sessionId, vData, pending){
   if(supaId && pending?.reward_id && pending?.reward_client_id){
     validateRewardServerSide(supaId, pending.reward_client_id, pending.reward_id);
   }
+  // ── Créer la livraison Uber Direct si mode livraison ──
+  if(supaId && pending?.isLivraison && pending?.deliveryAddress){
+    _createUberDelivery(supaId, pending).catch(e=>console.error('[uber-delivery] non bloquant:',e.message));
+  }
   _stripeCleanup();
   setTimeout(()=>showFeedbackOverlay(supaId), 2000);
 }
@@ -3835,6 +3847,33 @@ async function _verifyPaymentWithRetry(sessionId, maxAttempts=15, delayMs=2000){
     }
   }
   return null;
+}
+
+// Déclenche la création Uber Direct en asynchrone après paiement Stripe.
+// Non bloquant — si ça échoue, la commande existe déjà en DB.
+async function _createUberDelivery(commandeId, pending){
+  const addr=pending.deliveryAddress;
+  const clientData=pending.clientData||{};
+  const clientName=((clientData.prenom||'')+' '+(clientData.nom||'')).trim()||'Client KBB';
+  const clientTel=pending.clientTel||'';
+  const orderNum=pending.orderNum||('#KBB-'+String(commandeId).padStart(3,'0'));
+  const formatted=addr.street+', '+addr.zip+' '+addr.city+', France';
+  console.log('[uber-delivery] création livraison pour commande',commandeId,'→',formatted);
+  const r=await callEdge('create-uber-delivery',{
+    commande_id:     commandeId,
+    dropoff_address: formatted,
+    dropoff_notes:   addr.notes||'',
+    client_tel:      clientTel,
+    client_name:     clientName,
+    order_ref:       orderNum,
+    total_cents:     Math.round((pending.total||0)*100),
+  });
+  if(r?.delivery_id){
+    console.log('[uber-delivery] ✅ delivery_id:',r.delivery_id,'| eta:',r.dropoff_eta_label);
+    showToast('🛵 Livreur assigné · livraison '+(r.dropoff_eta_label||'dans 25–40 min'));
+  } else {
+    console.warn('[uber-delivery] ⚠️ réponse:',r);
+  }
 }
 
 function _stripeCleanup(){
@@ -4729,7 +4768,7 @@ function renderOrderOptions(){
 
   // ── Totaux & validation ──────────────────────────────────────────────────
   const _sub=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
-  const _fee=orderCardMode==='livraison'?3.99:0;
+  const _fee=orderCardMode==='livraison'?(_deliveryQuote?_deliveryQuote.fee_cents/100:3.99):0;
   const _tot=_sub+_fee;
   const _subStr=_sub.toFixed(2).replace('.',',')+'€';
   const _totStr=_tot.toFixed(2).replace('.',',')+'€';
@@ -4828,10 +4867,10 @@ function renderOrderOptions(){
         <div style="font-size:18px">🛵</div>
         <div>
           <div style="font-size:13px;font-weight:600">Frais de livraison</div>
-          <div style="font-size:11px;color:#888;margin-top:1px">Zone locale</div>
+          <div style="font-size:11px;color:#888;margin-top:1px" id="om-eta-lbl">${_deliveryQuote?.dropoff_eta?'Livraison en ~'+_deliveryQuote.dropoff_eta+' min':'25–40 min estimées'}</div>
         </div>
       </div>
-      <div class="om-fee-val">3,99 €</div>
+      <div class="om-fee-val" id="om-fee-val">${_quoteLoading?'⏳ …':_deliveryQuote?(_deliveryQuote.fee_cents/100).toFixed(2).replace('.',',')+' €':'3,99 €'}</div>
     </div>
     ${_sub<20?`<div class="om-min-warn">Minimum 20 € — ajoutez ${(20-_sub).toFixed(2).replace('.',',')} € pour livrer.</div>`:''}`;
 
@@ -4841,7 +4880,7 @@ function renderOrderOptions(){
       ${_card('avance',orderCardMode==='avance','Je commande à l\'avance','📅',_c2Sub,'',_c2Inner)}
       ${_card('livraison',orderCardMode==='livraison','Livraison','🛵','Livraison à domicile · 25–40 min','Min. 20 €',_c3Inner)}
       <div class="om-reassure"><span style="font-size:16px">🔥</span><span>Toutes nos viandes sont cuites au <strong style="color:#fff">feu de bois</strong>, préparées à la minute.</span></div>
-      ${_fee>0?`<div class="om-cta-fee-row"><span>Sous-total + livraison</span><span>${_subStr} + 3,99 €</span></div>`:''}
+      ${_fee>0?`<div class="om-cta-fee-row"><span>Sous-total + livraison</span><span>${_subStr} + ${_fee.toFixed(2).replace('.',',')} €</span></div>`:''}
       <button id="om-cta-btn" class="om-cta" onclick="submitClientOrder()" ${_canConfirm&&orderCardMode?'':' disabled'}>
         <span>${_ctaLabel}</span>
         <span style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">${_totStr}</span>
@@ -4856,8 +4895,58 @@ function _omAddrUpdate(field, val){
   if(!btn) return;
   const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
   const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
-  const ok=orderCardMode==='livraison'&&addrOk&&_sub>=20;
+  const ok=orderCardMode==='livraison'&&addrOk&&_sub>=20&&!_quoteLoading;
   btn.disabled=!ok;
+  // Déclencher le devis Uber si l'adresse est complète (debounce 900ms)
+  if(addrOk && _sub>=20){
+    clearTimeout(_quoteDebounce);
+    _quoteDebounce=setTimeout(fetchDeliveryQuote, 900);
+  }
+}
+
+// Appel Edge Function get-delivery-quote (sans re-render, mise à jour DOM ciblée)
+async function fetchDeliveryQuote(){
+  if(!_deliveryAddress.street.trim()||!_deliveryAddress.zip.trim()||!_deliveryAddress.city.trim()) return;
+  _quoteLoading=true;
+  const feeEl=document.getElementById('om-fee-val');
+  const etaEl=document.getElementById('om-eta-lbl');
+  const btn=document.getElementById('om-cta-btn');
+  if(feeEl) feeEl.textContent='⏳ …';
+  if(btn) btn.disabled=true;
+  try{
+    const addr=`${_deliveryAddress.street}, ${_deliveryAddress.zip} ${_deliveryAddress.city}, France`;
+    const r=await callEdge('get-delivery-quote',{dropoff_address:addr});
+    if(r?.available===false){
+      _deliveryQuote=null;
+      if(feeEl) feeEl.textContent='N/D';
+      if(etaEl) etaEl.textContent='Hors zone de livraison';
+      showToast(r.error||'Livraison non disponible à cette adresse');
+      return;
+    }
+    if(r?.fee_cents){
+      _deliveryQuote={fee_cents:r.fee_cents,currency:r.currency||'EUR',pickup_duration:r.pickup_duration,dropoff_eta:r.dropoff_eta,quote_id:r.quote_id||null};
+      const feeFmt=(r.fee_cents/100).toFixed(2).replace('.',',')+' €';
+      if(feeEl) feeEl.textContent=feeFmt;
+      if(etaEl) etaEl.textContent=r.dropoff_eta?'Livraison en ~'+r.dropoff_eta+' min':'25–40 min estimées';
+      // MAJ CTA total
+      const totalBtn=document.querySelector('#om-cta-btn span:last-child');
+      const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
+      if(totalBtn) totalBtn.textContent=(_sub+r.fee_cents/100).toFixed(2).replace('.',',')+' €';
+      // MAJ fee row
+      const feeRowVal=document.querySelector('.om-cta-fee-row span:last-child');
+      if(feeRowVal) feeRowVal.textContent=`${_sub.toFixed(2).replace('.',',')}€ + ${feeFmt}`;
+    }
+  }catch(e){
+    console.warn('[quote] erreur:',e.message);
+    _deliveryQuote=null;
+    if(feeEl) feeEl.textContent='3,99 €';
+    if(etaEl) etaEl.textContent='25–40 min estimées';
+  }finally{
+    _quoteLoading=false;
+    const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
+    const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
+    if(btn) btn.disabled=!(orderCardMode==='livraison'&&addrOk&&_sub>=20);
+  }
 }
 
 // Sélection d'une des 2 grandes cartes (avance / immediat)
@@ -5096,10 +5185,13 @@ async function submitClientOrder(){
     showToast('Connectez-vous pour commander 🔥');
     return;
   }
-  // Livraison : non encore opérationnelle
+  // Livraison — validation adresse et minimum commande
   if(orderCardMode==='livraison'){
-    showToast('🛵 La livraison arrive bientôt — restez connectés !');
-    return;
+    const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
+    if(!addrOk){ showToast('Saisissez votre adresse de livraison complète'); return; }
+    const _sub=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
+    if(_sub<20){ showToast('Minimum 20 € de commande pour la livraison'); return; }
+    if(_deliveryQuote?.available===false){ showToast('Adresse hors zone de livraison'); return; }
   }
   // Créneau requis seulement pour le mode "avance"
   if(orderCardMode==='avance'&&!selectedPickupTime){
@@ -5135,10 +5227,14 @@ async function submitClientOrder(){
   const clientPts=Math.floor(parseFloat(currentPortalClient?.cagnotte||0));
   const levelObj=currentPortalClient?getLevel(clientPts):null;
   const levelKey=levelObj?levelObj.label.toLowerCase():'bronze';
-  const fee=getStripeFee(levelKey);
+  const fee=orderCardMode==='livraison'
+    ?(_deliveryQuote?_deliveryQuote.fee_cents/100:3.99)
+    :getStripeFee(levelKey);
   const label=orderCardMode==='immediat'
     ?(orderServiceMode==='a_emporter'?'À emporter — immédiat':'Sur place — immédiat')
-    :(orderServiceMode==='a_emporter'?'À emporter — retrait à '+selectedPickupTime:'Sur place — arrivée à '+selectedPickupTime);
+    :orderCardMode==='livraison'
+      ?'Livraison — '+_deliveryAddress.street+', '+_deliveryAddress.zip+' '+_deliveryAddress.city
+      :(orderServiceMode==='a_emporter'?'À emporter — retrait à '+selectedPickupTime:'Sur place — arrivée à '+selectedPickupTime);
 
   // ── Stocker le contexte dans la variable globale ──
   _pendingOrderCtx={total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,clientPts,levelKey,fee,label};
@@ -5161,8 +5257,12 @@ async function _doSubmitOrder(selectedReward){
 
   // Capturer avant reset — orderMode/orderCardMode/orderServiceMode sont nuls après
   const isSurPlace = orderCardMode === 'immediat'; // les deux modes immédiats → caisse
-  const capturedOrderMode = orderMode;             // 'sur_place'|'a_emporter'|'reservation'|'click_collect'
+  const isLivraison = orderCardMode === 'livraison';
+  const capturedOrderMode = orderMode;             // 'sur_place'|'a_emporter'|'reservation'|'click_collect'|'livraison'
   const capturedServiceMode = orderServiceMode;    // 'sur_place'|'a_emporter'
+  const capturedDeliveryAddr = isLivraison ? {..._deliveryAddress} : null;
+  const capturedDeliveryFee  = isLivraison ? fee : null;
+  const capturedQuoteId      = isLivraison ? (_deliveryQuote?.quote_id||null) : null;
   const tok = _presenceToken;
 
   const localId='local_'+Date.now();
@@ -5176,6 +5276,7 @@ async function _doSubmitOrder(selectedReward){
   // Reset panier (avant await pour éviter double-soumission)
   _presenceToken=null;
   cart=[]; orderMode=null; orderCardMode=null; orderServiceMode='sur_place'; orderTableNum=''; selectedPickupTime='';
+  _deliveryAddress={street:'',zip:'',city:'',notes:''}; _deliveryQuote=null;
   updateCartBar();
 
   // ── Routage : Immédiat → direct en cuisine (caisse), Avance → Stripe ────────
@@ -5201,9 +5302,16 @@ async function _doSubmitOrder(selectedReward){
     reward_nom: selectedReward?.nom||null,
     reward_client_id: currentPortalClient?.id||null,
     clientData: currentPortalClient||null,
+    // Livraison Uber Direct
+    isLivraison: isLivraison||false,
+    deliveryAddress: capturedDeliveryAddr||null,
+    deliveryFee: capturedDeliveryFee||null,
+    deliveryFeeCents: capturedDeliveryFee?Math.round(capturedDeliveryFee*100):null,
+    deliveryQuoteId: capturedQuoteId||null,
     activeOrder:{supaId:null,statut:'en_attente',type:capturedOrderMode||'click_collect',tableNum:orderTableNum,
       heure:selectedPickupTime,items:itemsText,montant:total.toFixed(2),
-      clientTel,expectedPts:pts_a_crediter,orderNum}
+      clientTel,expectedPts:pts_a_crediter,orderNum,
+      deliveryAddress:capturedDeliveryAddr||null}
   }));
 
   stripeModalOpen(localId, total, fee, levelKey, label);

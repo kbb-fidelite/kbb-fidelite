@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       successUrl,
       cancelUrl,
       // Données de commande pour pré-création Supabase
-      orderType,          // 'sur_place' | 'reservation' | 'click_collect'
+      orderType,          // 'sur_place' | 'reservation' | 'click_collect' | 'livraison'
       heureRetrait,       // heure de retrait (string HH:MM)
       rewardId,           // ID récompense Supabase (nullable)
       rewardPts,          // points récompense (nullable)
@@ -151,6 +151,9 @@ Deno.serve(async (req) => {
       amountCents: clientAmountCents,
       // presence_token — requis pour orderType='sur_place'
       presence_token,
+      // Livraison Uber Direct
+      deliveryAddress,    // {street, zip, city, notes} — stocké en DB
+      deliveryFeeCents,   // frais livraison en centimes (depuis le devis Uber ou 399 par défaut)
     } = await req.json();
 
     // ── Vérification presence_token pour les commandes sur place ─────────────
@@ -180,10 +183,16 @@ Deno.serve(async (req) => {
       throw new Error('Panier vide ou invalide');
     }
 
-    const serverTotal       = calcServerTotal(items);
-    const fee               = getServiceFee(clientLevel);
-    const serverGrandTotal  = serverTotal + fee;
-    const serverCents       = Math.round(serverGrandTotal * 100);
+    const serverTotal      = calcServerTotal(items);
+    const isLivraison      = orderType === 'livraison';
+    // Livraison → frais Uber (client envoie le devis ou 3,99€ par défaut) ; sinon frais de service fidélité
+    const fee              = isLivraison
+      ? Math.round(Math.max(0, deliveryFeeCents ?? 399)) / 100
+      : getServiceFee(clientLevel);
+    const feeLabel         = isLivraison ? 'Frais de livraison' : 'Frais de service';
+    const feeLabelSub      = isLivraison ? 'Livraison à domicile par Uber Direct' : 'Offerts dès le niveau Argent';
+    const serverGrandTotal = serverTotal + fee;
+    const serverCents      = Math.round(serverGrandTotal * 100);
 
     // Vérification anti-fraude : le montant client doit correspondre (±tolérance)
     if (clientAmountCents !== undefined) {
@@ -258,8 +267,8 @@ Deno.serve(async (req) => {
         price_data: {
           currency: 'eur',
           product_data: {
-            name: 'Frais de service',
-            description: 'Offerts dès le niveau Argent',
+            name:        feeLabel,
+            description: feeLabelSub,
           },
           unit_amount: Math.round(fee * 100),
         },
@@ -297,6 +306,8 @@ Deno.serve(async (req) => {
         heure_retrait:    heureRetrait || null,
         stripe_session_id: session.id,
         pts_a_crediter:   parseInt(String(ptsACrediter || 0)) || 0,
+        // Livraison
+        ...(isLivraison && deliveryAddress ? { delivery_address: deliveryAddress } : {}),
       };
       if (rewardNom) orderPayload.reward_nom = rewardNom;
       if (rewardPts) orderPayload.reward_pts = parseInt(String(rewardPts)) || 0;

@@ -29,3 +29,15 @@ verify_jwt = false
 
 [functions.send-push-notification]
 verify_jwt = false
+
+[functions.uber-auth]
+verify_jwt = false
+
+[functions.get-delivery-quote]
+verify_jwt = false
+
+[functions.create-uber-delivery]
+verify_jwt = false
+
+[functions.uber-webhook]
+verify_jwt = false
