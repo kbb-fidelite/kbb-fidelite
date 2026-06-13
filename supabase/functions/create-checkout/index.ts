@@ -123,6 +123,10 @@ Deno.serve(async (req) => {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) throw new Error('STRIPE_SECRET_KEY non configurée');
 
+    // ── Diagnostic cohérence test/live (préfixe seulement, jamais la clé entière) ──
+    const stripeMode = stripeKey.startsWith('sk_live_') ? 'LIVE' : stripeKey.startsWith('sk_test_') ? 'TEST' : 'INCONNU';
+    console.log(`[create-checkout] Stripe mode: ${stripeMode} | clé: ${stripeKey.slice(0, 8)}...`);
+
     const supaUrl  = Deno.env.get('SUPABASE_URL')!;
     const supaKey  = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY'))!;
     const stripe   = new Stripe(stripeKey, { apiVersion: '2024-04-10' });
@@ -322,9 +326,20 @@ Deno.serve(async (req) => {
     );
 
   } catch (err) {
-    console.error('create-checkout error:', err);
+    // Stripe SDK enrichit les erreurs avec .type, .code, .statusCode
+    const stripeErr = err as { message?: string; type?: string; code?: string; statusCode?: number };
+    console.error('create-checkout error:', {
+      message:    stripeErr.message,
+      type:       stripeErr.type       ?? '—',
+      code:       stripeErr.code       ?? '—',
+      statusCode: stripeErr.statusCode ?? '—',
+    });
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({
+        error:      stripeErr.message ?? 'Erreur inconnue',
+        stripeType: stripeErr.type    ?? null,
+        stripeCode: stripeErr.code    ?? null,
+      }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
