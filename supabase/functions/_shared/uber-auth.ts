@@ -23,26 +23,32 @@ export async function getUberToken(): Promise<string> {
   const clientId     = Deno.env.get('UBER_CLIENT_ID');
   const clientSecret = Deno.env.get('UBER_CLIENT_SECRET');
 
-  console.log(`[uber-auth] step 1 — secrets: UBER_CLIENT_ID=${clientId ? 'OK ('+clientId.slice(0,4)+'...)' : 'MANQUANT'} | UBER_CLIENT_SECRET=${clientSecret ? 'OK' : 'MANQUANT'}`);
+  const customerId = Deno.env.get('UBER_CUSTOMER_ID');
+  console.log(`[uber-auth] step 1 — UBER_CLIENT_ID   : ${clientId     ? clientId.slice(0,6)+'...'     : 'MANQUANT'}`);
+  console.log(`[uber-auth] step 1 — UBER_CLIENT_SECRET: ${clientSecret ? clientSecret.slice(0,6)+'...' : 'MANQUANT'}`);
+  console.log(`[uber-auth] step 1 — UBER_CUSTOMER_ID  : ${customerId   ? customerId.slice(0,6)+'...'   : 'MANQUANT'}`);
+  console.log(`[uber-auth] step 1 — NOTE: CLIENT_ID doit être l'App ID OAuth (ex: abc123...) ; CUSTOMER_ID est l'ID organisation Uber Direct (ex: 8VO5f...)`);
 
   if (!clientId || !clientSecret) {
     throw new Error('Secrets Supabase manquants : UBER_CLIENT_ID et/ou UBER_CLIENT_SECRET non configurés — ajoutez-les via supabase secrets set');
   }
 
   // ── Étape 2 : appel OAuth2 ─────────────────────────────────────────────────
-  console.log(`[uber-auth] step 2 — OAuth2 POST https://auth.uber.com/oauth/v2/token | scope: ${UBER_OAUTH_SCOPE}`);
+  const oauthBody = new URLSearchParams({
+    client_id:     clientId,
+    client_secret: clientSecret,
+    grant_type:    'client_credentials',
+    scope:         UBER_OAUTH_SCOPE,
+  });
+  console.log(`[uber-auth] step 2 — OAuth2 POST https://auth.uber.com/oauth/v2/token`);
+  console.log(`[uber-auth] step 2 — requête body: client_id=${clientId.slice(0,6)}... | client_secret=${clientSecret.slice(0,6)}... | grant_type=client_credentials | scope=${UBER_OAUTH_SCOPE}`);
 
   let res: Response;
   try {
     res = await fetch('https://auth.uber.com/oauth/v2/token', {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    new URLSearchParams({
-        client_id:     clientId,
-        client_secret: clientSecret,
-        grant_type:    'client_credentials',
-        scope:         UBER_OAUTH_SCOPE,
-      }).toString(),
+      body:    oauthBody.toString(),
     });
   } catch (netErr) {
     throw new Error(`[uber-auth] Erreur réseau vers auth.uber.com: ${(netErr as Error).message}`);
