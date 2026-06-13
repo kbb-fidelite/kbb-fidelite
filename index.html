@@ -4915,17 +4915,21 @@ async function fetchDeliveryQuote(){
   if(btn) btn.disabled=true;
   try{
     const addr=`${_deliveryAddress.street}, ${_deliveryAddress.zip} ${_deliveryAddress.city}, France`;
+    console.log('[get-delivery-quote] → appel Edge Function | adresse:', addr);
     const r=await callEdge('get-delivery-quote',{dropoff_address:addr});
+    console.log('[get-delivery-quote] ← réponse complète:', JSON.stringify(r));
     if(r?.available===false){
       _deliveryQuote=null;
-      if(feeEl) feeEl.textContent='N/D';
-      if(etaEl) etaEl.textContent='Hors zone de livraison';
+      if(feeEl) feeEl.textContent='Indisponible';
+      if(etaEl) etaEl.textContent='Livraison non disponible';
       showToast(r.error||'Livraison non disponible à cette adresse');
+      console.warn('[get-delivery-quote] indisponible:', r.error);
       return;
     }
     if(r?.fee_cents){
       _deliveryQuote={fee_cents:r.fee_cents,currency:r.currency||'EUR',pickup_duration:r.pickup_duration,dropoff_eta:r.dropoff_eta,quote_id:r.quote_id||null};
       const feeFmt=(r.fee_cents/100).toFixed(2).replace('.',',')+' €';
+      console.log('[get-delivery-quote] ✅ prix Uber Direct:', feeFmt, '| ETA:', r.dropoff_eta, 'min | quote_id:', r.quote_id);
       if(feeEl) feeEl.textContent=feeFmt;
       if(etaEl) etaEl.textContent=r.dropoff_eta?'Livraison en ~'+r.dropoff_eta+' min':'25–40 min estimées';
       // MAJ CTA total
@@ -4935,12 +4939,19 @@ async function fetchDeliveryQuote(){
       // MAJ fee row
       const feeRowVal=document.querySelector('.om-cta-fee-row span:last-child');
       if(feeRowVal) feeRowVal.textContent=`${_sub.toFixed(2).replace('.',',')}€ + ${feeFmt}`;
+    } else {
+      // fee_cents absent → erreur inattendue
+      console.error('[get-delivery-quote] ✗ fee_cents absent de la réponse:', JSON.stringify(r));
+      _deliveryQuote=null;
+      if(feeEl) feeEl.textContent='Indisponible';
+      showToast('Prix de livraison indisponible — réessayez');
     }
   }catch(e){
-    console.warn('[quote] erreur:',e.message);
+    console.error('[get-delivery-quote] ✗ erreur:', e.message);
     _deliveryQuote=null;
-    if(feeEl) feeEl.textContent='3,99 €';
-    if(etaEl) etaEl.textContent='25–40 min estimées';
+    if(feeEl) feeEl.textContent='Indisponible';
+    if(etaEl) etaEl.textContent='—';
+    showToast('Erreur devis livraison — réessayez');
   }finally{
     _quoteLoading=false;
     const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);

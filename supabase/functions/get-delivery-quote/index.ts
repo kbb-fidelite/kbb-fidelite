@@ -56,12 +56,32 @@ Deno.serve(async (req) => {
     );
 
     const data = await res.json();
-    console.log(`[get-delivery-quote] HTTP ${res.status} | dropoff: ${dropoff_address.slice(0, 40)} | fee: ${data.fee ?? '—'}`);
+
+    // Log complet de la réponse Uber pour diagnostic (aucune donnée sensible)
+    console.log(`[get-delivery-quote] HTTP ${res.status} | dropoff: ${dropoff_address.slice(0, 40)}`);
+    console.log(`[get-delivery-quote] réponse Uber brute:`, JSON.stringify({
+      id:               data.id               ?? null,
+      status:           data.status           ?? null,
+      fee:              data.fee              ?? null,
+      currency:         data.currency         ?? null,
+      pickup_duration:  data.pickup_duration  ?? null,
+      dropoff_eta:      data.dropoff_eta      ?? null,
+      expires:          data.expires          ?? null,
+      // champs alternatifs observés dans certaines versions de l'API
+      fee_breakdown:    data.fee_breakdown     ?? null,
+      quote:            data.quote             ?? null,
+      amount:           data.amount            ?? null,
+      // erreurs
+      errors:           data.errors            ?? null,
+      code:             data.code              ?? null,
+      message:          data.message           ?? null,
+    }));
 
     // Hors zone ou pas de livreur disponible
     if (!res.ok) {
       const errCode = data?.errors?.[0]?.code ?? data?.code ?? '';
       if (res.status === 422 || errCode === 'no_couriers_available' || errCode === 'out_of_service_area') {
+        console.log(`[get-delivery-quote] indisponible: ${errCode}`);
         return json({
           available: false,
           error: errCode === 'out_of_service_area'
@@ -69,12 +89,27 @@ Deno.serve(async (req) => {
             : 'Aucun livreur disponible pour le moment — réessayez dans quelques minutes',
         });
       }
-      throw new Error(`Uber Quotes API ${res.status}: ${JSON.stringify(data).slice(0, 200)}`);
+      throw new Error(`Uber Quotes API ${res.status}: ${JSON.stringify(data).slice(0, 300)}`);
     }
+
+    // Détecter le champ prix — Uber peut varier selon la version d'API
+    // Priorité : data.fee (v1) → data.quote.fee → data.amount → null (pas de fallback silencieux)
+    const rawFee = data.fee ?? data.quote?.fee ?? data.amount ?? null;
+    if (rawFee === null) {
+      console.error(`[get-delivery-quote] ⚠️ champ fee introuvable dans la réponse Uber. Clés reçues: ${Object.keys(data).join(', ')}`);
+      // Retourner available:false plutôt que silencieusement le forfait 3,99€
+      return json({
+        available: false,
+        error: 'Prix de livraison indisponible — réessayez dans quelques instants',
+      });
+    }
+
+    const feeCents = Math.round(Number(rawFee));
+    console.log(`[get-delivery-quote] ✅ fee_cents: ${feeCents} (depuis champ: ${data.fee !== undefined ? 'fee' : data.quote?.fee !== undefined ? 'quote.fee' : 'amount'})`);
 
     return json({
       available:       true,
-      fee_cents:       data.fee        ?? 399,
+      fee_cents:       feeCents,
       currency:        data.currency   ?? 'EUR',
       pickup_duration: data.pickup_duration ?? null,
       dropoff_eta:     data.dropoff_eta     ?? null,
