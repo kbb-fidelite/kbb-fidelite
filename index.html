@@ -3504,7 +3504,10 @@ const SAUCE_EXTRA_PRICE=0.30;
 
 /* ══ STRIPE ══ */
 // Clé publique uniquement — la clé secrète est dans Supabase Secrets (jamais ici)
+// Flow : Stripe Checkout (redirect) — STRIPE_PK n'est pas utilisé côté client dans ce flow.
+// La cohérence test/live doit être assurée côté serveur (STRIPE_SECRET_KEY dans Supabase Secrets).
 const STRIPE_PK='pk_test_51TH7ZMKrgv3kx9WYb1aX1Ek7Z18B2WfHRBNUhuXLfsYAMT4cspj3CXl8Ds1rQNh51fV76arnwFNhUD7F20WE5PiO00Ev22MwPL';
+if(STRIPE_PK.startsWith('pk_test_')) console.warn('[Stripe] Mode TEST — assurez-vous que STRIPE_SECRET_KEY dans Supabase Secrets est aussi sk_test_...');
 
 function getStripeFee(levelKey){
   // Bronze → 0,50€ · Argent → offert · Or → offert
@@ -3527,32 +3530,52 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
     if(pending?.activeOrder?.items) items=JSON.parse(pending.activeOrder.items);
   }catch(e){}
-  const r=await fetch(SURL+'/functions/v1/create-checkout',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
-    body:JSON.stringify({
-      orderId, items,
-      amountCents,   // envoyé pour vérification anti-fraude côté serveur
-      clientLevel:levelKey,
-      clientTel:currentPortalClient?.telephone||currentPortalClient?.tel||null,
-      orderLabel:label, successUrl, cancelUrl,
-      // Données de commande pour pré-création Supabase (utilisées par create-checkout)
-      orderType:       extraParams?.orderType       || null,
-      heureRetrait:    extraParams?.heureRetrait    || null,
-      rewardId:        extraParams?.rewardId        || null,
-      rewardPts:       extraParams?.rewardPts       || 0,
-      rewardNom:       extraParams?.rewardNom       || null,
-      ptsACrediter:    extraParams?.ptsACrediter    || 0,
-      presence_token:  extraParams?.presence_token  || null,
-    })
-  });
-  const data=await r.json();
+  const _edgeUrl=SURL+'/functions/v1/create-checkout';
+  console.log('[create-checkout] → POST', _edgeUrl, '| amount:', amountCents, 'cts | level:', levelKey);
+  let r;
+  try{
+    r=await fetch(_edgeUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+      body:JSON.stringify({
+        orderId, items,
+        amountCents,
+        clientLevel:levelKey,
+        clientTel:currentPortalClient?.telephone||currentPortalClient?.tel||null,
+        orderLabel:label, successUrl, cancelUrl,
+        orderType:       extraParams?.orderType       || null,
+        heureRetrait:    extraParams?.heureRetrait    || null,
+        rewardId:        extraParams?.rewardId        || null,
+        rewardPts:       extraParams?.rewardPts       || 0,
+        rewardNom:       extraParams?.rewardNom       || null,
+        ptsACrediter:    extraParams?.ptsACrediter    || 0,
+        presence_token:  extraParams?.presence_token  || null,
+      })
+    });
+  }catch(netErr){
+    console.error('[create-checkout] ✗ Erreur réseau (fetch lui-même a échoué) :', netErr);
+    console.error('[create-checkout] URL :', _edgeUrl);
+    console.error('[create-checkout] SURL :', SURL, '| SKEY présent :', !!SKEY);
+    throw new Error('Erreur réseau : impossible de joindre le serveur de paiement. Vérifiez votre connexion.');
+  }
+  // Lire le corps en texte brut pour logger même si ce n'est pas du JSON
+  let rawBody='';
+  try{ rawBody=await r.text(); }catch(_){}
+  console.log('[create-checkout] ← HTTP', r.status, r.statusText, '| body :', rawBody.slice(0,500));
+  let data;
+  try{ data=JSON.parse(rawBody); }catch(parseErr){
+    console.error('[create-checkout] ✗ Réponse non-JSON (HTTP', r.status,') :', rawBody.slice(0,300));
+    throw new Error('Réponse inattendue du serveur (HTTP '+r.status+'). Réessayez dans quelques instants.');
+  }
   // Créneau complet : erreur 409 avec suggestion du créneau suivant
   if(r.status===409&&data.error==='CRENEAU_PLEIN'){
     throw new Error('CRENEAU_PLEIN|'+(data.next_slot||''));
   }
-  if(!r.ok||!data.url) throw new Error(data.error||'Erreur création session Stripe');
-  // Retourner l'URL et l'ID Supabase pré-créé (peut être null si la DB a échoué)
+  if(!r.ok||!data.url){
+    console.error('[create-checkout] ✗ Erreur Edge Function :', data);
+    throw new Error(data.error||'Erreur création session Stripe (HTTP '+r.status+')');
+  }
+  console.log('[create-checkout] ✓ Session créée | url :', data.url.slice(0,60)+'…');
   return { url: data.url, supabaseOrderId: data.supabaseOrderId || null };
 }
 
