@@ -1,10 +1,9 @@
 // Supabase Edge Function — uber-auth
 //
 // Endpoint de vérification OAuth2 Uber Direct.
-// N'expose jamais le token — retourne uniquement ok + expiry.
-// Les autres Edge Functions importent getUberToken() depuis _shared/uber-auth.ts.
+// N'expose jamais le token — retourne uniquement ok + config.
 //
-// Secrets requis : UBER_CLIENT_ID, UBER_CLIENT_SECRET
+// Secrets requis : UBER_CLIENT_ID, UBER_CLIENT_SECRET, UBER_CUSTOMER_ID
 // Déploiement : supabase functions deploy uber-auth
 
 import { getUberToken, getRestaurant } from '../_shared/uber-auth.ts';
@@ -16,17 +15,29 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  // ── Logs AVANT tout appel réseau ou await ───────────────────────────────────
+  const clientId     = Deno.env.get('UBER_CLIENT_ID');
+  const clientSecret = Deno.env.get('UBER_CLIENT_SECRET');
+  const customerId   = Deno.env.get('UBER_CUSTOMER_ID');
+
+  console.log('=== uber-auth diagnostic ===');
+  console.log(`UBER_CLIENT_ID    : ${clientId     ? '"' + clientId.slice(0,6)     + '..."' : 'MANQUANT'}`);
+  console.log(`UBER_CLIENT_SECRET: ${clientSecret ? '"' + clientSecret.slice(0,6) + '..."' : 'MANQUANT'}`);
+  console.log(`UBER_CUSTOMER_ID  : ${customerId   ? '"' + customerId.slice(0,6)   + '..."' : 'MANQUANT'}`);
+  console.log(`scope cible       : eats.deliveries`);
+  console.log('============================');
+
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    await getUberToken(); // vérifie que l'auth fonctionne, jette en cas d'erreur
+    await getUberToken();
     const restaurant = getRestaurant();
-    const customerId = Deno.env.get('UBER_CUSTOMER_ID');
-    console.log(`[uber-auth] diagnostic — UBER_CUSTOMER_ID: ${customerId ? 'OK' : 'MANQUANT'} | RESTAURANT_ADDRESS: ${restaurant.address ? 'OK' : 'MANQUANT'}`);
     return new Response(
       JSON.stringify({
         ok: true,
         config: {
+          client_id_set:        !!clientId,
+          client_secret_set:    !!clientSecret,
           customer_id_set:      !!customerId,
           restaurant_addr_set:  !!restaurant.address,
           restaurant_phone_set: !!restaurant.phone_number,
