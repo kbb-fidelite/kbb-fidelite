@@ -1,4 +1,4 @@
-const VERSION = 'kbb-v189';
+const VERSION = 'kbb-v190';
 const CACHE = VERSION;
 
 // Fichiers critiques — l'app ne fonctionne pas sans eux

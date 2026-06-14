@@ -1,31 +1,45 @@
-// Supabase Edge Function — create-checkout (avec validation des prix côté serveur)
-// Les prix sont recalculés CÔTÉ SERVEUR — le client n'envoie que les articles (noms + options)
-// Pré-crée la commande en "pending_payment" dans Supabase avec stripe_session_id.
-// verify-payment activera la commande en "en_attente" après vérification du paiement.
-// Secrets requis : STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+// Supabase Edge Function — create-checkout
 //
+// Crée une session Stripe Checkout avec UN seul line item (montant total).
+// Stripe est un processeur de paiement, pas un catalogue produit.
+//
+// Sécurité :
+//   - Le total est calculé côté serveur en sommant les prix des articles reçus
+//   - Comparé au montant envoyé par le client (±10cts de tolérance arrondi)
+//   - La clé secrète Stripe n'est jamais exposée côté client
+//
+// Pré-crée la commande en "pending_payment" dans Supabase avec stripe_session_id.
+// verify-payment activera la commande en "en_attente" après confirmation Stripe.
+//
+// Secrets requis : STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // Déploiement : supabase functions deploy create-checkout
 
 import Stripe from 'https://esm.sh/stripe@14?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+function jsonResp(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 // ── Vérifie le presence_token émis par verify-presence-code ──────────────────
-async function verifyPresenceToken(
-  token: string,
-  secret: string,
-  clientTel: string
-): Promise<boolean> {
+async function verifyPresenceToken(token: string, secret: string, clientTel: string): Promise<boolean> {
   try {
     const dot = token.lastIndexOf('.');
     if (dot === -1) return false;
     const data   = token.slice(0, dot);
     const sigB64 = token.slice(dot + 1);
     const key = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
+      'raw', new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
     );
     const sig   = Uint8Array.from(atob(sigB64), c => c.charCodeAt(0));
     const valid = await crypto.subtle.verify('HMAC', key, sig, new TextEncoder().encode(data));
@@ -35,85 +49,25 @@ async function verifyPresenceToken(
     if (!payload.exp || payload.exp < Date.now()) return false;
     if (payload.tel !== clientTel) return false;
     return true;
-  } catch {
-    return false;
-  }
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// ── Référentiel de prix officiel (source de vérité côté serveur) ─────────────
-const MENU_PRICES: Record<string, number> = {
-  'Le Classique':       8.50,
-  "L'Original":         8.50,
-  'Le Grec':            9.50,
-  'Le Phénicien':      10.50,
-  'Le Chèvre Miel':    10.50,
-  'Le Mexico':         10.50,
-  'Le Burrata':        12.90,
-  'Spicy KBB':          8.50,
-  'Sweet KBB':          8.50,
-  'Spicy Chicken':      8.50,
-  'Sweet Chicken':      8.50,
-  "L'Asia":            14.90,
-  'La Burrata':        16.90,
-  'La Libanaise':      16.90,
-  'Menu Junior':        7.90,
-  'Supplément Menu':    3.50,
-  'Panna Cotta':        3.90,
-  'Mousse au Chocolat': 3.90,
-  'Mövenpick':          4.90,
-};
-
-const SUPPLEMENT_PRICES: Record<string, number> = {
-  'Supplément viande kebab':   2.00,
-  'Supplément viande poulet':  2.00,
-  'Supplément burrata':        4.00,
-  'Supplément cheddar':        0.50,
-  'Supplément féta':           1.00,
-  'Supplément sauce fromagère':0.50,
-  'Supplément jalapeños':      0.50,
-};
-
-const SAUCES_FREE       = 2;
-const SAUCE_EXTRA_PRICE = 0.30;
-const TOLERANCE_EUROS   = 0.10; // tolérance arrondi flottant
-
-interface CartItem {
-  name:    string;
-  price?:  number;   // prix client (non utilisé pour facturation)
-  menu?:   boolean;  // +3.50€ supplément menu
-  suppls?: string[]; // noms des suppléments payants
-  sauces?: string[]; // sauces (>2 = 0.30€/sauce supplémentaire)
-  isSuppl?: boolean; // ligne supplément interne
-}
-
-function calcServerTotal(items: CartItem[]): number {
-  let total = 0;
-  for (const item of items) {
-    if (item.isSuppl) continue; // lignes internes ignorées
-    const base = MENU_PRICES[item.name];
-    if (base === undefined) {
-      throw new Error(`Article inconnu : "${item.name}"`);
-    }
-    total += base;
-    if (item.menu) total += MENU_PRICES['Supplément Menu'] ?? 3.50;
-    for (const s of item.suppls ?? []) {
-      const sp = SUPPLEMENT_PRICES[s];
-      if (sp !== undefined) total += sp;
-    }
-    const extraSauces = Math.max(0, (item.sauces?.length ?? 0) - SAUCES_FREE);
-    total += extraSauces * SAUCE_EXTRA_PRICE;
-  }
-  return Math.round(total * 100) / 100;
+  } catch { return false; }
 }
 
 function getServiceFee(clientLevel: string): number {
   return (clientLevel === 'bronze' || !clientLevel) ? 0.50 : 0;
+}
+
+// ── Calcul serveur : somme les prix reçus dans le payload (source : MENU_DATA client) ──
+// Les prix viennent de MENU_DATA embarqué dans index.html — pas modifiables sans redéploiement.
+// On additionne ici pour éviter toute manipulation du total côté client.
+function calcServerTotal(items: Array<{ price?: number; isSuppl?: boolean }>): number {
+  let total = 0;
+  for (const item of items) {
+    if (item.isSuppl) continue;
+    const p = Number(item.price);
+    if (!isFinite(p) || p < 0) throw new Error('Prix article invalide');
+    total += p;
+  }
+  return Math.round(total * 100) / 100;
 }
 
 Deno.serve(async (req) => {
@@ -123,7 +77,6 @@ Deno.serve(async (req) => {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) throw new Error('STRIPE_SECRET_KEY non configurée');
 
-    // ── Diagnostic cohérence test/live (préfixe seulement, jamais la clé entière) ──
     const stripeMode = stripeKey.startsWith('sk_live_') ? 'LIVE' : stripeKey.startsWith('sk_test_') ? 'TEST' : 'INCONNU';
     console.log(`[create-checkout] Stripe mode: ${stripeMode} | clé: ${stripeKey.slice(0, 8)}...`);
 
@@ -134,93 +87,70 @@ Deno.serve(async (req) => {
 
     const {
       orderId,
-      items,              // [{name, menu, suppls, sauces}] — calculé côté serveur
-      clientLevel,        // 'bronze' | 'argent' | 'or'
+      items,              // [{price, isSuppl?, ...}] — prix issus de MENU_DATA
+      clientLevel,
       clientTel,
       orderLabel,
       successUrl,
       cancelUrl,
-      // Données de commande pour pré-création Supabase
-      orderType,          // 'sur_place' | 'reservation' | 'click_collect' | 'livraison'
-      heureRetrait,       // heure de retrait (string HH:MM)
-      rewardId,           // ID récompense Supabase (nullable)
-      rewardPts,          // points récompense (nullable)
-      rewardNom,          // nom récompense (nullable)
-      ptsACrediter,       // points à créditer au client après remise
-      // amountCents envoyé par le client — utilisé uniquement pour vérification
+      orderType,
+      heureRetrait,
+      rewardId,
+      rewardPts,
+      rewardNom,
+      ptsACrediter,
       amountCents: clientAmountCents,
-      // presence_token — requis pour orderType='sur_place'
       presence_token,
-      // Livraison Uber Direct
-      deliveryAddress,    // {street, zip, city, notes} — stocké en DB
-      deliveryFeeCents,   // frais livraison en centimes (depuis le devis Uber ou 399 par défaut)
+      deliveryAddress,
+      deliveryFeeCents,
     } = await req.json();
 
     // ── Vérification presence_token pour les commandes sur place ─────────────
     if (orderType === 'sur_place') {
       if (!presence_token || typeof presence_token !== 'string') {
-        console.warn('create-checkout: presence_token manquant pour sur_place');
-        return new Response(
-          JSON.stringify({ error: 'Code de présence requis pour commander sur place', code: 'TOKEN_REQUIS' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return jsonResp({ error: 'Code de présence requis pour commander sur place', code: 'TOKEN_REQUIS' }, 403);
       }
-      const secret    = Deno.env.get('EMP_TOKEN_SECRET') ?? 'kbb-default-secret-change-me';
-      const clientTelForToken = String(clientTel || '');
-      const valid = await verifyPresenceToken(presence_token, secret, clientTelForToken);
+      const secret = Deno.env.get('EMP_TOKEN_SECRET') ?? 'kbb-default-secret-change-me';
+      const valid  = await verifyPresenceToken(presence_token, secret, String(clientTel || ''));
       if (!valid) {
-        console.warn(`create-checkout: presence_token invalide/expiré pour tel=${clientTelForToken}`);
-        return new Response(
-          JSON.stringify({ error: 'Code de présence invalide ou expiré — recommencez', code: 'TOKEN_INVALIDE' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return jsonResp({ error: 'Code de présence invalide ou expiré — recommencez', code: 'TOKEN_INVALIDE' }, 403);
       }
-      console.log(`create-checkout: presence_token OK pour tel=${clientTelForToken}`);
+      console.log(`[create-checkout] presence_token OK | tel=...${String(clientTel || '').slice(-4)}`);
     }
 
-    // ── Validation des articles ───────────────────────────────────
+    // ── Validation de base ────────────────────────────────────────────────────
     if (!items || !Array.isArray(items) || items.length === 0) {
-      throw new Error('Panier vide ou invalide');
+      return jsonResp({ error: 'Panier vide ou invalide' }, 400);
     }
 
-    const serverTotal      = calcServerTotal(items);
-    const isLivraison      = orderType === 'livraison';
-    // Livraison → frais Uber (client envoie le devis ou 3,99€ par défaut) ; sinon frais de service fidélité
-    const fee              = isLivraison
+    // ── Calcul serveur du total ───────────────────────────────────────────────
+    const serverTotal     = calcServerTotal(items);
+    const isLivraison     = orderType === 'livraison';
+    const fee             = isLivraison
       ? Math.round(Math.max(0, deliveryFeeCents ?? 399)) / 100
       : getServiceFee(clientLevel);
-    const feeLabel         = isLivraison ? 'Frais de livraison' : 'Frais de service';
-    const feeLabelSub      = isLivraison ? 'Livraison à domicile par Uber Direct' : 'Offerts dès le niveau Argent';
-    const serverGrandTotal = serverTotal + fee;
+    const serverGrandTotal = Math.round((serverTotal + fee) * 100) / 100;
     const serverCents      = Math.round(serverGrandTotal * 100);
 
-    // Vérification anti-fraude : le montant client doit correspondre (±tolérance)
+    console.log(`[create-checkout] total serveur: ${serverTotal.toFixed(2)}€ + fee ${fee.toFixed(2)}€ = ${serverGrandTotal.toFixed(2)}€ (${serverCents} cts)`);
+
+    // ── Anti-fraude : comparaison avec le montant client (±10cts) ────────────
     if (clientAmountCents !== undefined) {
-      const diff = Math.abs(clientAmountCents - serverCents);
-      if (diff > Math.round(TOLERANCE_EUROS * 100)) {
-        console.warn(`Prix tampered: client=${clientAmountCents} server=${serverCents}`);
-        throw new Error('Montant invalide — commande refusée');
+      const diff = Math.abs(Number(clientAmountCents) - serverCents);
+      if (diff > 10) {
+        console.warn(`[create-checkout] montant tampered: client=${clientAmountCents} server=${serverCents} diff=${diff}`);
+        return jsonResp({ error: 'Montant invalide — commande refusée' }, 400);
       }
     }
 
-    if (serverCents < 50) throw new Error('Montant minimum non atteint');
+    if (serverCents < 50) return jsonResp({ error: 'Montant minimum Stripe non atteint (0,50€)' }, 400);
 
-    // ── Vérification capacité créneau ─────────────────────────────
-    // Uniquement pour click_collect et reservation avec une heure définie
+    // ── Vérification capacité créneau ─────────────────────────────────────────
     if (heureRetrait && (orderType === 'click_collect' || orderType === 'reservation')) {
-      const supabase = createClient(supaUrl, supaKey);
-
-      // Lire la capacité max configurée par le patron
-      const { data: capRow } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'capacite_creneau')
-        .maybeSingle();
+      const { data: capRow } = await supabase.from('settings').select('value').eq('key', 'capacite_creneau').maybeSingle();
       const capacite = Math.max(1, parseInt(String(capRow?.value ?? 5)) || 5);
 
-      // Compter les commandes actives sur ce créneau aujourd'hui
-      // Exclure les pending_payment de plus de 30 min (paiements abandonnés)
-      const today = new Date().toISOString().slice(0, 10);
+      const today       = new Date().toISOString().slice(0, 10);
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
       const { count } = await supabase
@@ -232,31 +162,27 @@ Deno.serve(async (req) => {
         .not('statut', 'in', '(annule,archive)')
         .or(`statut.neq.pending_payment,created_at.gte.${thirtyMinAgo}`);
 
-      console.log(`create-checkout: créneau ${heureRetrait} — ${count}/${capacite} réservations`);
+      console.log(`[create-checkout] créneau ${heureRetrait} — ${count}/${capacite}`);
 
       if ((count ?? 0) >= capacite) {
-        // Calculer le créneau suivant (+15 min)
         const [h, m] = heureRetrait.split(':').map(Number);
-        const nextMin = h * 60 + m + 15;
+        const nextMin  = h * 60 + m + 15;
         const nextSlot = `${String(Math.floor(nextMin / 60)).padStart(2, '0')}:${String(nextMin % 60).padStart(2, '0')}`;
-        console.log(`create-checkout: créneau ${heureRetrait} COMPLET — suggestion ${nextSlot}`);
-        return new Response(
-          JSON.stringify({ error: 'CRENEAU_PLEIN', heure: heureRetrait, next_slot: nextSlot }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return jsonResp({ error: 'CRENEAU_PLEIN', heure: heureRetrait, next_slot: nextSlot }, 409);
       }
     }
 
-    // ── Construire les line items Stripe ─────────────────────────
+    // ── Créer la session Stripe — UN seul line item générique ─────────────────
+    // Stripe est un processeur de paiement, pas un catalogue produit.
+    const feeLabel    = isLivraison ? 'Frais de livraison (Uber Direct)' : 'Frais de service';
+    const feeSubLabel = isLivraison ? 'Livraison à domicile'              : 'Offerts dès le niveau Argent';
+
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
         price_data: {
-          currency: 'eur',
-          product_data: {
-            name: `Commande KBB à la braise — ${orderLabel || 'Commande'}`,
-            description: orderId ? `Référence #KBB-${String(orderId).padStart(3, '0')}` : undefined,
-          },
-          unit_amount: Math.round(serverTotal * 100),
+          currency:     'eur',
+          product_data: { name: 'Commande KBB à la braise', description: orderLabel || undefined },
+          unit_amount:  Math.round(serverTotal * 100),
         },
         quantity: 1,
       },
@@ -265,48 +191,43 @@ Deno.serve(async (req) => {
     if (fee > 0) {
       lineItems.push({
         price_data: {
-          currency: 'eur',
-          product_data: {
-            name:        feeLabel,
-            description: feeLabelSub,
-          },
-          unit_amount: Math.round(fee * 100),
+          currency:     'eur',
+          product_data: { name: feeLabel, description: feeSubLabel },
+          unit_amount:  Math.round(fee * 100),
         },
         quantity: 1,
       });
     }
 
-    // ── Créer la session Stripe Checkout ─────────────────────────
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      success_url: successUrl,
-      cancel_url:  cancelUrl,
+      line_items:           lineItems,
+      mode:                 'payment',
+      success_url:          successUrl,
+      cancel_url:           cancelUrl,
       metadata: {
-        client_tel:   clientTel || '',
-        client_level: clientLevel || 'bronze',
+        client_tel:   String(clientTel || ''),
+        client_level: String(clientLevel || 'bronze'),
         server_total: String(serverGrandTotal),
       },
       phone_number_collection: { enabled: false },
     });
 
-    // ── Pré-créer la commande en "pending_payment" dans Supabase ─
-    // La commande sera activée (→ en_attente) par verify-payment après vérification Stripe.
-    // Sans cette vérification, la commande reste inactive et n'apparaît pas en cuisine.
+    console.log(`[create-checkout] session Stripe créée: ${session.id} | ${serverGrandTotal.toFixed(2)}€`);
+
+    // ── Pré-créer la commande en "pending_payment" dans Supabase ─────────────
     let supabaseOrderId: number | null = null;
     try {
       const orderPayload: Record<string, unknown> = {
-        type:             orderType || 'sur_place',
-        items:            JSON.stringify(items),
-        montant:          serverGrandTotal,
-        statut:           'pending_payment',
-        created_at:       new Date().toISOString(),
-        client_telephone: clientTel || null,
-        heure_retrait:    heureRetrait || null,
+        type:              orderType || 'sur_place',
+        items:             JSON.stringify(items),
+        montant:           serverGrandTotal,
+        statut:            'pending_payment',
+        created_at:        new Date().toISOString(),
+        client_telephone:  clientTel || null,
+        heure_retrait:     heureRetrait || null,
         stripe_session_id: session.id,
-        pts_a_crediter:   parseInt(String(ptsACrediter || 0)) || 0,
-        // Livraison
+        pts_a_crediter:    parseInt(String(ptsACrediter || 0)) || 0,
         ...(isLivraison && deliveryAddress ? { delivery_address: deliveryAddress } : {}),
       };
       if (rewardNom) orderPayload.reward_nom = rewardNom;
@@ -314,44 +235,22 @@ Deno.serve(async (req) => {
       const rewardIdNum = parseInt(String(rewardId || 0));
       if (rewardId && !isNaN(rewardIdNum) && rewardIdNum > 0) orderPayload.reward_id = rewardIdNum;
 
-      const { data, error: insertErr } = await supabase
-        .from('commandes')
-        .insert(orderPayload)
-        .select('id')
-        .single();
-
+      const { data, error: insertErr } = await supabase.from('commandes').insert(orderPayload).select('id').single();
       if (insertErr) {
-        console.error('create-checkout: pré-création commande échouée:', insertErr.message);
+        console.error('[create-checkout] pré-création commande:', insertErr.message);
       } else if (data) {
         supabaseOrderId = data.id;
-        console.log(`create-checkout: commande ${supabaseOrderId} pré-créée (pending_payment) — session ${session.id}`);
+        console.log(`[create-checkout] commande ${supabaseOrderId} pré-créée — session ${session.id}`);
       }
     } catch (dbErr) {
-      // Non bloquant : la session Stripe est créée, verify-payment signalera l'erreur
-      console.error('create-checkout: erreur DB:', (dbErr as Error).message);
+      console.error('[create-checkout] erreur DB (non bloquant):', (dbErr as Error).message);
     }
 
-    return new Response(
-      JSON.stringify({ url: session.url, sessionId: session.id, supabaseOrderId, serverTotal: serverGrandTotal }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return jsonResp({ url: session.url, sessionId: session.id, supabaseOrderId, serverTotal: serverGrandTotal });
 
   } catch (err) {
-    // Stripe SDK enrichit les erreurs avec .type, .code, .statusCode
-    const stripeErr = err as { message?: string; type?: string; code?: string; statusCode?: number };
-    console.error('create-checkout error:', {
-      message:    stripeErr.message,
-      type:       stripeErr.type       ?? '—',
-      code:       stripeErr.code       ?? '—',
-      statusCode: stripeErr.statusCode ?? '—',
-    });
-    return new Response(
-      JSON.stringify({
-        error:      stripeErr.message ?? 'Erreur inconnue',
-        stripeType: stripeErr.type    ?? null,
-        stripeCode: stripeErr.code    ?? null,
-      }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const e = err as { message?: string; type?: string; code?: string; statusCode?: number };
+    console.error('[create-checkout] erreur:', { message: e.message, type: e.type ?? '—', code: e.code ?? '—', statusCode: e.statusCode ?? '—' });
+    return jsonResp({ error: e.message ?? 'Erreur inconnue', stripeType: e.type ?? null, stripeCode: e.code ?? null }, 400);
   }
 });
