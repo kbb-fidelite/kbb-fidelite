@@ -215,38 +215,9 @@ Deno.serve(async (req) => {
 
     console.log(`[create-checkout] session Stripe créée: ${session.id} | ${serverGrandTotal.toFixed(2)}€`);
 
-    // ── Pré-créer la commande en "pending_payment" dans Supabase ─────────────
-    let supabaseOrderId: number | null = null;
-    try {
-      const orderPayload: Record<string, unknown> = {
-        type:              orderType || 'sur_place',
-        items:             JSON.stringify(items),
-        montant:           serverGrandTotal,
-        statut:            'pending_payment',
-        created_at:        new Date().toISOString(),
-        client_telephone:  clientTel || null,
-        heure_retrait:     heureRetrait || null,
-        stripe_session_id: session.id,
-        pts_a_crediter:    parseInt(String(ptsACrediter || 0)) || 0,
-        ...(isLivraison && deliveryAddress ? { delivery_address: deliveryAddress } : {}),
-      };
-      if (rewardNom) orderPayload.reward_nom = rewardNom;
-      if (rewardPts) orderPayload.reward_pts = parseInt(String(rewardPts)) || 0;
-      const rewardIdNum = parseInt(String(rewardId || 0));
-      if (rewardId && !isNaN(rewardIdNum) && rewardIdNum > 0) orderPayload.reward_id = rewardIdNum;
-
-      const { data, error: insertErr } = await supabase.from('commandes').insert(orderPayload).select('id').single();
-      if (insertErr) {
-        console.error('[create-checkout] pré-création commande:', insertErr.message);
-      } else if (data) {
-        supabaseOrderId = data.id;
-        console.log(`[create-checkout] commande ${supabaseOrderId} pré-créée — session ${session.id}`);
-      }
-    } catch (dbErr) {
-      console.error('[create-checkout] erreur DB (non bloquant):', (dbErr as Error).message);
-    }
-
-    return jsonResp({ url: session.url, sessionId: session.id, supabaseOrderId, serverTotal: serverGrandTotal });
+    // La commande sera créée dans verify-payment après confirmation Stripe.
+    // Aucune pré-création ici — pas de commandes fantômes en cas d'abandon.
+    return jsonResp({ url: session.url, sessionId: session.id, serverTotal: serverGrandTotal });
 
   } catch (err) {
     const e = err as { message?: string; type?: string; code?: string; statusCode?: number };

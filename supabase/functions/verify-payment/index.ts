@@ -3,10 +3,15 @@
  *
  * Sécurité :
  *  - Vérifie le paiement via l'API REST Stripe (jamais confiance au client)
+ *  - Le montant est pris de Stripe (amount_total) — pas du client
  *  - Écrit en base via SUPABASE_SERVICE_ROLE_KEY (bypass RLS)
  *  - Idempotence : stripe_session_id = clé unique, pas de doublon
  *  - Valide que session_id commence par "cs_"
  *  - Ne logue jamais les clés secrètes
+ *
+ * La commande est créée ICI après confirmation Stripe — jamais avant.
+ * Les données d'affichage (type, items, clientTel…) viennent du client mais
+ * n'affectent pas la sécurité : seul le montant vient de Stripe.
  *
  * Aucun SDK tiers — fetch natif uniquement.
  */
@@ -18,7 +23,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const FIELDS = 'id, statut, montant, pts_a_crediter, client_telephone, items, type, heure_retrait';
+const FIELDS = 'id, statut, montant, pts_a_crediter, client_telephone, items, type, heure_retrait, stripe_session_id, delivery_address';
 
 function res(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -42,11 +47,25 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: CORS });
 
   try {
-    // ── 1. session_id ─────────────────────────────────────────────
-    let session_id = '';
-    try { session_id = String((await req.json())?.session_id ?? ''); } catch { /* body vide */ }
+    // ── 1. Lecture du body ─────────────────────────────────────────
+    let body: Record<string, unknown> = {};
+    try { body = await req.json(); } catch { /* body vide */ }
 
-    console.log('[DEBUG] session_id reçu:', session_id?.substring(0, 20), '— longueur:', session_id?.length);
+    const session_id    = String(body?.session_id    ?? '');
+    // Données de commande transmises par le client (affichage uniquement — montant vient de Stripe)
+    const orderType     = String(body?.orderType     || 'sur_place');
+    const heureRetrait  = body?.heureRetrait  ? String(body.heureRetrait)  : null;
+    const items         = body?.items         ? String(body.items)         : null;
+    const clientTel     = body?.clientTel     ? String(body.clientTel)     : null;
+    const ptsACrediter  = parseInt(String(body?.ptsACrediter  ?? 0)) || 0;
+    const rewardId      = parseInt(String(body?.rewardId      ?? 0)) || null;
+    const rewardPts     = parseInt(String(body?.rewardPts     ?? 0)) || 0;
+    const rewardNom     = body?.rewardNom     ? String(body.rewardNom)     : null;
+    const deliveryAddress = (body?.deliveryAddress && typeof body.deliveryAddress === 'object')
+      ? body.deliveryAddress
+      : null;
+
+    console.log('[VP] session_id:', session_id?.substring(0, 20), '— orderType:', orderType, '— tel:', clientTel ? '...'+String(clientTel).slice(-4) : '—');
 
     if (!session_id) return res({ error: 'session_id manquant' }, 400);
     if (!session_id.startsWith('cs_')) return res({ error: 'session_id invalide (doit commencer par cs_)' }, 400);
@@ -62,7 +81,7 @@ Deno.serve(async (req) => {
     if (!supaUrl)   return res({ error: 'SUPABASE_URL manquant' }, 400);
     if (!supaKey)   return res({ error: 'SERVICE_ROLE_KEY manquant' }, 400);
 
-    // ── 3. Vérification Stripe (source de vérité) ─────────────────
+    // ── 3. Vérification Stripe (source de vérité pour le montant) ─
     console.log('[VP] appel Stripe REST…');
     const t0 = Date.now();
     let session: { id: string; payment_status: string; amount_total: number };
@@ -78,7 +97,10 @@ Deno.serve(async (req) => {
       return res({ error: 'Paiement non confirmé : ' + session.payment_status }, 402);
     }
 
-    // ── 4. Supabase — recherche commande existante ─────────────────
+    // Montant vérifié côté Stripe — pas du client
+    const montant = Number((session.amount_total ?? 0) / 100);
+
+    // ── 4. Idempotence — chercher commande existante ───────────────
     const supabase = createClient(supaUrl, supaKey);
 
     console.log('[VP] SELECT commande…');
@@ -95,22 +117,23 @@ Deno.serve(async (req) => {
     }
     console.log('[VP] SELECT OK en', Date.now() - t1, 'ms — lignes :', rows?.length ?? 0);
 
-    const order = rows?.[0] ?? null;
+    const existing = rows?.[0] ?? null;
 
     // ── 5. Idempotence — commande déjà activée ────────────────────
-    if (order && order.statut !== 'pending_payment') {
-      console.log('[VP] IDEMPOTENT — statut :', order.statut);
-      return res(buildResponse(order, true));
+    if (existing && existing.statut !== 'pending_payment') {
+      console.log('[VP] IDEMPOTENT — statut :', existing.statut);
+      return res(buildResponse(existing, true));
     }
 
-    // ── 6a. Activer la commande pré-créée ─────────────────────────
-    if (order) {
-      console.log('[VP] UPDATE pending_payment → en_attente id=', order.id);
+    // ── 6a. Commande pré-créée (pending_payment) — transition ─────
+    // Compatibilité avec les éventuelles commandes pré-créées avant le déploiement de ce fix.
+    if (existing && existing.statut === 'pending_payment') {
+      console.log('[VP] UPDATE pending_payment → en_attente id=', existing.id);
       const t2 = Date.now();
       const { data: updated, error: updateErr } = await supabase
         .from('commandes')
         .update({ statut: 'en_attente' })
-        .eq('id', order.id)
+        .eq('id', existing.id)
         .eq('statut', 'pending_payment')
         .select(FIELDS)
         .maybeSingle();
@@ -120,23 +143,34 @@ Deno.serve(async (req) => {
         return res({ error: 'ERREUR_BASE_DE_DONNEES', detail: updateErr.message }, 500);
       }
       console.log('[VP] UPDATE OK en', Date.now() - t2, 'ms');
-      return res(buildResponse(updated ?? order, false));
+      return res(buildResponse(updated ?? existing, false));
     }
 
-    // ── 6b. Fallback INSERT (create-checkout n'a pas pré-créé) ────
-    console.warn('[VP] FALLBACK INSERT — aucune commande pré-créée pour', session_id.slice(0, 20));
-    const montant = Number((session.amount_total ?? 0) / 100);
+    // ── 6b. INSERT — création après paiement confirmé ─────────────
+    // Le paiement est confirmé par Stripe. On crée maintenant la commande.
+    console.log('[VP] INSERT commande — type:', orderType, '| montant:', montant);
     const t3 = Date.now();
+
+    const orderPayload: Record<string, unknown> = {
+      stripe_session_id: session_id,
+      statut:            'en_attente',
+      montant,
+      type:              orderType || 'sur_place',
+      items:             items ?? null,
+      client_telephone:  clientTel ?? null,
+      heure_retrait:     heureRetrait ?? null,
+      pts_a_crediter:    ptsACrediter,
+      created_at:        new Date().toISOString(),
+    };
+
+    if (rewardNom) orderPayload.reward_nom = rewardNom;
+    if (rewardPts) orderPayload.reward_pts = rewardPts;
+    if (rewardId && !isNaN(rewardId) && rewardId > 0) orderPayload.reward_id = rewardId;
+    if (deliveryAddress) orderPayload.delivery_address = deliveryAddress;
+
     const { data: newOrder, error: insertErr } = await supabase
       .from('commandes')
-      .insert({
-        stripe_session_id: session_id,
-        statut:            'en_attente',
-        montant,
-        type:              'sur_place',
-        pts_a_crediter:    0,
-        created_at:        new Date().toISOString(),
-      })
+      .insert(orderPayload)
       .select(FIELDS)
       .maybeSingle();
 
