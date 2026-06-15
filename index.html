@@ -584,6 +584,30 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .mi.has-photo .mi-desc{font-size:11.5px;color:rgba(255,255,255,.42);margin-top:4px;-webkit-line-clamp:2;}
 .mi.has-photo .mi-price{font-size:24px;letter-spacing:.5px;align-self:center;flex-shrink:0;}
 .mi.has-photo .mi-qty{top:8px;right:8px;}
+
+/* ── Bouton CTA carte produit (apparaît après Solo/Menu) ── */
+.mi-cta-btn{
+  display:block;width:calc(100% - 1.75rem);
+  margin:0 .875rem .875rem;
+  padding:.8rem 1rem;
+  background:linear-gradient(130deg,#FF8C00,#c45200);
+  color:#fff;border:none;border-radius:var(--radius);
+  font-family:var(--font);font-size:14.5px;font-weight:800;
+  letter-spacing:.2px;cursor:pointer;text-align:left;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 4px 18px rgba(255,100,0,.35);
+  opacity:0;transform:translateY(10px);
+  max-height:0;overflow:hidden;
+  transition:opacity .3s ease,transform .3s ease,max-height .3s ease,margin .3s ease,padding .3s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.mi.has-photo.fmt-selected .mi-cta-btn{
+  opacity:1;transform:translateY(0);
+  max-height:60px;overflow:visible;
+}
+.mi-cta-btn:active{transform:scale(.97);}
+.mi-cta-arrow{font-size:18px;flex-shrink:0;}
+
 /* ══ ORDER MODE v2 — 2 grandes cartes ══ */
 .order-mode-section{margin-top:1rem;}
 /* Cartes de mode */
@@ -3358,11 +3382,13 @@ function updateProductFormat(idx, format, e){
   // Active/désactive les labels
   card.querySelectorAll('.fmt-opt').forEach(o=>o.classList.toggle('active',o.dataset.fmt===format));
   // Met à jour le prix affiché sur la carte
+  const p=(format==='menu'&&menuP)?menuP:m.price;
   const priceEl=card.querySelector('.mi-price');
-  if(priceEl){
-    const p=(format==='menu'&&menuP)?menuP:m.price;
-    priceEl.textContent=p.toFixed(2).replace('.',',')+'€';
-  }
+  if(priceEl) priceEl.textContent=p.toFixed(2).replace('.',',')+'€';
+  // Affiche le bouton CTA avec le prix à jour (slide-up 0.3s via CSS)
+  card.classList.add('fmt-selected');
+  const ctaLabel=card.querySelector('.mi-cta-label');
+  if(ctaLabel) ctaLabel.textContent='Personnaliser — '+p.toFixed(2).replace('.',',')+'€';
 }
 
 function initMenu(){
@@ -3379,13 +3405,21 @@ function initMenu(){
         const menuP=getMenuPrice(m);
         const fmt=_menuFormats[idx]||'solo';
         const dPrice=((fmt==='menu'&&menuP)?menuP:m.price).toFixed(2).replace('.',',');
-        const fmtSel=menuP?`<div class="format-selector" style="--fmt-pos:${fmt==='menu'?'1':'0'}">
+        const hasFmt=!!menuP;
+        const fmtSel=hasFmt?`<div class="format-selector" style="--fmt-pos:${fmt==='menu'?'1':'0'}">
           <div class="fmt-opt${fmt==='solo'?' active':''}" data-fmt="solo" onclick="updateProductFormat(${idx},'solo',event)"><span class="fmt-opt-label">Solo</span><span class="fmt-opt-price">${m.price.toFixed(2).replace('.',',')}€</span></div>
           <div class="fmt-opt${fmt==='menu'?' active':''}" data-fmt="menu" onclick="updateProductFormat(${idx},'menu',event)"><span class="fmt-opt-label">Menu 🍟</span><span class="fmt-opt-price">${menuP.toFixed(2).replace('.',',')}€</span></div>
         </div>`:'';
-        return `<div class="mi has-photo" data-mi-idx="${idx}" onclick="addToCart(${idx})">
+        // Le bouton CTA n'apparaît que si le produit a un sélecteur Solo/Menu
+        const ctaBtn=hasFmt?`<button class="mi-cta-btn" onclick="event.stopPropagation();addToCart(${idx})" aria-label="Personnaliser ${m.name}">
+          <span class="mi-cta-label">Personnaliser — ${dPrice}€</span>
+          <span class="mi-cta-arrow">→</span>
+        </button>`:'';
+        // onclick sur la carte uniquement pour les produits SANS format (pas de kebab/tacos)
+        const cardClick=hasFmt?'':`onclick="addToCart(${idx})"`;
+        return `<div class="mi has-photo" data-mi-idx="${idx}" ${cardClick}>
           ${qty?`<div class="mi-qty">${qty}</div>`:''}
-          <div class="mi-photo-wrap">
+          <div class="mi-photo-wrap" ${hasFmt?`onclick="addToCart(${idx})"`:''}>
             <img class="mi-photo" src="${imgSrc}" alt="${m.name}" loading="lazy" decoding="async">
           </div>
           <div class="mi-body">
@@ -3393,6 +3427,7 @@ function initMenu(){
             <div class="mi-price" data-price-solo="${m.price}" data-price-menu="${menuP||m.price}">${dPrice}€</div>
           </div>
           ${fmtSel}
+          ${ctaBtn}
         </div>`;
       }
       if(m.image){
