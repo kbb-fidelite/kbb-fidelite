@@ -660,7 +660,6 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 /* Fee */
 .om-fee{margin-top:4px;padding:12px 14px;background:linear-gradient(135deg,rgba(255,140,0,.08),rgba(255,140,0,.02));border-radius:10px;border:1px solid rgba(255,140,0,.15);display:flex;align-items:center;justify-content:space-between;}
 .om-fee-val{font-size:15px;font-weight:700;color:#FF8C00;}
-.om-min-warn{margin-top:10px;font-size:12px;color:#ff6b6b;background:rgba(255,107,107,.08);padding:8px 12px;border-radius:8px;}
 /* Info hint */
 .om-hint{margin-top:12px;padding:10px 12px;background:#0f0f0f;border:1px solid rgba(255,255,255,.05);border-radius:10px;display:flex;align-items:center;gap:10px;font-size:12.5px;color:#aaa;line-height:1.45;}
 .om-hint-ico{width:32px;height:32px;border-radius:8px;background:rgba(255,140,0,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -4772,7 +4771,7 @@ function renderOrderOptions(){
   const _tot=_sub+_fee;
   const _subStr=_sub.toFixed(2).replace('.',',')+'€';
   const _totStr=_tot.toFixed(2).replace('.',',')+'€';
-  const _livOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim()&&_sub>=20;
+  const _livOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
   const _canConfirm=orderCardMode==='immediat'||(orderCardMode==='avance'&&!!selectedPickupTime)||(orderCardMode==='livraison'&&_livOk);
   const _ctaLabel=orderCardMode==='immediat'?'⚡ Envoyer':orderCardMode==='livraison'?'Commander · livraison 🛵':'Confirmer ma commande';
 
@@ -4874,13 +4873,13 @@ function renderOrderOptions(){
         <div class="om-fee-val" id="om-fee-val">${_quoteLoading?'⏳ …':_deliveryQuote?(_deliveryQuote.fee_cents/100).toFixed(2).replace('.',',')+' €':'—'}</div>
       </div>
     </div>
-    ${_sub<20?`<div class="om-min-warn">Minimum 20 € — ajoutez ${(20-_sub).toFixed(2).replace('.',',')} € pour livrer.</div>`:''}`;
+`;
 
   section.innerHTML=`
     <div class="om-section">
       ${_card('immediat',orderCardMode==='immediat','Je suis là','⚡','Commande immédiate · prête en 12–15 min','',_c1Inner)}
       ${_card('avance',orderCardMode==='avance','Je commande à l\'avance','📅',_c2Sub,'',_c2Inner)}
-      ${_card('livraison',orderCardMode==='livraison','Livraison','🛵','Livraison à domicile · 25–40 min','Min. 20 €',_c3Inner)}
+      ${_card('livraison',orderCardMode==='livraison','Livraison','🛵','Livraison à domicile · 25–40 min','',_c3Inner)}
       <div class="om-reassure"><span style="font-size:16px">🔥</span><span>Toutes nos viandes sont cuites au <strong style="color:#fff">feu de bois</strong>, préparées à la minute.</span></div>
       ${_fee>0?`<div class="om-cta-fee-row"><span>Sous-total + livraison</span><span>${_subStr} + ${_fee.toFixed(2).replace('.',',')} €</span></div>`:''}
       <button id="om-cta-btn" class="om-cta" onclick="submitClientOrder()" ${_canConfirm&&orderCardMode?'':' disabled'}>
@@ -4897,10 +4896,10 @@ function _omAddrUpdate(field, val){
   if(!btn) return;
   const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
   const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
-  const ok=orderCardMode==='livraison'&&addrOk&&_sub>=20&&!_quoteLoading;
+  const ok=orderCardMode==='livraison'&&addrOk&&!_quoteLoading;
   btn.disabled=!ok;
   // Déclencher le devis Uber si l'adresse est complète (debounce 900ms)
-  if(addrOk&&_sub>=20){
+  if(addrOk){
     clearTimeout(_quoteDebounce);
     _quoteDebounce=setTimeout(fetchDeliveryQuote,900);
   }
@@ -4954,7 +4953,7 @@ async function fetchDeliveryQuote(){
     const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
     const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
     // Activer le CTA uniquement si on a un devis valide
-    if(btn) btn.disabled=!(orderCardMode==='livraison'&&addrOk&&_sub>=20&&!!_deliveryQuote);
+    if(btn) btn.disabled=!(orderCardMode==='livraison'&&addrOk&&!!_deliveryQuote);
   }
 }
 
@@ -5198,8 +5197,6 @@ async function submitClientOrder(){
   if(orderCardMode==='livraison'){
     const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
     if(!addrOk){ showToast('Saisissez votre adresse de livraison complète'); return; }
-    const _sub=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
-    if(_sub<20){ showToast('Minimum 20 € de commande pour la livraison'); return; }
     if(!_deliveryQuote){ showToast('Calcul des frais de livraison en cours — réessayez dans un instant'); return; }
   }
   // Créneau requis seulement pour le mode "avance"
