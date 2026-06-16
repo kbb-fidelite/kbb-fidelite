@@ -855,13 +855,41 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .prod-add-price{font-family:var(--font-d);font-size:22px;}
 /* ── Sticky bar + progress bar ── */
 .ps-sticky-bar{flex-shrink:0;background:rgba(14,14,14,.95);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.07);padding:.875rem 1.25rem 1.25rem;}
-.ps-progress{display:none;justify-content:center;align-items:center;gap:7px;padding:9px 1.25rem 8px;background:rgba(18,18,18,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.05);position:sticky;top:0;z-index:5;}
-.ps-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.1);transition:all .3s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;}
-.ps-dot.done{background:#e65100;}
-.ps-dot.req{background:rgba(255,87,34,.35);box-shadow:0 0 0 2px rgba(255,87,34,.12);}
-.ps-dot-line{width:13px;height:1px;background:rgba(255,255,255,.07);flex-shrink:0;}
+/* Progress bar — étapes nommées */
+.ps-progress{display:none;flex-direction:row;align-items:center;gap:4px;padding:9px 14px 8px;background:rgba(10,10,10,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:5;overflow-x:auto;scrollbar-width:none;}
+.ps-progress::-webkit-scrollbar{display:none;}
+.ps-step-chip{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.ps-step-num{width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;transition:background .25s,color .25s;}
+.ps-step-lbl{font-size:11px;font-weight:700;transition:color .25s;letter-spacing:.1px;}
+.ps-step-chip.ps-s-todo .ps-step-num{background:rgba(255,255,255,.07);color:rgba(255,255,255,.22);}
+.ps-step-chip.ps-s-todo .ps-step-lbl{color:rgba(255,255,255,.22);}
+.ps-step-chip.ps-s-active .ps-step-num{background:#FF8C00;color:#fff;}
+.ps-step-chip.ps-s-active .ps-step-lbl{color:#FF8C00;font-weight:800;}
+.ps-step-chip.ps-s-done .ps-step-num{background:#4CAF50;color:#fff;}
+.ps-step-chip.ps-s-done .ps-step-lbl{color:rgba(76,175,80,.75);}
+.ps-step-chip.ps-s-neutral .ps-step-num{background:rgba(255,255,255,.07);color:rgba(255,255,255,.22);}
+.ps-step-chip.ps-s-neutral .ps-step-lbl{color:rgba(255,255,255,.22);}
+.ps-step-sep{flex:1;height:1px;background:rgba(255,255,255,.08);min-width:8px;max-width:22px;flex-shrink:1;}
+/* Compatibilité legacy */
+.ps-dot{display:none;}.ps-dot-line{display:none;}
 /* Required label */
 .ps-required{font-size:10px;font-weight:600;color:#c04020;text-transform:none;letter-spacing:0;margin-left:5px;}
+/* Section states */
+.ps-sect-wrap{border-radius:14px;padding:.75rem .875rem;margin:.1rem -0.875rem .9rem;border:2px solid transparent;transition:border-color .3s,background .3s,box-shadow .3s;}
+.ps-sect-wrap.ps-sect--active{border-color:#FF8C00;background:rgba(255,140,0,.04);box-shadow:0 0 0 0 rgba(255,140,0,0);animation:psActivePulse 2.5s ease-in-out infinite;}
+.ps-sect-wrap.ps-sect--done{border-color:rgba(76,175,80,.35);background:rgba(76,175,80,.03);}
+@keyframes psActivePulse{0%,100%{box-shadow:0 0 0 0 rgba(255,140,0,0);}50%{box-shadow:0 0 0 5px rgba(255,140,0,.10);}}
+/* Section title & hint */
+.ps-sect-ttl{font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:.25rem;display:flex;align-items:center;gap:7px;}
+.ps-sect-ttl-num{font-size:15px;flex-shrink:0;}
+.ps-sect-hint{font-size:11.5px;color:#FF9A1E;margin:.2rem 0 .7rem;font-weight:600;}
+.ps-sect-check{font-size:13px;color:#4CAF50;margin-left:4px;}
+.ps-sect-chosen{font-size:11.5px;color:rgba(76,175,80,.8);font-weight:700;margin:.1rem 0 .5rem;}
+/* Skip / next-step buttons */
+.ps-skip-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:.6rem 1rem;margin-top:.65rem;border:1.5px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.03);color:rgba(255,255,255,.45);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s;}
+.ps-skip-btn:active{opacity:.7;}
+/* Disabled bar message */
+.ps-bar-msg{font-size:12px;color:rgba(255,255,255,.4);text-align:center;margin-bottom:.5rem;}
 /* Accordion retrait */
 .ps-accord-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:.2rem 0;margin:1.25rem 0 0;}
 .ps-accord-chevron{transition:transform .25s ease;flex-shrink:0;}
@@ -4007,9 +4035,17 @@ function toggleSheetSauce(name){
 }
 
 function scrollToSuppls(){
+  _scrollToSection('ps-sect-suppls');
+}
+function _scrollToSection(id){
+  if(!id) return;
   const scroll=document.getElementById('prod-sheet-scroll');
-  const el=document.getElementById('ps-sect-suppls');
+  const el=document.getElementById(id);
   if(scroll&&el) scroll.scrollTo({top:Math.max(0,el.offsetTop-55),behavior:'smooth'});
+}
+function _scrollToConfirm(){
+  const scroll=document.getElementById('prod-sheet-scroll');
+  if(scroll) scroll.scrollTo({top:scroll.scrollHeight,behavior:'smooth'});
 }
 
 function openProductSheet(idx){
@@ -4138,14 +4174,29 @@ function renderProdSheetBody(){
   const hasSuppl=m.cat==='kebabs'||m.cat==='tacos';
   const hasRetrait=(m.cat==='kebabs'||m.cat==='tacos'||m.cat==='salades')&&m.ingredients&&m.ingredients.length>0;
   const isCusto=m.cat==='kebabs'||m.cat==='tacos'||m.cat==='salades';
-  // Step counter
-  let _step=0; const S=()=>['①','②','③','④','⑤'][_step++]||(_step+'.') ;
+
+  // État des étapes obligatoires — détermine la section active
+  const _painOk=!hasPain||!!sheetPain;
+  const _viandeOk=!hasViande||!!sheetViande;
+  const _saucesOk=!hasSauces||(sheetSauces.length>0||sheetSansSauce);
+  const _activeSection=!_painOk?'pain':!_viandeOk?'viande':!_saucesOk?'sauces':null;
+
+  // Fonction qui retourne les classes de section selon son état
+  const _sWrap=(secId)=>{
+    if(secId==='pain'){ return sheetPain?'ps-sect--done':(_activeSection==='pain'?'ps-sect--active':''); }
+    if(secId==='viande'){ return sheetViande?'ps-sect--done':(_activeSection==='viande'?'ps-sect--active':''); }
+    if(secId==='sauces'){ return _saucesOk?'ps-sect--done':(_activeSection==='sauces'?'ps-sect--active':''); }
+    return '';
+  };
+
+  // Numéros d'étapes
+  let _step=0; const S=()=>['①','②','③','④','⑤'][_step++]||(_step+'.');
 
   let html=`<div class="prod-sheet-name">${m.name}</div>`;
   if(m.badge) html+=`<div class="prod-sheet-badges"><span class="mi-badge">${m.badge}</span></div>`;
   html+=`<div class="prod-sheet-desc">${m.desc}</div>`;
 
-  /* ── Format choisi sur la carte — badge lecture seule (non modifiable ici) ── */
+  /* ── Format choisi sur la carte — badge lecture seule ── */
   const _sheetMenuP=getMenuPrice(m);
   if(_sheetMenuP){
     const _sheetFmt=_menuFormats[sheetIdx]||'solo';
@@ -4157,23 +4208,33 @@ function renderProdSheetBody(){
     </div>`;
   }
 
-  /* ── ① Retrait ingrédients — EN PREMIER (base de la personnalisation) ── */
+  /* ── ① Retrait ingrédients — toujours visible, optionnel ── */
   if(hasRetrait){
     const nR=sheetRemovedIngredients.length;
-    html+=`<div id="ps-sect-retrait">
-      <div class="ps-retrait-title">🚫 Retirer des ingrédients${nR>0?` <span style="font-size:11px;font-weight:700;background:rgba(200,0,0,.25);color:#ff6b6b;border-radius:99px;padding:1px 8px;margin-left:4px;">${nR} retrait${nR>1?'s':''}</span>`:''}</div>
+    const stepN=S();
+    html+=`<div class="ps-sect-wrap" id="ps-sect-retrait">
+      <div class="ps-sect-ttl"><span class="ps-sect-ttl-num">${stepN}</span> Voulez-vous retirer des ingrédients ?</div>
+      <div style="font-size:11.5px;color:rgba(255,255,255,.38);margin:.15rem 0 .75rem;">Optionnel — appuyez sur les ingrédients à retirer</div>
+      ${nR>0?`<div style="font-size:11px;color:#ff6b6b;font-weight:700;margin-bottom:.5rem;">🚫 ${nR} retrait${nR>1?'s':''}</div>`:''}
       <div class="ps-ingr-grid">`;
     html+=m.ingredients.map(ing=>{ const rm=sheetRemovedIngredients.includes(ing);
       return `<div class="ps-ingr-chip${rm?' removed':''}" onclick="toggleSheetIngredient('${ing.replace(/'/g,"\\'")}')">
         ${rm?'✗ ':''} ${ing}</div>`;
     }).join('');
-    html+=`</div></div>`;
+    const nextAfterRetrait=hasPain?'ps-sect-pain':hasTaille?'ps-sect-taille':hasViande?'ps-sect-viande':hasSauces?'ps-sect-sauces':'';
+    html+=`</div>
+      ${nR===0?`<button class="ps-skip-btn" onclick="event.stopPropagation();_scrollToSection('${nextAfterRetrait}')">Aucun retrait →</button>`:''}
+    </div>`;
   }
 
   /* ── ② Pain / Galette (kebabs) ── */
   if(hasPain){
-    html+=`<div id="ps-sect-pain">
-      <div class="ps-section-title">${S()} Pain ou galette <span class="ps-required">obligatoire</span></div>
+    const stepN=S();
+    const sc=_sWrap('pain');
+    const isDone=!!sheetPain;
+    html+=`<div class="ps-sect-wrap ${sc}" id="ps-sect-pain">
+      <div class="ps-sect-ttl"><span class="ps-sect-ttl-num">${stepN}</span> Choisissez votre pain${isDone?`<span class="ps-sect-check">✓</span>`:''}</div>
+      ${isDone?`<div class="ps-sect-chosen">${sheetPain==='galette'?'🫓 Galette sélectionnée':'🍞 Pain sélectionné'}</div>`:`<div class="ps-sect-hint">Sélectionnez une option pour continuer</div>`}
       <div class="ps-pain-grid">
         <div class="ps-pain-btn${sheetPain==='pain'?' sel':''}" onclick="setSheetPain('pain')"><div class="ps-pain-ico">🍞</div><div class="ps-pain-lbl">Pain</div></div>
         <div class="ps-pain-btn${sheetPain==='galette'?' sel':''}" onclick="setSheetPain('galette')"><div class="ps-pain-ico">🫓</div><div class="ps-pain-lbl">Galette</div></div>
@@ -4182,8 +4243,9 @@ function renderProdSheetBody(){
 
   /* ── Taille (tacos) ── */
   if(hasTaille){
-    html+=`<div id="ps-sect-taille">
-      <div class="ps-section-title">${S()} Taille</div>
+    const stepN=S();
+    html+=`<div class="ps-sect-wrap" id="ps-sect-taille">
+      <div class="ps-sect-ttl"><span class="ps-sect-ttl-num">${stepN}</span> Taille</div>
       <div class="prod-taille-grid">
         <div class="prod-taille-btn${sheetTaille==='M'?' sel':''}" onclick="setSheetTaille('M')"><div class="prod-taille-lbl">M</div><div class="prod-taille-price">${m.price.toFixed(2).replace('.',',')}€</div></div>
         <div class="prod-taille-btn${sheetTaille==='L'?' sel':''}" onclick="setSheetTaille('L')"><div class="prod-taille-lbl">L</div><div class="prod-taille-price">11,50€</div></div>
@@ -4193,37 +4255,55 @@ function renderProdSheetBody(){
 
   /* ── Viande (Chicken tacos) ── */
   if(hasViande){
+    const stepN=S();
+    const sc=_sWrap('viande');
+    const isDone=!!sheetViande;
+    html+=`<div class="ps-sect-wrap ${sc}" id="ps-sect-viande">
+      <div class="ps-sect-ttl"><span class="ps-sect-ttl-num">${stepN}</span> Viande${isDone?`<span class="ps-sect-check">✓</span>`:''}</div>
+      ${isDone?`<div class="ps-sect-chosen">🍗 ${sheetViande}</div>`:`<div class="ps-sect-hint">Sélectionnez une option pour continuer</div>`}
+      <div class="viande-grid">`;
     const vOpts=[['Poulet mariné','🍗'],['Nuggets','🟡'],['Tenders','🥩']];
-    html+=`<div id="ps-sect-viande"><div class="ps-section-title">${S()} Viande <span class="ps-required">obligatoire</span></div><div class="viande-grid">`;
     vOpts.forEach(([v,ico])=>{ html+=`<div class="viande-btn${sheetViande===v?' sel':''}" onclick="setSheetViande('${v}')"><div class="viande-btn-ico">${ico}</div><div class="viande-btn-lbl">${v}</div></div>`; });
     html+=`</div></div>`;
   }
 
-  /* ── ③ Sauces — 2 offertes, payantes au-delà ── */
+  /* ── ③ Sauces — 2 offertes ── */
   if(hasSauces){
+    const stepN=S();
     const n=sheetSauces.length, extra=Math.max(0,n-SAUCES_FREE);
-    let cTxt;
-    if(sheetSansSauce) cTxt=`<span style="color:var(--text3);">🚫 Sans sauce</span>`;
-    else if(n===0) cTxt=`<span style="color:#c04020;">Choisissez au moins une sauce — 2 sauces offertes</span>`;
-    else if(n<SAUCES_FREE) cTxt=`✓ ${n} sauce offertes — encore ${SAUCES_FREE-n} gratuite${SAUCES_FREE-n>1?'s':''}`;
-    else if(n===SAUCES_FREE) cTxt=`✓ 2 sauces offertes incluses`;
-    else cTxt=`✓ 2 offertes <span style="color:#FF9A1E;font-weight:700;">+${extra} suppl. : +${(extra*SAUCE_EXTRA_PRICE).toFixed(2).replace('.',',')}€</span>`;
-    html+=`<div id="ps-sect-sauces"><div class="ps-section-title">${S()} Sauces <span class="ps-required">obligatoire</span></div><div class="ps-sauce-grid">`;
-    html+=SAUCES_LIST.map(sc=>{ const sel=sheetSauces.includes(sc),dis=sheetSansSauce;
-      return `<div class="ps-sauce-chip${sel?' sel':''}${dis?' disabled':''}" onclick="${dis?'':'toggleSheetSauce(\''+sc.replace(/'/g,"\\'")+'\')'}" style="${dis?'opacity:.3;pointer-events:none;':''}">
-        ${sel?'🥫 ':''} ${sc}</div>`;
+    const sc=_sWrap('sauces');
+    const isDone=_saucesOk;
+    let counterTxt;
+    if(sheetSansSauce) counterTxt=`<span style="color:var(--text3);">🚫 Sans sauce</span>`;
+    else if(n===0) counterTxt=`<span style="color:#c04020;font-weight:700;">Choisissez au moins une sauce</span>`;
+    else if(n<SAUCES_FREE) counterTxt=`<span style="color:#4CAF50;font-weight:700;">${n}/2 sauces gratuites sélectionnées</span>`;
+    else if(n===SAUCES_FREE) counterTxt=`<span style="color:#4CAF50;font-weight:700;">✓ ${n}/2 sauces gratuites incluses</span>`;
+    else counterTxt=`<span style="color:#4CAF50;font-weight:700;">✓ 2 offertes</span> <span style="color:#FF9A1E;font-weight:700;">+${extra} suppl. : +${(extra*SAUCE_EXTRA_PRICE).toFixed(2).replace('.',',')}€</span>`;
+    html+=`<div class="ps-sect-wrap ${sc}" id="ps-sect-sauces">
+      <div class="ps-sect-ttl"><span class="ps-sect-ttl-num">${stepN}</span> Sauces${isDone?`<span class="ps-sect-check">✓</span>`:''}</div>
+      ${!isDone?`<div class="ps-sect-hint">2 sauces offertes • +${SAUCE_EXTRA_PRICE.toFixed(2).replace('.',',')}€ par sauce supplémentaire</div>`:`<div style="font-size:11px;color:rgba(255,255,255,.35);margin:.1rem 0 .5rem;">2 sauces offertes • +${SAUCE_EXTRA_PRICE.toFixed(2).replace('.',',')}€ par sauce supplémentaire</div>`}
+      <div class="ps-sauce-grid">`;
+    html+=SAUCES_LIST.map(sc2=>{ const sel=sheetSauces.includes(sc2),dis=sheetSansSauce;
+      return `<div class="ps-sauce-chip${sel?' sel':''}${dis?' disabled':''}" onclick="${dis?'':'toggleSheetSauce(\''+sc2.replace(/'/g,"\\'")+'\')'}" style="${dis?'opacity:.3;pointer-events:none;':''}">
+        ${sel?'🥫 ':''} ${sc2}</div>`;
     }).join('');
     html+=`<div class="ps-sauce-chip${sheetSansSauce?' sel':''}" onclick="toggleSheetSansSauce()" style="border-color:${sheetSansSauce?'#FF7043':'var(--border)'};background:${sheetSansSauce?'rgba(255,112,67,.15)':'var(--coal3)'};">🚫 Sans sauce</div>`;
-    html+=`</div><div class="ps-sauce-counter">${cTxt}</div>`;
-    if(n>0&&!sheetSansSauce){
+    html+=`</div><div class="ps-sauce-counter">${counterTxt}</div>`;
+    if(isDone){
       html+=`<button class="ps-sauce-confirm-btn" onclick="scrollToSuppls()">Valider mes sauces →</button>`;
     }
     html+=`</div>`;
   }
 
-  /* ── ④ Suppléments ── */
+  /* ── ④ Suppléments (optionnel) ── */
   if(hasSuppl&&SUPPLEMENTS.length){
-    html+=`<div id="ps-sect-suppls"><div class="ps-section-title">${S()} Suppléments</div>${renderSupplementsList(SUPPLEMENTS)}</div>`;
+    const stepN=S();
+    html+=`<div class="ps-sect-wrap" id="ps-sect-suppls">
+      <div class="ps-sect-ttl"><span class="ps-sect-ttl-num">${stepN}</span> Envie d'un petit plus ?</div>
+      <div style="font-size:11.5px;color:rgba(255,255,255,.38);margin:.1rem 0 .75rem;">Optionnel</div>
+      ${renderSupplementsList(SUPPLEMENTS)}
+      <button class="ps-skip-btn" onclick="event.stopPropagation();_scrollToConfirm()">Passer →</button>
+    </div>`;
   }
 
   /* ── Récapitulatif ── */
@@ -4249,7 +4329,7 @@ function renderProdSheetBody(){
 
 function setSheetTaille(t){ sheetTaille=t; _rerender(null); }
 function setSheetPain(p){ sheetPain=p; _rerender('ps-sect-sauces'); }
-function setSheetViande(v){ sheetViande=v; _rerender(null); }
+function setSheetViande(v){ sheetViande=v; _rerender('ps-sect-sauces'); }
 function toggleSheetMenu(){ sheetMenuUpgrade=!sheetMenuUpgrade; _rerender(null); }
 function toggleSheetSansSauce(){
   sheetSansSauce=!sheetSansSauce;
@@ -4271,18 +4351,35 @@ function toggleAccordRetrait(){
 function _renderProgressBar(hasPain,hasTaille,hasViande,hasSauces,hasSuppl,hasRetrait){
   const el=document.getElementById('ps-progress');
   if(!el) return;
+
+  // Définir les étapes avec leur état
   const steps=[];
-  if(hasPain)    steps.push({done:!!sheetPain,    req:true});
-  if(hasTaille)  steps.push({done:true,            req:false});
-  if(hasViande)  steps.push({done:!!sheetViande,   req:true});
-  if(hasSauces)  steps.push({done:sheetSauces.length>0||sheetSansSauce, req:true});
-  if(hasSuppl)   steps.push({done:Object.values(selectedSupplements).some(q=>q>0), req:false});
-  if(hasRetrait) steps.push({done:false,           req:false});
+  if(hasRetrait) steps.push({label:'Ingrédients',req:false,done:sheetRemovedIngredients.length>0,anchor:'ps-sect-retrait'});
+  if(hasPain)    steps.push({label:'Pain',       req:true, done:!!sheetPain,                       anchor:'ps-sect-pain'});
+  if(hasTaille)  steps.push({label:'Taille',     req:false,done:true,                              anchor:'ps-sect-taille'});
+  if(hasViande)  steps.push({label:'Viande',     req:true, done:!!sheetViande,                     anchor:'ps-sect-viande'});
+  if(hasSauces)  steps.push({label:'Sauces',     req:true, done:sheetSauces.length>0||sheetSansSauce,anchor:'ps-sect-sauces'});
+  if(hasSuppl&&SUPPLEMENTS.length) steps.push({label:'Suppléments',req:false,done:Object.values(selectedSupplements).some(q=>q>0),anchor:'ps-sect-suppls'});
+
   if(steps.length<2){ el.style.display='none'; return; }
+
+  // Calcul de la première étape requise non faite → "active"
+  let firstReqPending=null;
+  for(const s of steps){ if(s.req&&!s.done){ firstReqPending=s.anchor; break; } }
+
   el.style.display='flex';
   el.innerHTML=steps.map((s,i)=>{
-    const cls=s.done?'ps-dot done':(s.req?'ps-dot req':'ps-dot');
-    return (i>0?'<div class="ps-dot-line"></div>':'')+`<div class="${cls}"></div>`;
+    let state;
+    if(s.done) state='ps-s-done';
+    else if(s.req&&s.anchor===firstReqPending) state='ps-s-active';
+    else if(s.req) state='ps-s-todo';
+    else state='ps-s-neutral';
+    const numContent=s.done?'✓':(i+1);
+    const sep=i>0?'<div class="ps-step-sep"></div>':'';
+    return `${sep}<div class="ps-step-chip ${state}" onclick="_scrollToSection('${s.anchor}')">
+      <div class="ps-step-num">${numContent}</div>
+      <div class="ps-step-lbl">${s.label}</div>
+    </div>`;
   }).join('');
 }
 
@@ -4295,7 +4392,6 @@ function _renderStickyBar(){
     if(sheetTaille==='L') base=11.5;
     else if(sheetTaille==='XL') base=14.5;
   }
-  // Format pré-sélectionné sur la carte → intègre le supplément menu (+3,50€)
   if(getMenuPrice(m)&&_menuFormats[sheetIdx]==='menu') base+=3.50;
   const sauceExtra=Math.max(0,sheetSauces.length-SAUCES_FREE)*SAUCE_EXTRA_PRICE;
   const supplExtra=Object.entries(selectedSupplements).reduce((acc,[sid,qty])=>{
@@ -4304,15 +4400,31 @@ function _renderStickyBar(){
   },0);
   const total=base+sauceExtra+supplExtra;
   const totalStr=total.toFixed(2).replace('.',',')+'€';
+
+  // Trouver ce qui bloque
+  const hasPain=m.cat==='kebabs';
+  const hasViande=m.cat==='tacos'&&m.name.toLowerCase().includes('chicken');
+  const hasSauces=m.cat==='kebabs'||m.cat==='tacos';
+  let blocker=null;
+  if(hasPain&&!sheetPain) blocker='Choisissez votre pain pour continuer';
+  else if(hasViande&&!sheetViande) blocker='Choisissez votre viande pour continuer';
+  else if(hasSauces&&!sheetSauces.length&&!sheetSansSauce) blocker='Choisissez vos sauces pour continuer';
+
   const prev=bar.dataset.price||'';
-  const pop=prev!==''&&prev!==totalStr;
-  bar.dataset.price=totalStr;
-  bar.innerHTML=`<button class="prod-add-btn" onclick="confirmProdSheet()">Ajouter au panier — <span id="ps-bar-price">${totalStr}</span></button>`;
-  if(pop){
-    requestAnimationFrame(()=>{
-      const span=bar.querySelector('#ps-bar-price');
-      if(span){ span.classList.remove('ps-price-pop'); void span.offsetWidth; span.classList.add('ps-price-pop'); }
-    });
+  const pop=!blocker&&prev!==''&&prev!==totalStr;
+  bar.dataset.price=blocker?'':totalStr;
+
+  if(blocker){
+    bar.innerHTML=`<div class="ps-bar-msg">⬆ ${blocker}</div>
+      <button class="prod-add-btn" disabled style="opacity:.32;justify-content:center;cursor:not-allowed;">Ajouter au panier — ${totalStr}</button>`;
+  } else {
+    bar.innerHTML=`<button class="prod-add-btn" onclick="confirmProdSheet()">Ajouter au panier — <span id="ps-bar-price">${totalStr}</span></button>`;
+    if(pop){
+      requestAnimationFrame(()=>{
+        const span=bar.querySelector('#ps-bar-price');
+        if(span){ span.classList.remove('ps-price-pop'); void span.offsetWidth; span.classList.add('ps-price-pop'); }
+      });
+    }
   }
 }
 
