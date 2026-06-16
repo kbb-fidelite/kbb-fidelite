@@ -890,6 +890,28 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .ps-skip-btn:active{opacity:.7;}
 /* Disabled bar message */
 .ps-bar-msg{font-size:12px;color:rgba(255,255,255,.4);text-align:center;margin-bottom:.5rem;}
+/* Badge supplément — social proof */
+.suppl-badge{display:inline-block;font-size:10px;font-weight:700;color:#FF8C00;background:rgba(255,140,0,.08);border:1px solid rgba(255,140,0,.18);border-radius:99px;padding:1px 7px;margin-top:3px;white-space:nowrap;letter-spacing:.1px;}
+/* Menu upsell banner (Solo → Menu) dans la fiche produit */
+.ps-menu-upsell{display:flex;align-items:center;gap:10px;background:rgba(255,140,0,.06);border:1.5px solid rgba(255,140,0,.18);border-radius:13px;padding:.6rem .875rem;margin:.2rem 0 1rem;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s;}
+.ps-menu-upsell:active{background:rgba(255,140,0,.1);}
+.ps-menu-upsell-left{flex:1;min-width:0;}
+.ps-menu-upsell-label{font-size:13px;font-weight:800;color:#FF8C00;line-height:1.25;}
+.ps-menu-upsell-sub{font-size:11px;color:rgba(255,255,255,.38);margin-top:2px;}
+.ps-menu-upsell-btn{flex-shrink:0;padding:.38rem .75rem;background:linear-gradient(130deg,#FF8C00,#c45200);color:#fff;border:none;border-radius:99px;font-family:var(--font);font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 2px 10px rgba(180,80,0,.3);}
+/* Récapitulatif temps réel sous le bouton sticky */
+.ps-recap-bar{display:flex;flex-wrap:wrap;gap:5px;margin-top:.5rem;padding-top:.45rem;border-top:1px solid rgba(255,255,255,.05);}
+.ps-recap-pill{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.3);background:rgba(255,255,255,.03);border-radius:99px;padding:3px 8px;border:1px solid transparent;}
+.ps-recap-pill.done{color:rgba(76,175,80,.9);background:rgba(76,175,80,.07);border-color:rgba(76,175,80,.15);}
+.ps-recap-pill.missing{color:rgba(255,140,0,.8);background:rgba(255,140,0,.06);border-color:rgba(255,140,0,.15);}
+/* Post-add upsell overlay */
+.ps-upsell-row{display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.ps-upsell-row:last-child{border-bottom:none;padding-bottom:0;}
+.ps-upsell-info{flex:1;min-width:0;}
+.ps-upsell-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.2;}
+.ps-upsell-price{font-size:12px;color:#FF8C00;font-weight:700;margin-top:3px;}
+.ps-upsell-add{flex-shrink:0;padding:.42rem .85rem;background:linear-gradient(130deg,#FF8C00,#c45200);color:#fff;border:none;border-radius:99px;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 8px rgba(180,80,0,.3);}
+.ps-upsell-add:active{opacity:.85;}
 /* Accordion retrait */
 .ps-accord-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:.2rem 0;margin:1.25rem 0 0;}
 .ps-accord-chevron{transition:transform .25s ease;flex-shrink:0;}
@@ -2049,6 +2071,16 @@ body{
     <div class="boisson-grid" id="boisson-grid"></div>
     <button onclick="confirmBoisson()" id="boisson-confirm-btn" style="width:100%;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:var(--radius);padding:.9rem;color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;margin-bottom:.5rem;opacity:.5;" disabled>Confirmer →</button>
     <button onclick="skipBoisson()" id="boisson-skip-btn" style="display:none;width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:.5rem 0 0;">Sans boisson</button>
+  </div>
+</div>
+
+<!-- UPSELL SUPPLÉMENTS post-ajout kebab/tacos -->
+<div class="upsell-overlay" id="overlay-suppl-suggest">
+  <div class="upsell-sheet" style="max-height:80vh;overflow-y:auto;">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:3px;text-align:center;">🔥 Les clients ajoutent souvent</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.35);text-align:center;margin-bottom:1rem;">Ajoutez en un clic</div>
+    <div id="suppl-suggest-list"></div>
+    <button onclick="closeSupplSuggest()" style="width:100%;background:none;border:none;color:rgba(255,255,255,.4);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;padding:.9rem 0;min-height:44px;margin-top:.25rem;">Non merci</button>
   </div>
 </div>
 
@@ -3551,16 +3583,16 @@ const SUPPL_ICONS={
 // getIcon(name) — accès fonctionnel aux icônes (signature API propre pour les composants)
 function getIcon(name){ return SUPPL_ICONS[name]||''; }
 const SUPPLEMENTS=[
-  // Nos Incontournables
-  {id:'vkeb',name:'Supplément viande de kebab',   price:2.50,cat:'premium'},
-  {id:'vpou',name:'Supplément poulet',             price:2.50,cat:'premium'},
-  {id:'bur', name:'Supplément burrata',            price:4.40,cat:'premium',desc:'Cœur crémeux de 125g'},
-  {id:'ten', name:'Supplément tenders crispy',     price:2.50,cat:'premium',desc:'Filets de poulet croustillants'},
+  // Nos Incontournables — ordre optimisé conversion (social proof en tête)
+  {id:'fro', name:'Supplément sauce fromagère maison',price:1.00,cat:'premium',desc:'Recette maison du chef',        badge:'⭐ Le plus commandé'},
+  {id:'vkeb',name:'Supplément double viande kebab',   price:2.50,cat:'premium',                                      badge:'🔥 Coup de cœur'},
+  {id:'bur', name:'Supplément burrata',               price:4.40,cat:'premium',desc:'Cœur crémeux de 125g',         badge:'👨‍🍳 Recommandé par le chef'},
+  {id:'ten', name:'Supplément tenders crispy',        price:2.50,cat:'premium',desc:'Filets de poulet croustillants',badge:'🔥 Coup de cœur'},
+  {id:'vpou',name:'Supplément poulet',                price:2.50,cat:'premium'},
   // Les Petits Plus
-  {id:'che', name:'Supplément cheddar',            price:0.50,cat:'extra'},
-  {id:'fet', name:'Supplément féta',               price:1.00,cat:'extra'},
-  {id:'fro', name:'Supplément sauce fromagère maison',price:1.00,cat:'extra',desc:'Recette maison du chef'},
-  {id:'jal', name:'Supplément jalapeños',          price:0.50,cat:'extra'},
+  {id:'che', name:'Supplément cheddar',               price:0.50,cat:'extra'},
+  {id:'fet', name:'Supplément féta',                  price:1.00,cat:'extra'},
+  {id:'jal', name:'Supplément jalapeños',             price:0.50,cat:'extra'},
 ];
 /* ══ SAUCES ══ */
 const SAUCES_LIST=['Mayonnaise','Ketchup','Algérienne','Barbecue','Brazil','Sauce blanche maison','Harissa','Samouraï','Biggy'];
@@ -4123,6 +4155,7 @@ function renderSupplement(supp){
     <div class="suppl-card-body">
       <div class="suppl-card-name">${dn}</div>
       ${supp.desc?`<div class="suppl-card-desc">${supp.desc}</div>`:''}
+      ${supp.badge?`<div class="suppl-badge">${supp.badge}</div>`:''}
     </div>
     <div class="suppl-card-right">
       <div class="suppl-card-price">+${supp.price.toFixed(2).replace('.',',')}€</div>
@@ -4206,6 +4239,17 @@ function renderProdSheetBody(){
       <span class="ps-fmt-badge-label">${isMenu?'Menu Expérience':'Solo'}</span>
       ${isMenu?'<span class="ps-fmt-badge-check">✓</span>':''}
     </div>`;
+    /* ── Upsell Menu — affiché uniquement si Solo, incite à switcher ── */
+    if(!isMenu){
+      const diff=(3.50).toFixed(2).replace('.',',');
+      html+=`<div class="ps-menu-upsell" onclick="_switchSheetToMenu()">
+        <div class="ps-menu-upsell-left">
+          <div class="ps-menu-upsell-label">🍟 Passez en Menu</div>
+          <div class="ps-menu-upsell-sub">Frites + boisson incluses • +${diff}€ seulement</div>
+        </div>
+        <button class="ps-menu-upsell-btn" onclick="event.stopPropagation();_switchSheetToMenu()">Passer en Menu</button>
+      </div>`;
+    }
   }
 
   /* ── ① Retrait ingrédients — toujours visible, optionnel ── */
@@ -4299,7 +4343,7 @@ function renderProdSheetBody(){
   if(hasSuppl&&SUPPLEMENTS.length){
     const stepN=S();
     html+=`<div class="ps-sect-wrap" id="ps-sect-suppls">
-      <div class="ps-sect-ttl"><span class="ps-sect-ttl-num">${stepN}</span> Envie d'un petit plus ?</div>
+      <div class="ps-sect-ttl"><span class="ps-sect-ttl-num">${stepN}</span> 🔥 Rendez votre kebab encore meilleur</div>
       <div style="font-size:11.5px;color:rgba(255,255,255,.38);margin:.1rem 0 .75rem;">Optionnel</div>
       ${renderSupplementsList(SUPPLEMENTS)}
       <button class="ps-skip-btn" onclick="event.stopPropagation();_scrollToConfirm()">Passer →</button>
@@ -4367,8 +4411,15 @@ function _renderProgressBar(hasPain,hasTaille,hasViande,hasSauces,hasSuppl,hasRe
   let firstReqPending=null;
   for(const s of steps){ if(s.req&&!s.done){ firstReqPending=s.anchor; break; } }
 
+  // Compteur "Étape X/Y" — uniquement les étapes obligatoires
+  const reqSteps=steps.filter(s=>s.req);
+  const reqDone=reqSteps.filter(s=>s.done).length;
+  const stepCounter=reqSteps.length>0
+    ?`<span style="font-size:10px;font-weight:800;color:rgba(255,255,255,.28);white-space:nowrap;flex-shrink:0;letter-spacing:.2px;">${reqDone}/${reqSteps.length}</span><div style="width:1px;height:12px;background:rgba(255,255,255,.07);flex-shrink:0;margin:0 3px;"></div>`
+    :'';
+
   el.style.display='flex';
-  el.innerHTML=steps.map((s,i)=>{
+  el.innerHTML=stepCounter+steps.map((s,i)=>{
     let state;
     if(s.done) state='ps-s-done';
     else if(s.req&&s.anchor===firstReqPending) state='ps-s-active';
@@ -4414,11 +4465,28 @@ function _renderStickyBar(){
   const pop=!blocker&&prev!==''&&prev!==totalStr;
   bar.dataset.price=blocker?'':totalStr;
 
+  // Récapitulatif temps réel
+  const recapItems=[];
+  if(hasPain){
+    if(sheetPain) recapItems.push({cls:'done',txt:'✅ '+(sheetPain==='galette'?'Galette':'Pain')});
+    else recapItems.push({cls:'missing',txt:'○ Pain'});
+  }
+  if(hasSauces){
+    if(sheetSansSauce) recapItems.push({cls:'done',txt:'✅ Sans sauce'});
+    else if(sheetSauces.length) recapItems.push({cls:'done',txt:'✅ '+sheetSauces[0]+(sheetSauces.length>1?' +'+( sheetSauces.length-1):'')});
+    else recapItems.push({cls:'missing',txt:'○ Sauce'});
+  }
+  const firstSel=Object.entries(selectedSupplements).find(([,q])=>q>0);
+  if(firstSel){ const s=SUPPLEMENTS.find(x=>x.id===firstSel[0]); if(s) recapItems.push({cls:'done',txt:'✅ '+s.name.replace(/^Supplément\s+/i,'')}); }
+  const recapHtml=recapItems.length
+    ?`<div class="ps-recap-bar">${recapItems.map(r=>`<span class="ps-recap-pill ${r.cls}">${r.txt}</span>`).join('')}</div>`
+    :'';
+
   if(blocker){
     bar.innerHTML=`<div class="ps-bar-msg">⬆ ${blocker}</div>
-      <button class="prod-add-btn" disabled style="opacity:.32;justify-content:center;cursor:not-allowed;">Ajouter au panier — ${totalStr}</button>`;
+      <button class="prod-add-btn" disabled style="opacity:.32;justify-content:center;cursor:not-allowed;">🛒 Ajouter au panier — ${totalStr}</button>${recapHtml}`;
   } else {
-    bar.innerHTML=`<button class="prod-add-btn" onclick="confirmProdSheet()">Ajouter au panier — <span id="ps-bar-price">${totalStr}</span></button>`;
+    bar.innerHTML=`<button class="prod-add-btn" onclick="confirmProdSheet()">🛒 Ajouter au panier — <span id="ps-bar-price">${totalStr}</span></button>${recapHtml}`;
     if(pop){
       requestAnimationFrame(()=>{
         const span=bar.querySelector('#ps-bar-price');
@@ -4639,17 +4707,21 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain,
   showToast(`✓ ${name} ajouté${extras.length?' — '+extras.join(' | '):''}`);
   pendingIdx=null; pendingTaille=null; selectedSupplements={};
   sheetRemovedIngredients=[]; sheetSauces=[]; sheetPain=null;
-  // Suggestion accompagnement au moment de l'ajout (popup) — uniquement si plat principal
+  // Suggestion post-ajout — uniquement si plat principal
   const _skipCats=['accompagnements','boissons','desserts'];
   if(!_skipCats.includes(m.cat)){
-    // Le panier couvre-t-il déjà un accompagnement ?
-    // Oui si : item cat=accompagnements OU item avec menu:true (le menu inclut les frites)
-    const _hasAccompCovered=cart.some(c=>{
-      if(MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements') return true;
-      if(typeof c==='object'&&c.menu===true) return true;
-      return false;
-    });
-    if(!_hasAccompCovered) setTimeout(showAccompagnementSuggest,350);
+    if(m.cat==='kebabs'||m.cat==='tacos'){
+      // Upsell suppléments + boisson pour kebabs/tacos
+      setTimeout(()=>showSupplSuggest(idx, menuUpgrade, boisson),400);
+    } else {
+      // Accompagnement pour les autres plats principaux (salades…)
+      const _hasAccompCovered=cart.some(c=>{
+        if(MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements') return true;
+        if(typeof c==='object'&&c.menu===true) return true;
+        return false;
+      });
+      if(!_hasAccompCovered) setTimeout(showAccompagnementSuggest,350);
+    }
   }
 }
 
@@ -4719,6 +4791,71 @@ function showAccompagnementSuggest(){
 
 function closeAccompagnementSuggest(){
   document.getElementById('overlay-accompagnement-suggest').classList.remove('show');
+}
+
+// ── Upsell post-ajout kebab/tacos ────────────────────────────────────────────
+function showSupplSuggest(addedIdx, menuUpgrade, boisson){
+  const m=MENU_DATA[addedIdx];
+  if(!m||!['kebabs','tacos'].includes(m.cat)) return;
+  const items=[];
+  // Sauce fromagère (star item — toujours en premier)
+  items.push({icon:'🧀',name:'Sauce fromagère maison',price:1.00,
+    action:"_quickAddSuppl('fro',1.00,'Sauce fromagère maison');closeSupplSuggest()"});
+  // Double viande
+  items.push({icon:'🥩',name:'Double viande',price:2.50,
+    action:"_quickAddSuppl('vkeb',2.50,'Double viande');closeSupplSuggest()"});
+  // Boisson uniquement si pas déjà couverte (incluse dans menu, ou déjà en standalone)
+  const hasBoisson=menuUpgrade||!!boisson||cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='boissons');
+  if(!hasBoisson){
+    const bM=MENU_DATA.find(x=>x.cat==='boissons'&&x.price);
+    if(bM){
+      const bIdx=MENU_DATA.indexOf(bM);
+      items.push({icon:'🥤',name:'Boisson — dès '+bM.price.toFixed(2).replace('.',',')+'€',price:null,
+        action:`finalAddToCart(${bIdx},null,false,[],[],[],null,false,null,null,null);closeSupplSuggest()`});
+    }
+  }
+  const list=document.getElementById('suppl-suggest-list');
+  if(!list) return;
+  list.innerHTML=items.map(it=>`<div class="ps-upsell-row">
+    <div class="ps-upsell-info">
+      <div class="ps-upsell-name">${it.icon} ${it.name}</div>
+      ${it.price!==null?`<div class="ps-upsell-price">+${it.price.toFixed(2).replace('.',',')}€</div>`:''}
+    </div>
+    <button class="ps-upsell-add" onclick="${it.action}">+ Ajouter</button>
+  </div>`).join('');
+  document.getElementById('overlay-suppl-suggest').classList.add('show');
+}
+
+function closeSupplSuggest(){
+  document.getElementById('overlay-suppl-suggest').classList.remove('show');
+}
+
+// Ajoute un supplément comme produit standalone (sans re-ouvrir la fiche)
+function _quickAddSuppl(id, price, label){
+  cart.push({idx:-1,price,name:label,taille:null,pain:null,removed:[],sauces:[],suppls:[],
+    menu:false,icon:'🔥',cat:'extras',sansSauce:false,boisson:null,viande:null,produitJunior:null});
+  updateCartBar();initMenu();
+  showToast('✓ '+label+' ajouté');
+}
+
+// Passe le produit en cours de personnalisation de Solo → Menu (dans la fiche)
+function _switchSheetToMenu(){
+  if(sheetIdx===null) return;
+  _menuFormats[sheetIdx]='menu';
+  // Synchronise aussi la carte produit dans le menu (si visible)
+  const card=document.querySelector(`.mi[data-mi-idx="${sheetIdx}"]`);
+  if(card){
+    const menuP=getMenuPrice(MENU_DATA[sheetIdx]);
+    card.classList.add('fmt-selected');
+    const sel=card.querySelector('.format-selector');
+    if(sel) sel.style.setProperty('--fmt-pos','1');
+    card.querySelectorAll('.fmt-opt').forEach(o=>o.classList.toggle('active',o.dataset.fmt==='menu'));
+    const priceEl=card.querySelector('.mi-price');
+    if(priceEl&&menuP) priceEl.textContent=menuP.toFixed(2).replace('.',',')+'€';
+    const ctaLabel=card.querySelector('.mi-cta-label');
+    if(ctaLabel&&menuP) ctaLabel.textContent='Personnaliser — '+menuP.toFixed(2).replace('.',',')+'€';
+  }
+  _rerender(null);
 }
 
 let _nuggetIdx=null;
