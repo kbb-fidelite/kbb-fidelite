@@ -310,6 +310,37 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .upsell-overlay.show{display:flex;}
 .upsell-sheet{background:#121212;border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 0;width:100%;max-width:430px;animation:slideup .28s cubic-bezier(.34,1.56,.64,1);}
 @keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+/* ── Adresses sauvegardées — carte livraison ──────────────────────────── */
+.om-addr-card{position:relative;background:var(--coal2);border:1.5px solid var(--border);border-radius:var(--radius);padding:.875rem .875rem .875rem .875rem;margin-bottom:.625rem;cursor:pointer;transition:border-color .15s,background .15s;}
+.om-addr-card.selected{border-color:#FF8C00;background:rgba(255,140,0,.07);}
+.om-addr-card-label{font-size:11px;font-weight:700;color:#FF8C00;text-transform:uppercase;letter-spacing:.4px;margin-bottom:.3rem;}
+.om-addr-card-addr{font-size:13px;color:var(--text);font-weight:500;line-height:1.4;padding-right:2rem;}
+.om-addr-card-notes{font-size:11px;color:var(--text3);margin-top:.25rem;line-height:1.4;}
+.om-addr-del{position:absolute;top:.5rem;right:.5rem;background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:.25rem;min-height:36px;min-width:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+.om-addr-del:hover{color:#f44336;background:rgba(244,67,54,.1);}
+.om-addr-new{width:100%;background:none;border:1.5px dashed var(--border2);border-radius:var(--radius);color:var(--text3);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;padding:.75rem;margin-bottom:.625rem;transition:border-color .15s,color .15s;}
+.om-addr-new:hover{border-color:var(--fire);color:var(--text);}
+.om-addr-back{width:100%;background:none;border:none;color:var(--text3);font-family:var(--font);font-size:12px;cursor:pointer;padding:.4rem 0 .75rem;text-align:left;display:flex;align-items:center;gap:.375rem;}
+/* ── Overlay save address / replace address ───────────────────────────── */
+.save-addr-preview{background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;margin:.75rem 0 1rem;font-size:13px;color:var(--text);line-height:1.5;}
+.save-addr-label-btn{display:flex;align-items:center;gap:.875rem;width:100%;background:var(--coal2);border:1.5px solid var(--border);border-radius:var(--radius);padding:.9rem 1rem;color:var(--text);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:.625rem;text-align:left;transition:border-color .15s;}
+.save-addr-label-btn:hover{border-color:#FF8C00;}
+.save-addr-label-emoji{font-size:22px;flex-shrink:0;}
+.replace-addr-item{display:flex;align-items:center;justify-content:space-between;background:var(--coal2);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:.5rem;}
+.replace-addr-item-info{flex:1;min-width:0;}
+.replace-addr-item-label{font-size:11px;font-weight:700;color:#FF8C00;text-transform:uppercase;letter-spacing:.4px;}
+.replace-addr-item-addr{font-size:13px;color:var(--text);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.replace-addr-item-btn{background:var(--fire);border:none;border-radius:6px;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;padding:.5rem .875rem;flex-shrink:0;margin-left:.75rem;}
+/* ── Profil — Mes adresses ────────────────────────────────────────────── */
+.profil-addrs-section{margin:.875rem 0;}
+.profil-addrs-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;}
+.profil-addr-card{display:flex;align-items:flex-start;gap:.875rem;background:var(--coal2);border:1px solid var(--border);border-radius:var(--radius);padding:.875rem 1rem;margin-bottom:.625rem;}
+.profil-addr-card-body{flex:1;min-width:0;}
+.profil-addr-card-label{font-size:11px;font-weight:700;color:#FF8C00;text-transform:uppercase;letter-spacing:.4px;margin-bottom:.25rem;}
+.profil-addr-card-addr{font-size:13px;color:var(--text);line-height:1.4;}
+.profil-addr-card-notes{font-size:11px;color:var(--text3);margin-top:.25rem;}
+.profil-addr-del{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:.25rem;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%;}
+.profil-addr-del:hover{color:#f44336;}
 .upsell-opt{display:flex;align-items:center;justify-content:space-between;background:var(--coal3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.875rem 1rem;margin-bottom:.5rem;cursor:pointer;transition:border-color .15s;}
 .upsell-opt:active{border-color:var(--fire);}
 .upsell-opt.selected{border-color:var(--fire);background:rgba(255,107,43,.08);}
@@ -2193,6 +2224,7 @@ body{
       <p><strong>1€ dépensé = 1 point !</strong> Cumulez vos points pour débloquer des récompenses. Une commande à 25€ = <strong>+25 points.</strong></p>
     </div>
     <div id="portal-filleul-status"></div>
+    <div id="portal-adresses" style="margin-bottom:.875rem;"></div>
     <div class="stats-row">
       <div class="sbox"><div class="sv" id="portal-passages">0</div><div class="sl">Passages</div></div>
       <div class="sbox"><div class="sv" id="portal-total">0€</div><div class="sl">Total dépensé</div></div>
@@ -3413,6 +3445,11 @@ let _deliveryAddress={street:'',zip:'',city:'',notes:'',phone:''}; // adresse li
 let _deliveryQuote=null;   // {fee_cents, currency, pickup_duration, dropoff_eta, quote_id} | null
 let _quoteDebounce=null;   // timer debounce pour l'appel get-delivery-quote
 let _quoteLoading=false;   // true pendant l'appel API devis
+let _savedAddresses=[];        // cache adresses sauvegardées du client
+let _addrLoading=false;        // chargement adresses en cours
+let _showNewAddrForm=false;    // forcer le form manuel même si adresses sauvegardées existent
+let _selectedSavedAddrId=null; // id de l'adresse sauvegardée sélectionnée
+let _pendingSaveAddr=null;     // {addr, clientTel, label} à proposer après commande
 
 // ══ FORMAT SELECTOR — Solo / Expérience Menu ══════════════════════════════
 // Stocke le format choisi sur la carte (idx → 'solo' | 'menu').
@@ -3919,8 +3956,22 @@ async function _stripeFinalize(sessionId, vData, pending){
   if(supaId && pending?.isLivraison && pending?.deliveryAddress){
     _createUberDelivery(supaId, pending).catch(e=>console.error('[uber-delivery] non bloquant:',e.message));
   }
+  // ── Proposer la sauvegarde de l'adresse livraison ──
+  const _hasSavePending = !!(pending?.isLivraison && pending?.deliveryAddress &&
+    (pending.clientTel||currentPortalClient?.telephone||currentPortalClient?.tel));
+  if(_hasSavePending){
+    _pendingSaveAddr={
+      addr: pending.deliveryAddress,
+      clientTel: pending.clientTel||currentPortalClient?.telephone||currentPortalClient?.tel
+    };
+  }
   _stripeCleanup();
-  setTimeout(()=>showFeedbackOverlay(supaId), 2000);
+  if(_hasSavePending){
+    setTimeout(_showSaveAddrPrompt, 1200);
+    setTimeout(()=>showFeedbackOverlay(supaId), 5000);
+  } else {
+    setTimeout(()=>showFeedbackOverlay(supaId), 2000);
+  }
 }
 
 // Retry verify-payment — 15 tentatives × 2 s = 30 s d'attente max.
@@ -5140,8 +5191,22 @@ function renderOrderOptions(){
 
   // ── Card 3 — Livraison 🛵 ────────────────────────────────────────────────
   const _e=(s)=>(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const _c3Inner=`
-    <div>
+  const _c3FeeHtml=`
+    <div class="om-fee" style="flex-direction:column;align-items:flex-start;gap:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:18px">🛵</div>
+          <div>
+            <div style="font-size:13px;font-weight:600">Frais de livraison</div>
+            <div style="font-size:11px;color:#888;margin-top:1px" id="om-eta-lbl">${_deliveryQuote?.dropoff_eta?'Livraison en ~'+_deliveryQuote.dropoff_eta+' min':'Calcul en cours…'}</div>
+          </div>
+        </div>
+        <div class="om-fee-val" id="om-fee-val">${_quoteLoading?'⏳ …':_deliveryQuote?(_deliveryQuote.fee_cents/100).toFixed(2).replace('.',',')+' €':'—'}</div>
+      </div>
+    </div>`;
+  const _c3ManualFormHtml=`
+    <div onclick="event.stopPropagation()">
+      ${_savedAddresses.length>0?`<button class="om-addr-back" onclick="event.stopPropagation();_backToSavedAddr()">← Mes adresses</button>`:''}
       <label class="om-field" onclick="event.stopPropagation()">
         <div class="om-field-lbl">Rue</div>
         <input class="om-field-inp" type="text" value="${_e(_deliveryAddress.street)}" placeholder="12 rue de la Braise"
@@ -5171,20 +5236,25 @@ function renderOrderOptions(){
         <textarea class="om-field-inp" rows="2" placeholder="Digicode, étage, précisions…"
           oninput="event.stopPropagation();_omAddrUpdate('notes',this.value)">${_e(_deliveryAddress.notes)}</textarea>
       </label>
-    </div>
-    <div class="om-fee" style="flex-direction:column;align-items:flex-start;gap:6px">
-      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="font-size:18px">🛵</div>
-          <div>
-            <div style="font-size:13px;font-weight:600">Frais de livraison</div>
-            <div style="font-size:11px;color:#888;margin-top:1px" id="om-eta-lbl">${_deliveryQuote?.dropoff_eta?'Livraison en ~'+_deliveryQuote.dropoff_eta+' min':'Calcul en cours…'}</div>
-          </div>
+    </div>`;
+  let _c3Inner;
+  if(!_showNewAddrForm && _savedAddresses.length>0){
+    _c3Inner=`
+    <div onclick="event.stopPropagation()">
+      ${_addrLoading?`<div style="text-align:center;padding:.5rem;color:var(--text3);font-size:12px;">⏳ Chargement…</div>`:''}
+      ${_savedAddresses.map(a=>`
+        <div class="om-addr-card${_selectedSavedAddrId===a.id?' selected':''}" onclick="event.stopPropagation();_useAddr('${a.id}')">
+          <div class="om-addr-card-label">${_e(a.label||'📍 Adresse')}</div>
+          <div class="om-addr-card-addr">${_e(a.adresse)}</div>
+          ${a.instructions?`<div class="om-addr-card-notes">${_e(a.instructions)}</div>`:''}
+          <button class="om-addr-del" onclick="event.stopPropagation();_deleteAddr('${a.id}')" aria-label="Supprimer">✕</button>
         </div>
-        <div class="om-fee-val" id="om-fee-val">${_quoteLoading?'⏳ …':_deliveryQuote?(_deliveryQuote.fee_cents/100).toFixed(2).replace('.',',')+' €':'—'}</div>
-      </div>
-    </div>
-`;
+      `).join('')}
+      <button class="om-addr-new" onclick="event.stopPropagation();_switchToNewAddrForm()">+ Nouvelle adresse</button>
+    </div>`+_c3FeeHtml;
+  } else {
+    _c3Inner=_c3ManualFormHtml+_c3FeeHtml;
+  }
 
   section.innerHTML=`
     <div class="om-section">
@@ -5207,9 +5277,239 @@ function _validateFrPhone(tel){
   return /^\+33[67]\d{8}$/.test(clean)||/^0033[67]\d{8}$/.test(clean)||/^0[67]\d{8}$/.test(clean);
 }
 
+// Escape HTML (version globale, accessible hors renderOrderOptions)
+function _escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Adresses sauvegardées — chargement ────────────────────────────────────
+async function _loadSavedAddresses(){
+  const tel=currentPortalClient?.telephone||currentPortalClient?.tel;
+  if(!tel||_addrLoading) return;
+  _addrLoading=true;
+  try{
+    const r=await callEdge('manage-adresses',{action:'list',client_tel:tel});
+    _savedAddresses=r?.adresses||[];
+    if(!_savedAddresses.length) _showNewAddrForm=true;
+  }catch(e){
+    console.error('[adresses] chargement:',e.message);
+    _savedAddresses=[];
+    _showNewAddrForm=true;
+  }finally{
+    _addrLoading=false;
+    renderOrderOptions();
+  }
+}
+
+// Utiliser une adresse sauvegardée : remplir _deliveryAddress et déclencher le devis
+function _useAddr(id){
+  const a=_savedAddresses.find(x=>x.id===id);
+  if(!a) return;
+  _deliveryAddress={
+    street: a.rue||'',
+    zip:    a.code_postal||'',
+    city:   a.ville||'',
+    notes:  a.instructions||'',
+    phone:  a.telephone||(_deliveryAddress.phone||currentPortalClient?.telephone||currentPortalClient?.tel||'')
+  };
+  _selectedSavedAddrId=id;
+  renderOrderOptions();
+  if(_deliveryAddress.street&&_deliveryAddress.zip&&_deliveryAddress.city){
+    clearTimeout(_quoteDebounce);
+    _quoteDebounce=setTimeout(fetchDeliveryQuote,300);
+  }
+}
+
+// Afficher le formulaire manuel (depuis la liste d'adresses sauvegardées)
+function _switchToNewAddrForm(){
+  _showNewAddrForm=true;
+  _selectedSavedAddrId=null;
+  _deliveryAddress={street:'',zip:'',city:'',notes:'',phone:''};
+  _deliveryQuote=null;
+  renderOrderOptions();
+}
+
+// Retour à la liste d'adresses sauvegardées depuis le formulaire
+function _backToSavedAddr(){
+  _showNewAddrForm=false;
+  _selectedSavedAddrId=null;
+  _deliveryAddress={street:'',zip:'',city:'',notes:'',phone:''};
+  _deliveryQuote=null;
+  renderOrderOptions();
+}
+
+// Supprimer une adresse sauvegardée depuis la carte livraison
+async function _deleteAddr(id){
+  const tel=currentPortalClient?.telephone||currentPortalClient?.tel;
+  if(!tel) return;
+  try{
+    await callEdge('manage-adresses',{action:'delete',client_tel:tel,id});
+    _savedAddresses=_savedAddresses.filter(a=>a.id!==id);
+    if(_selectedSavedAddrId===id){
+      _selectedSavedAddrId=null;
+      _deliveryAddress={street:'',zip:'',city:'',notes:'',phone:''};
+      _deliveryQuote=null;
+    }
+    if(!_savedAddresses.length) _showNewAddrForm=true;
+    renderOrderOptions();
+    showToast('Adresse supprimée');
+    // Mettre à jour la section profil si visible
+    if(document.getElementById('portal-adresses')) _renderMesAdresses(tel).catch(()=>{});
+  }catch(e){
+    console.error('[adresses] delete:',e.message);
+    showToast('Impossible de supprimer l\'adresse');
+  }
+}
+
+// ── Post-commande : proposer la sauvegarde de l'adresse livraison ─────────
+function _showSaveAddrPrompt(){
+  if(!_pendingSaveAddr) return;
+  const ol=document.getElementById('overlay-save-addr');
+  if(!ol) return;
+  const preview=document.getElementById('save-addr-preview');
+  if(preview){
+    const a=_pendingSaveAddr.addr;
+    preview.innerHTML=_escHtml([a.street,a.zip&&a.city?a.zip+' '+a.city:''].filter(Boolean).join(', '))
+      +(a.instructions?'<br><span style="color:var(--text3);font-size:12px">'+_escHtml(a.instructions)+'</span>':'');
+  }
+  // Reset les étapes
+  const s1=document.getElementById('save-addr-step1');
+  const s2=document.getElementById('save-addr-step2');
+  if(s1) s1.style.display='';
+  if(s2) s2.style.display='none';
+  ol.classList.add('show');
+}
+
+function _chooseSaveAddrLabel(){
+  const s1=document.getElementById('save-addr-step1');
+  const s2=document.getElementById('save-addr-step2');
+  if(s1) s1.style.display='none';
+  if(s2) s2.style.display='';
+}
+
+function _closeSaveAddrPrompt(){
+  const ol=document.getElementById('overlay-save-addr');
+  if(ol) ol.classList.remove('show');
+  _pendingSaveAddr=null;
+}
+
+async function _confirmSaveAddr(label){
+  const pending=_pendingSaveAddr;
+  _closeSaveAddrPrompt();
+  if(!pending) return;
+  try{
+    const a=pending.addr;
+    const r=await callEdge('manage-adresses',{
+      action:'save', client_tel:pending.clientTel,
+      label, adresse:[a.street,a.zip&&a.city?a.zip+' '+a.city:''].filter(Boolean).join(', '),
+      rue:a.street||null, code_postal:a.zip||null, ville:a.city||null,
+      instructions:a.notes||null, telephone:a.phone||null
+    });
+    if(r?.error==='MAX_REACHED'){
+      _pendingSaveAddr={...pending,label};
+      _showReplaceAddrPrompt(r.existing||[]);
+    } else {
+      showToast('✅ Adresse sauvegardée — '+label);
+      // Recharger le cache pour le prochain passage
+      _savedAddresses=[];
+    }
+  }catch(e){
+    console.error('[adresses] save:',e.message);
+    showToast('Impossible de sauvegarder l\'adresse');
+  }
+}
+
+// ── Remplacement d'adresse (max 3 atteint) ───────────────────────────────
+function _showReplaceAddrPrompt(existing){
+  const ol=document.getElementById('overlay-replace-addr');
+  const list=document.getElementById('replace-addr-list');
+  if(!ol||!list) return;
+  list.innerHTML=existing.map(a=>`
+    <div class="replace-addr-item">
+      <div class="replace-addr-item-info">
+        <div class="replace-addr-item-label">${_escHtml(a.label||'📍 Adresse')}</div>
+        <div class="replace-addr-item-addr">${_escHtml(a.adresse)}</div>
+      </div>
+      <button class="replace-addr-item-btn" onclick="_confirmReplaceAddr('${a.id}')">Remplacer</button>
+    </div>
+  `).join('');
+  ol.classList.add('show');
+}
+
+function _closeReplaceAddrPrompt(){
+  const ol=document.getElementById('overlay-replace-addr');
+  if(ol) ol.classList.remove('show');
+}
+
+async function _confirmReplaceAddr(replaceId){
+  _closeReplaceAddrPrompt();
+  const pending=_pendingSaveAddr;
+  _pendingSaveAddr=null;
+  if(!pending) return;
+  try{
+    const a=pending.addr;
+    await callEdge('manage-adresses',{
+      action:'replace', client_tel:pending.clientTel, replaceId,
+      label:pending.label||'📍 Autre',
+      adresse:[a.street,a.zip&&a.city?a.zip+' '+a.city:''].filter(Boolean).join(', '),
+      rue:a.street||null, code_postal:a.zip||null, ville:a.city||null,
+      instructions:a.notes||null, telephone:a.phone||null
+    });
+    showToast('✅ Adresse mise à jour — '+(pending.label||''));
+    _savedAddresses=[];
+  }catch(e){
+    console.error('[adresses] replace:',e.message);
+    showToast('Impossible de mettre à jour l\'adresse');
+  }
+}
+
+// ── Section "Mes adresses" dans le profil client ──────────────────────────
+async function _renderMesAdresses(clientTel){
+  const el=document.getElementById('portal-adresses');
+  if(!el||!clientTel) return;
+  try{
+    const r=await callEdge('manage-adresses',{action:'list',client_tel:clientTel});
+    const addrs=r?.adresses||[];
+    if(!addrs.length){
+      el.innerHTML='';
+      return;
+    }
+    el.innerHTML=`
+      <div class="profil-addrs-section">
+        <div class="profil-addrs-title">📍 Mes adresses de livraison</div>
+        ${addrs.map(a=>`
+          <div class="profil-addr-card">
+            <div class="profil-addr-card-body">
+              <div class="profil-addr-card-label">${_escHtml(a.label||'📍 Adresse')}</div>
+              <div class="profil-addr-card-addr">${_escHtml(a.adresse)}</div>
+              ${a.instructions?`<div class="profil-addr-card-notes">${_escHtml(a.instructions)}</div>`:''}
+            </div>
+            <button class="profil-addr-del" onclick="_deleteAddrFromProfile('${a.id}','${_escHtml(clientTel)}')" aria-label="Supprimer">🗑️</button>
+          </div>
+        `).join('')}
+      </div>`;
+  }catch(e){
+    console.error('[mes-adresses]',e.message);
+    el.innerHTML='';
+  }
+}
+
+async function _deleteAddrFromProfile(id, clientTel){
+  if(!id||!clientTel) return;
+  try{
+    await callEdge('manage-adresses',{action:'delete',client_tel:clientTel,id});
+    showToast('Adresse supprimée');
+    await _renderMesAdresses(clientTel);
+    // Invalider le cache livraison
+    _savedAddresses=_savedAddresses.filter(a=>a.id!==id);
+  }catch(e){
+    console.error('[mes-adresses] delete:',e.message);
+    showToast('Impossible de supprimer l\'adresse');
+  }
+}
+
 // Mise à jour adresse livraison sans re-render complet
 function _omAddrUpdate(field, val){
   _deliveryAddress[field]=val;
+  _selectedSavedAddrId=null; // frappe manuelle → désélectionner l'adresse sauvegardée
   const btn=document.getElementById('om-cta-btn');
   if(!btn) return;
   const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
@@ -5282,6 +5582,11 @@ function selectOrderCard(card){
   selectedPickupTime='';
   orderTableNum='';
   _syncOrderMode();
+  if(card==='livraison'){
+    _showNewAddrForm=false;
+    _selectedSavedAddrId=null;
+    _loadSavedAddresses();
+  }
   renderOrderOptions();
 }
 
@@ -5604,6 +5909,7 @@ async function _doSubmitOrder(selectedReward){
   _presenceToken=null;
   cart=[]; orderMode=null; orderCardMode=null; orderServiceMode='sur_place'; orderTableNum=''; selectedPickupTime='';
   _deliveryAddress={street:'',zip:'',city:'',notes:'',phone:''}; _deliveryQuote=null;
+  _savedAddresses=[]; _showNewAddrForm=false; _selectedSavedAddrId=null;
   updateCartBar();
 
   // ── Routage : Immédiat → direct en cuisine (caisse), Avance → Stripe ────────
@@ -6924,6 +7230,10 @@ function renderPortal(c){
 
   // Dernière commande dashboard
   renderDashLastOrder(c);
+
+  // Section "Mes adresses de livraison" dans le profil
+  const _pTel=c&&(c.telephone||c.tel);
+  if(_pTel) _renderMesAdresses(_pTel).catch(()=>{});
 }
 
 function renderDashLastOrder(c){
@@ -10911,6 +11221,36 @@ if('serviceWorker' in navigator){
     <span class="gnav-lbl">Profil</span>
   </button>
 </nav>
+
+<!-- SAUVEGARDE ADRESSE LIVRAISON -->
+<div class="upsell-overlay" id="overlay-save-addr">
+  <div class="upsell-sheet" style="max-height:85vh;overflow-y:auto;padding-bottom:1.5rem;">
+    <div style="font-size:17px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px;">💾 Sauvegarder cette adresse ?</div>
+    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:.25rem;">Pour commander plus vite la prochaine fois</div>
+    <div class="save-addr-preview" id="save-addr-preview"></div>
+    <div id="save-addr-step1">
+      <button class="save-addr-label-btn" onclick="_chooseSaveAddrLabel()"><span class="save-addr-label-emoji">💾</span><div><div>Oui, sauvegarder</div><div style="font-size:11px;font-weight:400;color:var(--text3);margin-top:2px">Choisir un nom pour cette adresse</div></div></button>
+      <button onclick="_closeSaveAddrPrompt()" style="width:100%;background:none;border:none;color:rgba(255,255,255,.4);font-family:var(--font);font-size:14px;cursor:pointer;padding:.9rem 0;min-height:44px;">Non merci</button>
+    </div>
+    <div id="save-addr-step2" style="display:none;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:.75rem;">Choisissez un label :</div>
+      <button class="save-addr-label-btn" onclick="_confirmSaveAddr('🏠 Domicile')"><span class="save-addr-label-emoji">🏠</span><span>Domicile</span></button>
+      <button class="save-addr-label-btn" onclick="_confirmSaveAddr('💼 Travail')"><span class="save-addr-label-emoji">💼</span><span>Travail</span></button>
+      <button class="save-addr-label-btn" onclick="_confirmSaveAddr('📍 Autre')"><span class="save-addr-label-emoji">📍</span><span>Autre adresse</span></button>
+      <button onclick="_closeSaveAddrPrompt()" style="width:100%;background:none;border:none;color:rgba(255,255,255,.4);font-family:var(--font);font-size:14px;cursor:pointer;padding:.9rem 0;min-height:44px;">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- REMPLACEMENT ADRESSE (max 3 atteint) -->
+<div class="upsell-overlay" id="overlay-replace-addr">
+  <div class="upsell-sheet" style="max-height:85vh;overflow-y:auto;padding-bottom:1.5rem;">
+    <div style="font-size:17px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px;">📍 3 adresses maximum</div>
+    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1rem;">Remplacez une adresse existante :</div>
+    <div id="replace-addr-list"></div>
+    <button onclick="_closeReplaceAddrPrompt()" style="width:100%;background:none;border:none;color:rgba(255,255,255,.4);font-family:var(--font);font-size:14px;cursor:pointer;padding:.9rem 0;min-height:44px;margin-top:.25rem;">Annuler</button>
+  </div>
+</div>
 
 <!-- FEEDBACK OVERLAY — hors de #root pour éviter overflow-x:hidden iOS Safari -->
 <div id="feedback-overlay" class="feedback-overlay" style="display:none">
