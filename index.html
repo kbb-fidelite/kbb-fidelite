@@ -3409,7 +3409,7 @@ let orderCardMode=null;  // 'avance'|'immediat'|'livraison' — quelle carte est
 let orderServiceMode='sur_place'; // 'sur_place'|'a_emporter' — toggle dans la carte
 let orderTableNum='';
 let selectedPickupTime='';
-let _deliveryAddress={street:'',zip:'',city:'',notes:''}; // adresse livraison
+let _deliveryAddress={street:'',zip:'',city:'',notes:'',phone:''}; // adresse livraison
 let _deliveryQuote=null;   // {fee_cents, currency, pickup_duration, dropoff_eta, quote_id} | null
 let _quoteDebounce=null;   // timer debounce pour l'appel get-delivery-quote
 let _quoteLoading=false;   // true pendant l'appel API devis
@@ -3968,10 +3968,10 @@ async function _createUberDelivery(commandeId, pending){
   const addr=pending.deliveryAddress;
   const clientData=pending.clientData||{};
   const clientName=((clientData.prenom||'')+' '+(clientData.nom||'')).trim()||'Client KBB';
-  const clientTel=pending.clientTel||'';
+  const clientTel=addr?.phone||pending.clientTel||'';
   const orderNum=pending.orderNum||('#KBB-'+String(commandeId).padStart(3,'0'));
   const formatted=addr.street+', '+addr.zip+' '+addr.city+', France';
-  console.log('[uber-delivery] création livraison pour commande',commandeId,'→',formatted);
+  console.log('[uber-delivery] création livraison pour commande',commandeId,'→',formatted,'| tel:','…'+clientTel.slice(-4));
   const r=await callEdge('create-uber-delivery',{
     commande_id:     commandeId,
     dropoff_address: formatted,
@@ -5074,7 +5074,8 @@ function renderOrderOptions(){
   const _tot=_sub+_fee;
   const _subStr=_sub.toFixed(2).replace('.',',')+'€';
   const _totStr=_tot.toFixed(2).replace('.',',')+'€';
-  const _livOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
+  const _livPhoneVal=_deliveryAddress.phone||(currentPortalClient?.telephone||currentPortalClient?.tel||'');
+  const _livOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim()&&_validateFrPhone(_livPhoneVal);
   const _canConfirm=orderCardMode==='immediat'||(orderCardMode==='avance'&&!!selectedPickupTime)||(orderCardMode==='livraison'&&_livOk);
   const _ctaLabel=orderCardMode==='immediat'?'⚡ Envoyer':orderCardMode==='livraison'?'Commander · livraison 🛵':'Confirmer ma commande';
 
@@ -5159,6 +5160,13 @@ function renderOrderOptions(){
         </label>
       </div>
       <label class="om-field" onclick="event.stopPropagation()">
+        <div class="om-field-lbl">📱 Téléphone <span style="color:#FF8C00;font-weight:700">*</span><span class="om-field-opt">pour le livreur</span></div>
+        <input class="om-field-inp" type="tel" id="om-phone-inp" inputmode="tel"
+          value="${_e(_deliveryAddress.phone||(currentPortalClient?.telephone||currentPortalClient?.tel||''))}"
+          placeholder="06 12 34 56 78 ou +33 6…"
+          oninput="event.stopPropagation();_omAddrUpdate('phone',this.value)" autocomplete="tel">
+      </label>
+      <label class="om-field" onclick="event.stopPropagation()">
         <div class="om-field-lbl"><span>Instructions livreur</span><span class="om-field-opt">optionnel</span></div>
         <textarea class="om-field-inp" rows="2" placeholder="Digicode, étage, précisions…"
           oninput="event.stopPropagation();_omAddrUpdate('notes',this.value)">${_e(_deliveryAddress.notes)}</textarea>
@@ -5192,14 +5200,22 @@ function renderOrderOptions(){
     </div>`;
 }
 
+// Valide un numéro de téléphone français (06/07 ou +33/0033)
+function _validateFrPhone(tel){
+  if(!tel) return false;
+  const clean=tel.replace(/[\s.\-()]/g,'');
+  return /^\+33[67]\d{8}$/.test(clean)||/^0033[67]\d{8}$/.test(clean)||/^0[67]\d{8}$/.test(clean);
+}
+
 // Mise à jour adresse livraison sans re-render complet
 function _omAddrUpdate(field, val){
   _deliveryAddress[field]=val;
   const btn=document.getElementById('om-cta-btn');
   if(!btn) return;
-  const _sub=cart.reduce((s,c)=>s+(typeof c==='object'?c.price:MENU_DATA[c].price),0);
   const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
-  const ok=orderCardMode==='livraison'&&addrOk&&!_quoteLoading;
+  const phoneVal=_deliveryAddress.phone||(currentPortalClient?.telephone||currentPortalClient?.tel||'');
+  const phoneOk=_validateFrPhone(phoneVal);
+  const ok=orderCardMode==='livraison'&&addrOk&&phoneOk&&!_quoteLoading;
   btn.disabled=!ok;
   // Déclencher le devis Uber si l'adresse est complète (debounce 900ms)
   if(addrOk){
@@ -5496,10 +5512,12 @@ async function submitClientOrder(){
     showToast('Connectez-vous pour commander 🔥');
     return;
   }
-  // Livraison — validation adresse et devis
+  // Livraison — validation adresse, téléphone et devis
   if(orderCardMode==='livraison'){
     const addrOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim();
     if(!addrOk){ showToast('Saisissez votre adresse de livraison complète'); return; }
+    const phoneVal=_deliveryAddress.phone||(currentPortalClient?.telephone||currentPortalClient?.tel||'');
+    if(!_validateFrPhone(phoneVal)){ showToast('Numéro de téléphone invalide — format 06, 07 ou +33 6…'); return; }
     if(!_deliveryQuote){ showToast('Calcul des frais de livraison en cours — réessayez dans un instant'); return; }
   }
   // Créneau requis seulement pour le mode "avance"
@@ -5585,7 +5603,7 @@ async function _doSubmitOrder(selectedReward){
   // Reset panier (avant await pour éviter double-soumission)
   _presenceToken=null;
   cart=[]; orderMode=null; orderCardMode=null; orderServiceMode='sur_place'; orderTableNum=''; selectedPickupTime='';
-  _deliveryAddress={street:'',zip:'',city:'',notes:''}; _deliveryQuote=null;
+  _deliveryAddress={street:'',zip:'',city:'',notes:'',phone:''}; _deliveryQuote=null;
   updateCartBar();
 
   // ── Routage : Immédiat → direct en cuisine (caisse), Avance → Stripe ────────

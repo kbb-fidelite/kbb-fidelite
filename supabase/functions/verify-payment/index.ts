@@ -23,7 +23,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const FIELDS = 'id, statut, montant, pts_a_crediter, client_telephone, items, type, heure_retrait, stripe_session_id, delivery_address';
+const FIELDS = 'id, statut, montant, pts_a_crediter, client_telephone, telephone_client, items, type, heure_retrait, stripe_session_id, delivery_address';
 
 function res(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -64,6 +64,10 @@ Deno.serve(async (req) => {
     const deliveryAddress = (body?.deliveryAddress && typeof body.deliveryAddress === 'object')
       ? body.deliveryAddress
       : null;
+    // Téléphone client : priorité au téléphone saisi dans le formulaire livraison, sinon compte client
+    const telephoneClient = (deliveryAddress as Record<string,string>|null)?.phone
+      ? String((deliveryAddress as Record<string,string>).phone)
+      : (clientTel ?? null);
 
     console.log('[VP] session_id:', session_id?.substring(0, 20), '— orderType:', orderType, '— tel:', clientTel ? '...'+String(clientTel).slice(-4) : '—');
 
@@ -163,6 +167,7 @@ Deno.serve(async (req) => {
       created_at:        new Date().toISOString(),
     };
 
+    if (telephoneClient) orderPayload.telephone_client = telephoneClient;
     if (rewardNom) orderPayload.reward_nom = rewardNom;
     if (rewardPts) orderPayload.reward_pts = rewardPts;
     if (rewardId && !isNaN(rewardId) && rewardId > 0) orderPayload.reward_id = rewardId;
