@@ -1349,6 +1349,14 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .stripe-fee-badge{font-size:11px;font-weight:700;color:var(--fire);background:rgba(255,107,43,.12);border:1px solid rgba(255,107,43,.2);border-radius:99px;padding:2px 9px;display:inline-block;margin-bottom:1.25rem;}
 @keyframes stripe-shimmer{0%,100%{opacity:1}50%{opacity:.5}}
 .stripe-fee-free{font-size:12px;font-weight:700;color:#FF9A1E;display:inline-block;margin-bottom:1.25rem;animation:stripe-shimmer 2.2s ease-in-out infinite;letter-spacing:.1px;}
+.stripe-breakdown{margin-bottom:1.25rem;background:var(--coal3);border-radius:var(--radius-sm);padding:.75rem 1rem;border:1px solid var(--border2);}
+.stripe-breakdown-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text2);padding:3px 0;}
+.stripe-breakdown-row span:last-child{font-weight:700;color:var(--text);}
+.stripe-breakdown-service span:first-child{color:var(--text3);}
+.stripe-breakdown-service span:last-child{color:var(--text2);}
+.stripe-breakdown-total{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:800;color:var(--text);padding-top:8px;margin-top:6px;border-top:1px solid var(--border2);}
+.stripe-breakdown-caption{font-size:10px;color:var(--text3);margin-top:2px;padding-bottom:4px;}
+.stripe-uber-mention{font-size:11px;color:#888;text-align:center;margin-top:6px;line-height:1.4;padding-top:8px;border-top:1px solid var(--border2);}
 /* ══ COMPTOIR ══ */
 .cpt-header{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.25rem;background:var(--coal2);border-bottom:3px solid var(--green);flex-shrink:0;}
 .cpt-title{font-family:var(--font-d);font-size:24px;letter-spacing:2px;color:var(--green);}
@@ -3021,20 +3029,23 @@ function getSupaClient(){
 
 /* ── Helper Edge Functions — supabase.functions.invoke() avec fallback fetch ── */
 async function callEdge(fnName, body){
-  const client=getSupaClient();
-  if(client&&client.functions){
-    const {data,error}=await client.functions.invoke(fnName,{body});
-    if(error) throw new Error(fnName+': '+(error.message||JSON.stringify(error)));
-    return data;
-  }
-  // Fallback fetch direct (si SDK non dispo)
+  // Fetch direct — fiable, pas de dépendance au module functions du SDK
   const r=await fetch(SURL+'/functions/v1/'+fnName,{
     method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY,'apikey':SKEY},
     body:JSON.stringify(body)
   });
-  if(!r.ok) throw new Error(fnName+': '+(await r.text().catch(()=>String(r.status))));
-  return r.json();
+  const txt=await r.text();
+  if(!r.ok){
+    console.error('[callEdge]',fnName,'HTTP',r.status,txt.slice(0,300));
+    let msg=fnName+': HTTP '+r.status;
+    try{ const j=JSON.parse(txt); msg=j.error||msg; }catch(_){}
+    throw new Error(msg);
+  }
+  try{ return JSON.parse(txt); }catch(e){
+    console.error('[callEdge]',fnName,'réponse non-JSON:',txt.slice(0,200));
+    throw new Error(fnName+': réponse invalide du serveur');
+  }
 }
 async function supaReq(path,method='GET',body=null){
   const o={method,headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'}};
@@ -3049,7 +3060,10 @@ async function supaReq(path,method='GET',body=null){
 }
 async function dbAll(){
   if(supaOk()){
-    const rows=await supaReq('clients?select=*&order=created_at.desc');
+    const empToken=_getEmpToken();
+    if(!empToken) return lLoad();
+    const j=await callEdge('get-admin-data',{action:'clients_all',emp_token:empToken});
+    const rows=j.clients||[];
     const localDb=lLoad();
     return rows.map(r=>{
       const lc=localDb.find(x=>x.telephone===r.telephone||x.tel===r.telephone);
@@ -3061,16 +3075,25 @@ async function dbAll(){
 async function dbByTel(tel){
   try{
     if(supaOk()){
-      const d=await supaReq('clients?telephone=eq.'+encodeURIComponent(tel)+'&select=*');
-      if(!d||!d[0]) return null;
-      const r=d[0];
+      const empToken=_getEmpToken();
+      let r=null;
+      if(empToken){
+        // Contexte employé : via get-admin-data (emp_token)
+        const j=await callEdge('get-admin-data',{action:'clients_by_tel',tel,emp_token:empToken});
+        r=j.client||null;
+      } else {
+        // Contexte client : via get-client-profile (client_tel)
+        const j=await callEdge('get-client-profile',{client_tel:tel});
+        r=j.client||null;
+      }
+      if(!r) return null;
       const localDb=lLoad();
       const localClient=localDb.find(lc=>lc.telephone===r.telephone||lc.tel===r.telephone);
       const history=localClient?localClient.history:[];
       // Always read cagnotte from Supabase, not local
       return {...r,tel:r.telephone||r.tel,passages:r.points||0,cagnotte:parseFloat(r.cagnotte)||0,code_secret:r.code_secret||'',pin_rapide:r.pin_rapide||'',parrain_status:r.parrain_status||'',parrain_tel:r.parrain_tel||'',parrain_mois:r.parrain_mois||0,parrain_mois_count:r.parrain_mois_count||0,parrain_de:r.parrain_de||[],session_token:r.session_token||'',derniere_visite:r.derniere_visite||'',dernier_bonus_anniv:r.dernier_bonus_anniv||'',date_naissance:r.date_naissance||'',history};
     }
-  }catch(e){ console.warn('dbByTel error',e); return null; }
+  }catch(e){ console.error('[dbByTel] erreur pour tel=…'+String(tel).slice(-4),e.message||e); return null; }
   return lLoad().find(c=>c.telephone===tel||c.tel===tel)||null;
 }
 // Rafraîchit le solde du client connecté depuis Supabase (fire-and-forget)
@@ -3187,12 +3210,15 @@ async function refreshDashStatus(){
 
 async function dbCreate(client){
   if(supaOk()){
-    // Let Supabase auto-generate the id
-    const payload={prenom:client.prenom,nom:client.nom,telephone:client.telephone,email:'',points:0,cagnotte:0,code_secret:client.code_secret||''};
-    console.log('Envoi Supabase:', JSON.stringify(payload));
-    const d=await supaReq('clients','POST',payload);
-    console.log('Réponse Supabase:', JSON.stringify(d));
-    const saved=d[0]||d;
+    const empToken=_getEmpToken();
+    const body={prenom:client.prenom||'',nom:client.nom||'',telephone:client.telephone,code_secret:client.code_secret||''};
+    if(client.date_naissance) body.date_naissance=client.date_naissance;
+    if(empToken) body.emp_token=empToken;
+    console.log('create-client: envoi pour tel=…'+String(client.telephone||'').slice(-4));
+    const j=await callEdge('create-client',body);
+    if(j.error&&(j.error==='duplicate'||j.code==='23505')) throw Object.assign(new Error('23505'),{message:'23505'});
+    const saved=j.client||j;
+    console.log('create-client: réponse id='+saved.id);
     return {...saved,tel:saved.telephone,passages:saved.points||0,history:[]};
   }
   const d=lLoad();
@@ -3263,7 +3289,8 @@ function saveSupaConfig(){
 }
 async function testSupa(){
   try{
-    await supaReq('clients?select=id&limit=1');
+    // Utilise settings (lecture publique) pour tester la connectivité — clients n'est plus accessible en anon
+    await supaReq('settings?select=key&limit=1');
     updateSupaStatus(true);
   }catch(e){
     updateSupaStatus(false);
@@ -3279,7 +3306,7 @@ function updateSupaStatus(ok){
 
 async function diagnoseSupa(){
   try{
-    const r = await fetch(SURL+'/rest/v1/clients?select=id&limit=1', {
+    const r = await fetch(SURL+'/rest/v1/settings?select=key&limit=1', {
       headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY}
     });
     const txt = await r.text();
@@ -3718,19 +3745,31 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
 // État global pour la modal
 let _stripePendingCtx=null;
 
-function stripeModalOpen(orderId, total, fee, levelKey, label){
-  _stripePendingCtx={orderId, total, fee, levelKey, label};
-  const totalWithFee=total+fee;
+function stripeModalOpen(orderId, subtotal, deliveryFee, serviceFee, levelKey, label){
+  _stripePendingCtx={orderId, subtotal, deliveryFee, serviceFee, levelKey, label};
+  const totalOnline=subtotal+deliveryFee+serviceFee;
   document.getElementById('stripe-sheet-sub').textContent=label;
-  document.getElementById('stripe-sheet-amount').textContent=totalWithFee.toFixed(2).replace('.',',')+'€';
+  document.getElementById('stripe-sheet-amount').textContent=totalOnline.toFixed(2).replace('.',',')+'€';
   const feeZone=document.getElementById('stripe-fee-zone');
-  if(fee>0){
-    feeZone.innerHTML=`<div class="stripe-fee-badge">+${fee.toFixed(2).replace('.',',')}€ frais de service (offerts dès Argent)</div>`;
-  } else {
-    feeZone.innerHTML='<span class="stripe-fee-free">Frais de service offerts ✨</span>';
+  let feeHtml='<div class="stripe-breakdown">';
+  feeHtml+=`<div class="stripe-breakdown-row"><span>Sous-total</span><span>${subtotal.toFixed(2).replace('.',',')} €</span></div>`;
+  if(deliveryFee>0){
+    feeHtml+=`<div class="stripe-breakdown-row"><span>🛵 Livraison Uber Direct</span><span>+ ${deliveryFee.toFixed(2).replace('.',',')} €</span></div>`;
   }
+  if(serviceFee>0){
+    feeHtml+=`<div class="stripe-breakdown-row stripe-breakdown-service"><span>Frais de service</span><span>+ ${serviceFee.toFixed(2).replace('.',',')} €</span></div>`;
+    feeHtml+=`<div class="stripe-breakdown-caption">Frais appliqués sur le paiement en ligne par carte</div>`;
+  } else {
+    feeHtml+=`<div class="stripe-breakdown-caption stripe-fee-free">Frais de service offerts ✨</div>`;
+  }
+  feeHtml+=`<div class="stripe-breakdown-total"><span>Total</span><span>${totalOnline.toFixed(2).replace('.',',')} €</span></div>`;
+  if(deliveryFee>0){
+    feeHtml+=`<div class="stripe-uber-mention">🛵 Livraison assurée par Uber Direct — Les frais peuvent varier selon l'heure et la distance</div>`;
+  }
+  feeHtml+='</div>';
+  feeZone.innerHTML=feeHtml;
   const priceEl=document.getElementById('stripe-btn-price');
-  if(priceEl) priceEl.textContent=totalWithFee.toFixed(2).replace('.',',')+'€';
+  if(priceEl) priceEl.textContent=totalOnline.toFixed(2).replace('.',',')+'€';
   // "Payer sur place" masqué — sur_place ne passe plus par Stripe (paiement en caisse)
   document.getElementById('stripe-btn-inplace').style.display='none';
   document.getElementById('stripe-overlay').style.display='flex';
@@ -3749,8 +3788,13 @@ async function stripePayOnline(){
   const _lbl=document.getElementById('stripe-btn-label');
   if(_lbl) _lbl.textContent='⏳ Redirection…'; else btn.textContent='⏳ Redirection…';
   try{
-    const amountCents=Math.round((ctx.total+ctx.fee)*100);
-    const feeCents=Math.round(ctx.fee*100);
+    console.log('[DEBUG-STRIPE] ctx dans stripePayOnline', {
+      subtotal: ctx.subtotal, deliveryFee: ctx.deliveryFee, serviceFee: ctx.serviceFee,
+      levelKey: ctx.levelKey, total_computed: ctx.subtotal+ctx.deliveryFee+ctx.serviceFee,
+    });
+    const amountCents=Math.round((ctx.subtotal+ctx.deliveryFee+ctx.serviceFee)*100);
+    const feeCents=Math.round((ctx.deliveryFee||0)*100); // delivery fee uniquement (service fee calculé par le serveur via clientLevel)
+    console.log('[DEBUG-STRIPE] amountCents envoyé au serveur:', amountCents, '| feeCents (livraison):', feeCents);
     // Lire le pending context pour passer les données de commande à create-checkout
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
     const extraParams={
@@ -5122,7 +5166,11 @@ function renderOrderOptions(){
   // ── Totaux & validation ──────────────────────────────────────────────────
   const _sub=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
   const _fee=orderCardMode==='livraison'?(_deliveryQuote?_deliveryQuote.fee_cents/100:3.99):0;
-  const _tot=_sub+_fee;
+  // Frais de service 0,50€ (bronze) — uniquement au paiement en ligne, affiché en note
+  const _rLvlPts=Math.floor(parseFloat(currentPortalClient?.cagnotte||0));
+  const _rLvlKey=currentPortalClient?getLevel(_rLvlPts).label.toLowerCase():'bronze';
+  const _serviceFee=getStripeFee(_rLvlKey);
+  const _tot=_sub+_fee; // bouton CTA : sans frais de service (ajouté dans la modal Stripe)
   const _subStr=_sub.toFixed(2).replace('.',',')+'€';
   const _totStr=_tot.toFixed(2).replace('.',',')+'€';
   const _livPhoneVal=_deliveryAddress.phone||(currentPortalClient?.telephone||currentPortalClient?.tel||'');
@@ -5191,6 +5239,7 @@ function renderOrderOptions(){
 
   // ── Card 3 — Livraison 🛵 ────────────────────────────────────────────────
   const _e=(s)=>(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const _livFeeHigh=_deliveryQuote&&(_deliveryQuote.fee_cents/100)>8;
   const _c3FeeHtml=`
     <div class="om-fee" style="flex-direction:column;align-items:flex-start;gap:6px">
       <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
@@ -5203,6 +5252,8 @@ function renderOrderOptions(){
         </div>
         <div class="om-fee-val" id="om-fee-val">${_quoteLoading?'⏳ …':_deliveryQuote?(_deliveryQuote.fee_cents/100).toFixed(2).replace('.',',')+' €':'—'}</div>
       </div>
+      <div style="font-size:11px;color:#666;line-height:1.4;padding-left:2px;">Frais de livraison calculés par Uber Direct selon la distance et la demande en temps réel</div>
+      ${_livFeeHigh?'<div style="font-size:11px;color:#FF8C00;font-weight:600;padding-left:2px;">⚠ Tarif élevé en raison de la forte demande actuelle</div>':''}
     </div>`;
   const _c3ManualFormHtml=`
     <div onclick="event.stopPropagation()">
@@ -5262,7 +5313,12 @@ function renderOrderOptions(){
       ${_card('avance',orderCardMode==='avance','Je commande à l\'avance','📅',_c2Sub,'',_c2Inner)}
       ${_card('livraison',orderCardMode==='livraison','Livraison','🛵','Livraison à domicile · 25–40 min','',_c3Inner)}
       <div class="om-reassure"><span style="font-size:16px">🔥</span><span>Toutes nos viandes sont cuites au <strong style="color:#fff">feu de bois</strong>, préparées à la minute.</span></div>
-      ${_fee>0?`<div class="om-cta-fee-row"><span>Sous-total + livraison</span><span>${_subStr} + ${_fee.toFixed(2).replace('.',',')} €</span></div>`:''}
+      ${_fee>0?`
+        <div class="om-cta-fee-row"><span>Sous-total</span><span>${_subStr}</span></div>
+        <div class="om-cta-fee-row"><span>🛵 Livraison Uber Direct</span><span>+ ${_fee.toFixed(2).replace('.',',')} €</span></div>
+        <div style="font-size:10px;color:#666;text-align:right;margin-top:-4px;margin-bottom:6px;">Frais calculés en temps réel · peuvent varier</div>
+      `:''}
+      ${_serviceFee>0?`<div style="font-size:11px;color:#888;text-align:center;margin-bottom:6px;">+ ${_serviceFee.toFixed(2).replace('.',',')}€ frais de service · paiement en ligne par carte</div>`:''}
       <button id="om-cta-btn" class="om-cta" onclick="submitClientOrder()" ${_canConfirm&&orderCardMode?'':' disabled'}>
         <span>${_ctaLabel}</span>
         <span style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">${_totStr}</span>
@@ -5859,9 +5915,9 @@ async function submitClientOrder(){
   const clientPts=Math.floor(parseFloat(currentPortalClient?.cagnotte||0));
   const levelObj=currentPortalClient?getLevel(clientPts):null;
   const levelKey=levelObj?levelObj.label.toLowerCase():'bronze';
-  const fee=orderCardMode==='livraison'
-    ?(_deliveryQuote?_deliveryQuote.fee_cents/100:3.99)
-    :getStripeFee(levelKey);
+  const deliveryFee=orderCardMode==='livraison'?(_deliveryQuote?_deliveryQuote.fee_cents/100:3.99):0;
+  const serviceFee=getStripeFee(levelKey); // 0,50€ bronze · offert Argent/Or · paiement en ligne
+  const fee=deliveryFee+serviceFee; // total frais → create-checkout (vérification serveur)
   const label=orderCardMode==='immediat'
     ?(orderServiceMode==='a_emporter'?'À emporter — immédiat':'Sur place — immédiat')
     :orderCardMode==='livraison'
@@ -5869,7 +5925,7 @@ async function submitClientOrder(){
       :(orderServiceMode==='a_emporter'?'À emporter — retrait à '+selectedPickupTime:'Sur place — arrivée à '+selectedPickupTime);
 
   // ── Stocker le contexte dans la variable globale ──
-  _pendingOrderCtx={total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,clientPts,levelKey,fee,label};
+  _pendingOrderCtx={total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,clientPts,levelKey,fee,deliveryFee,serviceFee,label};
 
   // ── Afficher l'overlay récompenses si des récompenses actives existent ──
   const allRecs=await loadRecompenses();
@@ -5885,7 +5941,7 @@ async function _doSubmitOrder(selectedReward){
   const ctx=_pendingOrderCtx;
   _pendingOrderCtx=null;
   if(!ctx) return;
-  const {total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,levelKey,fee,label}=ctx;
+  const {total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,levelKey,fee,deliveryFee,serviceFee,label}=ctx;
 
   // Capturer avant reset — orderMode/orderCardMode/orderServiceMode sont nuls après
   const isSurPlace = orderCardMode === 'immediat'; // les deux modes immédiats → caisse
@@ -5893,7 +5949,7 @@ async function _doSubmitOrder(selectedReward){
   const capturedOrderMode = orderMode;             // 'sur_place'|'a_emporter'|'reservation'|'click_collect'|'livraison'
   const capturedServiceMode = orderServiceMode;    // 'sur_place'|'a_emporter'
   const capturedDeliveryAddr = isLivraison ? {..._deliveryAddress} : null;
-  const capturedDeliveryFee  = isLivraison ? fee : null;
+  const capturedDeliveryFee  = isLivraison ? deliveryFee : null;
   const capturedQuoteId      = isLivraison ? (_deliveryQuote?.quote_id||null) : null;
   const tok = _presenceToken;
 
@@ -5928,7 +5984,7 @@ async function _doSubmitOrder(selectedReward){
 
   // ── Stocker le contexte complet pour handleStripeReturn (Stripe uniquement) ──
   localStorage.setItem('kbb_stripe_pending',JSON.stringify({
-    orderId: localId, orderNum, label, grouped, total, levelKey, fee, clientTel, pts_a_crediter,
+    orderId: localId, orderNum, label, grouped, total, levelKey, fee, deliveryFee, serviceFee, clientTel, pts_a_crediter,
     presence_token: null,
     reward_id: selectedReward?.id||null,
     reward_pts: selectedReward?.points_requis||0,
@@ -5947,7 +6003,17 @@ async function _doSubmitOrder(selectedReward){
       deliveryAddress:capturedDeliveryAddr||null}
   }));
 
-  stripeModalOpen(localId, total, fee, levelKey, label);
+  console.log('[DEBUG-STRIPE] avant stripeModalOpen', {
+    subtotal: total,
+    deliveryFee,
+    serviceFee,
+    totalClient: total + deliveryFee + serviceFee,
+    amountCentsClient: Math.round((total + deliveryFee + serviceFee) * 100),
+    levelKey,
+    orderCardMode: orderCardMode ?? '(null — déjà réinitialisé)',
+    isLivraison,
+  });
+  stripeModalOpen(localId, total, deliveryFee, serviceFee, levelKey, label);
 }
 
 // Finalise une commande sur place sans paiement Stripe.
@@ -7605,8 +7671,11 @@ async function loadKDS(){
   let orders=[];
   try{
     if(supaOk()){
-      const r=await supaReq('commandes?select=*&statut=in.(en_attente,en_cours)&order=created_at.asc&limit=100');
-      if(r) orders=r;
+      const empToken=_getEmpToken();
+      if(empToken){
+        const j=await callEdge('get-admin-data',{action:'commandes_kds',emp_token:empToken});
+        if(j.commandes) orders=j.commandes;
+      }
     }
   }catch(e){}
   if(!orders.length){
@@ -7701,8 +7770,11 @@ async function loadComptoir(){
   let orders=[];
   try{
     if(supaOk()){
-      const r=await supaReq('commandes?select=*&statut=eq.pret&order=created_at.asc&limit=50');
-      if(r) orders=r;
+      const empToken=_getEmpToken();
+      if(empToken){
+        const j=await callEdge('get-admin-data',{action:'commandes_pret',emp_token:empToken});
+        if(j.commandes) orders=j.commandes;
+      }
     }
   }catch(e){}
   if(!orders.length){
@@ -7745,9 +7817,11 @@ async function crediterPointsCommande(orderId){
   if(!supaOk()||!orderId||String(orderId).startsWith('local_')) return;
   try{
     // 1. Récupérer la commande complète
-    const orders=await supaReq('commandes?id=eq.'+encodeURIComponent(orderId)+'&select=*');
-    if(!orders||!orders[0]) return;
-    const o=orders[0];
+    const empToken=_getEmpToken();
+    if(!empToken) return;
+    const jc=await callEdge('get-admin-data',{action:'commandes_by_id',id:orderId,emp_token:empToken});
+    const o=jc.commande;
+    if(!o) return;
     // 2. Garde-fou double crédit
     if(o.points_credites) return;
     // 3. Client identifié ?
@@ -7835,14 +7909,11 @@ async function _cptPtsDoSearch(q){
   let results=[];
   try{
     if(supaOk()){
-      const enc=encodeURIComponent(q);
-      // Search by phone exact match first, then by name partial match
-      const byPhone=await supaReq('clients?telephone=ilike.*'+enc+'*&select=*&limit=5');
-      const byName=await supaReq('clients?or=(prenom.ilike.*'+enc+'*,nom.ilike.*'+enc+'*)&select=*&limit=5');
-      const seen=new Set();
-      [...(byPhone||[]),...(byName||[])].forEach(c=>{
-        if(!seen.has(c.id)){seen.add(c.id);results.push(c);}
-      });
+      const empToken=_getEmpToken();
+      if(empToken){
+        const j=await callEdge('get-admin-data',{action:'clients_search',q,emp_token:empToken});
+        results=j.clients||[];
+      }
     } else {
       const loc=lLoad();
       const ql=q.toLowerCase();
@@ -7874,20 +7945,20 @@ async function _cptPtsDoSearch(q){
     </div>`;
   }).join('');
   // Load history for each client
-  results.forEach(c=>cptPtsLoadHist(c.id));
+  results.forEach(c=>cptPtsLoadHist(c.id,c.telephone||c.tel||''));
 }
 
-async function cptPtsLoadHist(clientId){
+async function cptPtsLoadHist(clientId, tel){
   const el=document.getElementById('cpt-cc-hist-'+clientId);
   if(!el) return;
   let hist=[];
   try{
-    if(supaOk()){
-      // Check for manual_points_ops table or use commandes history
-      const rows=await supaReq('commandes?client_telephone=eq.'+encodeURIComponent(
-        (document.querySelector(`#cpt-cc-${clientId} .cpt-client-meta`)?.textContent||'').split(' ·')[0].trim()
-      )+'&select=id,montant,pts_a_crediter,created_at,statut&order=created_at.desc&limit=5').catch(()=>[]);
-      hist=rows||[];
+    if(supaOk()&&tel){
+      const empToken=_getEmpToken();
+      if(empToken){
+        const j=await callEdge('get-admin-data',{action:'commandes_by_client',tel,emp_token:empToken}).catch(()=>({commandes:[]}));
+        hist=j.commandes||[];
+      }
     }
   }catch(e){}
   if(!hist.length){ el.innerHTML=''; return; }
@@ -8133,8 +8204,12 @@ async function loadEmpCommandes(){
   let orders=[];
   try{
     if(supaOk()){
-      const remote=await supaReq('commandes?select=*&order=created_at.asc&limit=150');
-      if(remote) orders=remote.filter(o=>o.statut!=='archive'&&o.statut!=='pending_payment');
+      const empToken=_getEmpToken();
+      if(empToken){
+        const j=await callEdge('get-admin-data',{action:'commandes_all',emp_token:empToken});
+        const remote=j.commandes||[];
+        orders=remote.filter(o=>o.statut!=='archive'&&o.statut!=='pending_payment');
+      }
     }
   }catch(e){}
   const localOrders=JSON.parse(localStorage.getItem('kbb_client_orders')||'[]');
@@ -8224,10 +8299,12 @@ async function loadPatronSupervision(filter, btnEl){
   let orders=[];
   try{
     if(supaOk()){
-      const todayStart=new Date(); todayStart.setHours(0,0,0,0);
-      const iso=todayStart.toISOString();
-      const remote=await supaReq('commandes?select=*&created_at=gte.'+iso+'&order=created_at.desc&limit=300');
-      if(remote) orders=remote.filter(o=>o.statut!=='pending_payment');
+      const empToken=_getEmpToken();
+      if(empToken){
+        const j=await callEdge('get-admin-data',{action:'commandes_today',emp_token:empToken});
+        const remote=j.commandes||[];
+        orders=remote.filter(o=>o.statut!=='pending_payment');
+      }
     }
   }catch(e){ console.warn('loadPatronSupervision:',e); }
 
@@ -8315,8 +8392,11 @@ async function loadEmpService(){
   let orders=[];
   try{
     if(supaOk()){
-      const remote=await supaReq('commandes?select=*&statut=eq.pret&order=created_at.asc&limit=50');
-      if(remote) orders=remote;
+      const empToken=_getEmpToken();
+      if(empToken){
+        const j=await callEdge('get-admin-data',{action:'commandes_pret',emp_token:empToken});
+        if(j.commandes) orders=j.commandes;
+      }
     }
   }catch(e){}
   if(!orders.length){
@@ -8894,15 +8974,18 @@ async function parrainAnnulerPts(id){
   if(!p){showToast('Parrainage introuvable');return;}
   try{
     await dbUpdateParrainage(id,{status:'annule'});
-    if(p.pts_filleul_verse&&p.filleul_id){
-      const rows=await supaReq('clients?id=eq.'+p.filleul_id).catch(()=>[]);
-      const f=rows&&rows[0];
-      if(f) await dbUpdate(f.id,{cagnotte:Math.max(0,(parseFloat(f.cagnotte)||0)-20)});
-    }
-    if(p.pts_parrain_verse&&p.parrain_id){
-      const rows=await supaReq('clients?id=eq.'+p.parrain_id).catch(()=>[]);
-      const par=rows&&rows[0];
-      if(par) await dbUpdate(par.id,{cagnotte:Math.max(0,(parseFloat(par.cagnotte)||0)-(p.pts_parrain||15))});
+    const empToken=_getEmpToken();
+    if(empToken){
+      if(p.pts_filleul_verse&&p.filleul_id){
+        const jf=await callEdge('get-admin-data',{action:'clients_by_id',id:p.filleul_id,emp_token:empToken}).catch(()=>({client:null}));
+        const f=jf.client;
+        if(f) await dbUpdate(f.id,{cagnotte:Math.max(0,(parseFloat(f.cagnotte)||0)-20)});
+      }
+      if(p.pts_parrain_verse&&p.parrain_id){
+        const jp=await callEdge('get-admin-data',{action:'clients_by_id',id:p.parrain_id,emp_token:empToken}).catch(()=>({client:null}));
+        const par=jp.client;
+        if(par) await dbUpdate(par.id,{cagnotte:Math.max(0,(parseFloat(par.cagnotte)||0)-(p.pts_parrain||15))});
+      }
     }
     showToast('Points annulés');loadDashboard();
   }catch(e){showToast('Erreur: '+e.message);}
@@ -9353,12 +9436,19 @@ async function loadDashboard(){
     const monthStr=now.toISOString().slice(0,7);
 
     // ── Fetch parallèle ──────────────────────────────────────────────────────
-    const [cmds, prevCmds, clients, factures] = await Promise.all([
-      supaReq('commandes?select=*&created_at=gte.'+dates.fromISO+'&created_at=lte.'+dates.toISO+'&order=created_at.asc').catch(()=>[]),
-      supaReq('commandes?select=id,montant,statut,type,client_telephone&created_at=gte.'+dates.prevFromISO+'&created_at=lte.'+dates.prevToISO).catch(()=>[]),
+    const empToken=_getEmpToken();
+    const _adminEdge=(action,extra={})=>empToken
+      ?callEdge('get-admin-data',{action,...extra,emp_token:empToken}).catch(()=>({}))
+      :Promise.resolve({});
+    const [cmdsJ, prevCmdsJ, clients, facturesJ] = await Promise.all([
+      _adminEdge('commandes_range',{from:dates.fromISO,to:dates.toISO}),
+      _adminEdge('commandes_prev',{from:dates.prevFromISO,to:dates.prevToISO}),
       dbAll().catch(()=>[]),
-      supaReq('factures?select=*&date=gte.'+dates.fromISO+'&date=lte.'+dates.toISO+'&order=date.asc').catch(()=>[]),
+      _adminEdge('factures_range',{from:dates.fromISO,to:dates.toISO}),
     ]);
+    const cmds=cmdsJ.commandes||[];
+    const prevCmds=prevCmdsJ.commandes||[];
+    const factures=facturesJ.factures||[];
 
     const valid=_validCmds(cmds);
     const prevValid=_validCmds(prevCmds);
@@ -9371,7 +9461,8 @@ async function loadDashboard(){
 
     // CA année en cours (fetch léger)
     const yearISO=new Date().getFullYear()+'-01-01T00:00:00.000Z';
-    const anneeCmd=await supaReq('commandes?select=montant,statut&created_at=gte.'+yearISO).catch(()=>[]);
+    const annéeJ=await _adminEdge('commandes_year',{year_iso:yearISO});
+    const anneeCmd=annéeJ.commandes||[];
     const caAnnee=_validCmds(anneeCmd).reduce((s,c)=>s+parseFloat(c.montant||0),0);
 
     // Courbe CA par jour
@@ -9793,50 +9884,19 @@ function groupedToArticles(grouped, orderType){
   });
 }
 
-// Get next FAC-YYYY-NNNNN number (counts existing factures for this year)
-async function getNextFactureNumber(){
-  const year=new Date().getFullYear();
-  let n=1;
-  try{
-    if(supaOk()){
-      const rows=await supaReq('factures?select=id&date=gte.'+year+'-01-01T00:00:00Z&date=lt.'+(year+1)+'-01-01T00:00:00Z');
-      n=(rows||[]).length+1;
-    }
-  }catch(e){ console.warn('facture number:',e); }
-  return 'FAC-'+year+'-'+String(n).padStart(5,'0');
-}
-
-// Save facture to Supabase — throws on failure (F5: ne plus avaler l'erreur)
-async function saveFacture(data){
-  if(!supaOk()) throw new Error('Supabase non configuré');
-  const res=await supaReq('factures','POST',data); // supaReq throw déjà si !r.ok
-  if(!res||!res[0]) throw new Error('Supabase: réponse vide après insert facture');
-  return res[0];
-}
-
-// Idempotence : chercher une facture existante pour une commande (F4)
+// Idempotence : chercher une facture existante pour une commande (via Edge Function)
 async function findFactureByCommandeId(commandeId){
   if(!supaOk()||!commandeId) return null;
   try{
-    const rows=await supaReq('factures?commande_id=eq.'+encodeURIComponent(String(commandeId))+'&select=*&limit=1');
-    return (rows&&rows[0])||null;
+    const j=await callEdge('create-facture',{action:'find',commande_id:String(commandeId)});
+    return j.facture||null;
   }catch(e){ console.warn('findFactureByCommandeId:',e); return null; }
 }
 
 // Create facture from Stripe pending object — idempotent (F4), ref_stripe réel (F2)
+// Délègue entièrement à create-facture (Edge Function) : idempotence + numéro + insert atomiques
 async function createFactureFromPending(pending){
   const commandeId=String(pending.orderId||'');
-  // F4 : vérifier si une facture existe déjà pour cette commande
-  if(commandeId){
-    const existing=await findFactureByCommandeId(commandeId);
-    if(existing){
-      console.log('createFactureFromPending: facture déjà existante pour commande',commandeId,'—',existing.numero_facture);
-      window._lastFacture=existing;
-      localStorage.setItem('kbb_last_facture',JSON.stringify(existing));
-      return existing;
-    }
-  }
-  const numero=await getNextFactureNumber();
   const grouped=pending.grouped||null;
   const orderType=pending.activeOrder?.type||null;
   const articles=grouped?groupedToArticles(grouped,orderType):[];
@@ -9844,9 +9904,7 @@ async function createFactureFromPending(pending){
   const ht10=tva.ht10||(Math.round((pending.total||0)/1.10*100)/100);
   const tvA10=tva.tva10||Math.round(((pending.total||0)-ht10)*100)/100;
   const facData={
-    numero_facture:numero,
     date:new Date().toISOString(),
-    commande_id:commandeId,
     client_prenom:pending.clientData?.prenom||'',
     total_ht_10:tva.ht10||ht10,
     tva_10:tva.tva10||tvA10,
@@ -9854,11 +9912,13 @@ async function createFactureFromPending(pending){
     tva_55:tva.tva55||0,
     total_ttc:tva.ttc||pending.total||0,
     moyen_paiement:'carte',
-    ref_stripe:pending.stripeSessionId||null, // F2 : stripeSessionId passé par l'appelant
+    ref_stripe:pending.stripeSessionId||null,
     articles:articles
   };
-  // saveFacture throw si échec (F5) — l'appelant gère
-  const saved=await saveFacture(facData);
+  // create-facture gère idempotence + numéro + insert atomiquement
+  const j=await callEdge('create-facture',{action:'create',commande_id:commandeId||undefined,data:facData});
+  if(!j.ok&&!j.facture) throw new Error('create-facture: réponse invalide');
+  const saved=j.facture;
   window._lastFacture=saved;
   localStorage.setItem('kbb_last_facture',JSON.stringify(saved));
   return saved;
@@ -9866,19 +9926,10 @@ async function createFactureFromPending(pending){
 
 // Create facture for employee-validated order (no grouped, 100% TVA 10%)
 async function createFactureSimple(cmdId, montantTTC, clientPrenom){
-  // F4 : vérifier si une facture existe déjà pour cette commande
-  if(cmdId){
-    const existing=await findFactureByCommandeId(cmdId);
-    if(existing){
-      console.log('createFactureSimple: facture déjà existante pour commande',cmdId,'—',existing.numero_facture);
-      return;
-    }
-  }
-  const numero=await getNextFactureNumber();
+  const empToken=_getEmpToken();
   const ht10=Math.round(montantTTC/1.10*100)/100;
   const tva10=Math.round((montantTTC-ht10)*100)/100;
   const facData={
-    numero_facture:numero,
     date:new Date().toISOString(),
     commande_id:cmdId?String(cmdId):'',
     client_prenom:clientPrenom||'',
@@ -9889,8 +9940,9 @@ async function createFactureSimple(cmdId, montantTTC, clientPrenom){
     ref_stripe:null,
     articles:[]
   };
-  // saveFacture throw si échec (F5) — l'appelant gère
-  await saveFacture(facData);
+  // create-facture gère idempotence + numéro + insert atomiquement
+  const j=await callEdge('create-facture',{action:'create',commande_id:cmdId?String(cmdId):undefined,data:facData,emp_token:empToken||undefined});
+  if(j.error) console.warn('createFactureSimple:',j.error);
 }
 
 // Generate jsPDF invoice document from facture data (async — loads jsPDF on demand)
@@ -10239,9 +10291,10 @@ async function exportMyData(){
   if(!sess){ showToast('Connectez-vous pour exporter vos données'); return; }
   const c=sess.clientData;
   let fresh=c;
-  try{ if(supaOk()&&c.id){ const r=await supaReq('clients?id=eq.'+encodeURIComponent(c.id)); if(r&&r[0]) fresh=r[0]; } }catch(e){}
+  const _tel=c.telephone||c.tel;
+  try{ if(supaOk()&&_tel){ const jr=await callEdge('get-client-profile',{client_tel:_tel}); if(jr.client) fresh=jr.client; } }catch(e){}
   let commandes=[];
-  try{ if(supaOk()&&c.id){ const r=await supaReq('commandes?client_id=eq.'+encodeURIComponent(c.id)+'&order=created_at.desc'); if(r) commandes=r; } }catch(e){}
+  try{ if(supaOk()&&_tel){ const jr=await callEdge('get-client-profile',{client_tel:_tel,action:'commandes'}); if(jr.commandes) commandes=jr.commandes; } }catch(e){}
   const exportData={
     export_date: new Date().toISOString(),
     responsable: 'SAS ST2Z — KBB à la braise',
@@ -10662,8 +10715,10 @@ async function loadCommandesHistory(){
   }
   el.innerHTML='<div class="empty"><div class="big">⏳</div><p>Chargement…</p></div>';
   try{
-    // Fetch commandes
-    const commandes=await supaReq('commandes?select=*&client_telephone=eq.'+encodeURIComponent(tel)+'&order=created_at.desc&limit=60').catch(()=>[]);
+    // Fetch commandes + factures via Edge Function (sécurisé)
+    const jr=await callEdge('get-client-profile',{client_tel:tel,action:'commandes_avec_factures'});
+    const commandes=jr.commandes||[];
+    const factures=jr.factures||[];
     // Check active order
     const ao=getActiveOrder();
     let html='';
@@ -10673,14 +10728,10 @@ async function loadCommandesHistory(){
         <div style="font-size:12px;color:var(--text2);">${ao.orderNum||'En attente'} — Appuyez pour suivre →</div>
       </div>`;
     }
-    if(!commandes||!commandes.length){
+    if(!commandes.length){
       html+='<div class="empty"><p>Aucune commande pour le moment<br><span style="font-size:12px;color:var(--text3);">Vos commandes apparaîtront ici</span></p></div>';
       el.innerHTML=html; return;
     }
-    // Fetch factures for these commandes
-    const ids=commandes.map(c=>String(c.id)).filter(Boolean);
-    let factures=[];
-    if(ids.length) factures=await supaReq('factures?select=*&commande_id=in.("'+ids.join('","')+'")'  ).catch(()=>[]);
     const factureByCmd={};
     window._kbbFacLoad=window._kbbFacLoad||{};
     (factures||[]).forEach(f=>{ factureByCmd[String(f.commande_id)]=f; window._kbbFacLoad[f.id]=f; });
@@ -10712,14 +10763,9 @@ async function loadFacturesHistory(){
   }
   el.innerHTML='<div class="empty"><div class="big">⏳</div><p>Chargement…</p></div>';
   try{
-    const commandes=await supaReq('commandes?select=id&client_telephone=eq.'+encodeURIComponent(tel)+'&order=created_at.desc&limit=60').catch(()=>[]);
-    if(!commandes||!commandes.length){
-      el.innerHTML='<div class="empty"><p>Aucune facture pour le moment<br><span style="font-size:12px;color:var(--text3);">Vos factures apparaîtront ici après vos commandes</span></p></div>';
-      return;
-    }
-    const ids=commandes.map(c=>String(c.id)).filter(Boolean);
-    const factures=await supaReq('factures?select=*&commande_id=in.("'+ids.join('","')+'")'+'&order=date.desc').catch(()=>[]);
-    if(!factures||!factures.length){
+    const jr=await callEdge('get-client-profile',{client_tel:tel,action:'factures'});
+    const factures=jr.factures||[];
+    if(!factures.length){
       el.innerHTML='<div class="empty"><p>Aucune facture disponible<br><span style="font-size:12px;color:var(--text3);">Les factures sont générées après confirmation du paiement</span></p></div>';
       return;
     }
@@ -10746,8 +10792,17 @@ async function loadFacturesHistory(){
 async function downloadFactureByCommandeId(commandeId){
   showToast('Recherche de la facture…');
   try{
-    const rows=await supaReq('factures?select=*&commande_id=eq.'+encodeURIComponent(String(commandeId)));
-    const fac=rows&&rows[0];
+    const tel=currentPortalClient?.telephone||currentPortalClient?.tel;
+    let fac=null;
+    if(tel){
+      // Client portal : vérification ownership via Edge Function
+      const jr=await callEdge('get-client-profile',{client_tel:tel,action:'facture_by_commande',commande_id:String(commandeId)});
+      fac=jr.facture||null;
+    } else {
+      // Contexte employé : via create-facture find
+      const jr=await callEdge('create-facture',{action:'find',commande_id:String(commandeId)});
+      fac=jr.facture||null;
+    }
     if(!fac){ showToast('Facture introuvable — contactez le restaurant'); return; }
     await downloadFacturePDF(fac);
   }catch(e){ showToast('Erreur: '+e.message); }
@@ -10837,10 +10892,13 @@ function startSuiviPolling(){
     const ao=getActiveOrder();
     if(!ao||!ao.supaId){stopSuiviPolling();return;}
     try{
-      const rows=await supaReq('commandes?select=statut&id=eq.'+encodeURIComponent(String(ao.supaId)));
-      if(rows&&rows[0]){
-        if(rows[0].statut!==ao.statut) console.log('[Suivi] Poll détecte changement:',ao.statut,'→',rows[0].statut);
-        _handleSuiviStatusChange(rows[0].statut);
+      const _pollTel=currentPortalClient?.telephone||currentPortalClient?.tel;
+      if(_pollTel){
+        const jr=await callEdge('get-client-profile',{client_tel:_pollTel,action:'commande_status',commande_id:String(ao.supaId)});
+        if(jr.commande){
+          if(jr.commande.statut!==ao.statut) console.log('[Suivi] Poll détecte changement:',ao.statut,'→',jr.commande.statut);
+          _handleSuiviStatusChange(jr.commande.statut);
+        }
       }
     }catch(e){console.warn('[Suivi] Poll erreur:',e);}
   },5000);
@@ -10971,9 +11029,11 @@ async function recoverOrphanedFacture(){
   const supaId=pending.supabaseOrderId;
   if(!supaId) return; // pas encore de commande Supabase créée — cas normal avant paiement
   try{
-    // Vérifier le statut de la commande en base
-    const orders=await supaReq('commandes?id=eq.'+encodeURIComponent(String(supaId))+'&select=id,statut,stripe_session_id');
-    const order=orders&&orders[0];
+    // Vérifier le statut de la commande en base (via client_tel pour ownership)
+    const _rcTel=currentPortalClient?.telephone||currentPortalClient?.tel||null;
+    if(!_rcTel) return;
+    const jr=await callEdge('get-client-profile',{client_tel:_rcTel,action:'commande_status',commande_id:String(supaId)});
+    const order=jr.commande;
     if(!order) return; // commande introuvable — ne rien faire
     if(order.statut==='pending_payment') return; // paiement pas encore confirmé — normal
     // La commande est activée — vérifier si la facture existe déjà
