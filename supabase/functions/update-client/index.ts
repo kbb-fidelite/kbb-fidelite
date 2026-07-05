@@ -53,10 +53,11 @@ const EMP_FIELDS = [
 // Champs autorisés en mode client (propre compte uniquement)
 // SÉCURITÉ : 'cagnotte' et 'points' intentionnellement absents —
 // toute écriture de solde passe par une Edge Function dédiée (emp_token ou credit-referral-bonus).
+// SÉCURITÉ : champs restreints en mode client — pas de cagnotte, points, ni champs parrainage
+// Le parrainage est géré côté serveur (inscription → create-client, crédit → credit-referral-bonus)
 const CLIENT_FIELDS = [
   'pin_rapide', 'date_naissance', 'derniere_visite', 'dernier_bonus_anniv',
-  'session_token', 'parrain_tel', 'parrain_status', 'parrain_mois',
-  'parrain_mois_count', 'parrain_de',
+  'session_token',
 ];
 
 Deno.serve(async (req) => {

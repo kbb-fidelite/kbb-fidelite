@@ -2814,10 +2814,8 @@ body{
 
 <script>
 /* ══ CONFIG ══ */
-let PIN = localStorage.getItem('kbb_pin')||'1234';
-let PIN_PATRON = localStorage.getItem('kbb_pin_patron')||'5678';
-let PIN_CUISINE = localStorage.getItem('kbb_pin_cuisine')||'2222';
-let PIN_COMPTOIR = localStorage.getItem('kbb_pin_comptoir')||'3333';
+// PINs vérifiés exclusivement côté serveur (verify-pin Edge Function)
+// Aucun PIN n'est stocké ni comparé côté client
 let pinVal = '';
 let empRole = 'employe'; // 'employe' or 'patron'
 let empClient = null;
@@ -2877,7 +2875,7 @@ async function loadRecompenses(forceReload){
   ];
   return _recompensesCache;
 }
-function savePins(){
+async function savePins(){
   const emp=document.getElementById('new-pin-emp').value.trim();
   const patron=document.getElementById('new-pin-patron').value.trim();
   const cuisine=document.getElementById('new-pin-cuisine')?.value.trim()||'';
@@ -2886,16 +2884,26 @@ function savePins(){
   for(const p of all){ if(p.length!==4){showToast('Chaque PIN doit faire 4 chiffres');return;} }
   const uniq=new Set(all);
   if(uniq.size!==all.length){showToast('Les PIN doivent tous être différents');return;}
-  if(emp){PIN=emp;localStorage.setItem('kbb_pin',emp);}
-  if(patron){PIN_PATRON=patron;localStorage.setItem('kbb_pin_patron',patron);}
-  if(cuisine){PIN_CUISINE=cuisine;localStorage.setItem('kbb_pin_cuisine',cuisine);}
-  if(comptoir){PIN_COMPTOIR=comptoir;localStorage.setItem('kbb_pin_comptoir',comptoir);}
-  ['new-pin-emp','new-pin-patron','new-pin-cuisine','new-pin-comptoir'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  showToast('PIN mis à jour ✓');
+  // Envoi au serveur via Edge Function (emp_token patron requis)
+  const empToken=_getEmpToken();
+  if(!empToken){showToast('Reconnectez-vous pour modifier les PIN');return;}
+  try{
+    const pins={};
+    if(emp) pins.pin_employe=emp;
+    if(patron) pins.pin_patron=patron;
+    if(cuisine) pins.pin_cuisine=cuisine;
+    if(comptoir) pins.pin_comptoir=comptoir;
+    await callEdge('get-admin-data',{action:'update_pins',pins,emp_token:empToken});
+    ['new-pin-emp','new-pin-patron','new-pin-cuisine','new-pin-comptoir'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    showToast('PIN mis à jour ✓');
+  }catch(e){
+    showToast('Erreur : '+e.message);
+    console.error('savePins:',e);
+  }
 }
 
 function viderCacheLocal(){
-  const PRESERVE = ['kbb_emp_token','kbb_session','kbb_pin_comptoir','kbb_skey','kbb_pwa_dismissed'];
+  const PRESERVE = ['kbb_emp_token','kbb_session','kbb_skey','kbb_pwa_dismissed'];
   const toDelete = [];
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
@@ -7429,14 +7437,6 @@ function pk(k){if(pinVal.length>=4)return;pinVal+=k;udots();if(pinVal.length===4
 function pdel(){pinVal=pinVal.slice(0,-1);udots();document.getElementById('pin-err').textContent='';}
 function udots(){for(let i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('on',i<pinVal.length);}
 
-function _checkPinLocal(attempt, errEl){
-  if(attempt===PIN_PATRON){empRole='patron';if(errEl)errEl.textContent='';go('page-employee');}
-  else if(attempt===PIN){empRole='employe';if(errEl)errEl.textContent='';go('page-employee');}
-  else if(attempt===PIN_CUISINE){if(errEl)errEl.textContent='';go('page-kds');startKds();}
-  else if(attempt===PIN_COMPTOIR){if(errEl)errEl.textContent='';go('page-comptoir');startComptoir();}
-  else if(errEl) errEl.textContent='Code incorrect';
-}
-
 async function checkPin(){
   const attempt=pinVal; pinVal=''; udots();
   const errEl=document.getElementById('pin-err');
@@ -7448,29 +7448,20 @@ async function checkPin(){
       body:JSON.stringify({pin:attempt})
     });
 
-    // Erreur serveur (5xx) ou fonction non configurée → fallback local
-    if(r.status>=500){
-      console.warn('verify-pin erreur serveur ('+r.status+') — fallback local');
-      _checkPinLocal(attempt, errEl);
-      return;
-    }
-
-    const data=await r.json();
+    const data=await r.json().catch(()=>({}));
 
     if(r.status===429){
       errEl.textContent=`Trop de tentatives — réessayez dans ${data.remaining_minutes||15} min`;
       return;
     }
     if(r.status===401){
-      // Mauvais PIN — confirmé côté serveur
       const left=data.remaining>0?` (${data.remaining} essai${data.remaining>1?'s':''} restant${data.remaining>1?'s':''})` :'';
       errEl.textContent='Code incorrect'+left;
       return;
     }
     if(!r.ok){
-      // Autre erreur inattendue → fallback local
-      console.warn('verify-pin réponse inattendue ('+r.status+') — fallback local');
-      _checkPinLocal(attempt, errEl);
+      errEl.textContent='Erreur serveur — réessayez';
+      console.error('verify-pin HTTP', r.status);
       return;
     }
 
@@ -7483,9 +7474,8 @@ async function checkPin(){
     else if(data.role==='comptoir'){go('page-comptoir');startComptoir();}
 
   }catch(e){
-    // Erreur réseau (hors-ligne) → fallback local
-    console.warn('verify-pin réseau indisponible — fallback local:', e.message);
-    _checkPinLocal(attempt, errEl);
+    errEl.textContent='Connexion impossible — vérifiez votre réseau';
+    console.error('verify-pin network error:', e.message);
   }
 }
 

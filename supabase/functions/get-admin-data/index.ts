@@ -261,6 +261,40 @@ Deno.serve(async (req) => {
       return json({ factures: data ?? [] });
     }
 
+    // ── ADMINISTRATION (patron uniquement) ──
+
+    if (action === 'update_pins') {
+      if (empPayload.role !== 'patron') {
+        return json({ error: 'Seul le patron peut modifier les PIN' }, 403);
+      }
+      const { pins } = body;
+      if (!pins || typeof pins !== 'object') return json({ error: 'pins requis' }, 400);
+      const allowed = ['pin_employe', 'pin_patron', 'pin_cuisine', 'pin_comptoir'];
+      const updates: { key: string; value: string }[] = [];
+      for (const [k, v] of Object.entries(pins)) {
+        if (!allowed.includes(k)) continue;
+        if (typeof v !== 'string' || !/^\d{4}$/.test(v)) {
+          return json({ error: `PIN invalide pour ${k} — 4 chiffres requis` }, 400);
+        }
+        updates.push({ key: k, value: v });
+      }
+      if (!updates.length) return json({ error: 'Aucun PIN valide à mettre à jour' }, 400);
+      // Vérifier unicité
+      const vals = updates.map(u => u.value);
+      if (new Set(vals).size !== vals.length) {
+        return json({ error: 'Les PIN doivent tous être différents' }, 400);
+      }
+      for (const u of updates) {
+        const { error } = await supabase.from('config').upsert(
+          { key: u.key, value: u.value, updated_at: new Date().toISOString() },
+          { onConflict: 'key' }
+        );
+        if (error) return json({ error: error.message }, 500);
+      }
+      console.log(`[get-admin-data] PINs mis à jour par patron: ${updates.map(u => u.key).join(', ')}`);
+      return json({ ok: true, updated: updates.map(u => u.key) });
+    }
+
     return json({ error: `action inconnue: ${action}` }, 400);
 
   } catch (err) {
