@@ -3802,7 +3802,7 @@ async function stripePayOnline(){
       presence_token:   pending?.presence_token       || null,
       // Livraison Uber Direct — deliveryFeeCents calculé depuis ctx (source fiable)
       deliveryAddress:  pending?.deliveryAddress      || null,
-      deliveryFeeCents: ctx.deliveryFee > 0 ? Math.round(ctx.deliveryFee * 100) : (pending?.deliveryFeeCents ?? null),
+      deliveryFeeCents: ctx.deliveryFee >= 0 && pending?.isLivraison ? Math.round(ctx.deliveryFee * 100) : (pending?.deliveryFeeCents ?? null),
     };
     const {url}=await callStripeEdgeFunction(ctx.orderId,amountCents,feeCents,ctx.levelKey,ctx.label,extraParams);
     // Backup iOS : sauvegarder dans IndexedDB + cookie avant redirection
@@ -5170,7 +5170,7 @@ function renderOrderOptions(){
   const _totStr=_tot.toFixed(2).replace('.',',')+'€';
   const _livPhoneVal=_deliveryAddress.phone||(currentPortalClient?.telephone||currentPortalClient?.tel||'');
   const _livOk=_deliveryAddress.street.trim()&&_deliveryAddress.zip.trim()&&_deliveryAddress.city.trim()&&_validateFrPhone(_livPhoneVal);
-  const _canConfirm=orderCardMode==='immediat'||(orderCardMode==='avance'&&!!selectedPickupTime)||(orderCardMode==='livraison'&&_livOk);
+  const _canConfirm=orderCardMode==='immediat'||(orderCardMode==='avance'&&!!selectedPickupTime)||(orderCardMode==='livraison'&&_livOk&&!!_deliveryQuote);
   const _ctaLabel=orderCardMode==='immediat'?'⚡ Envoyer':orderCardMode==='livraison'?'Commander · livraison 🛵':'Confirmer ma commande';
 
   // ── Segmented control helper ─────────────────────────────────────────────
