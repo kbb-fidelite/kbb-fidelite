@@ -3788,13 +3788,8 @@ async function stripePayOnline(){
   const _lbl=document.getElementById('stripe-btn-label');
   if(_lbl) _lbl.textContent='⏳ Redirection…'; else btn.textContent='⏳ Redirection…';
   try{
-    console.log('[DEBUG-STRIPE] ctx dans stripePayOnline', {
-      subtotal: ctx.subtotal, deliveryFee: ctx.deliveryFee, serviceFee: ctx.serviceFee,
-      levelKey: ctx.levelKey, total_computed: ctx.subtotal+ctx.deliveryFee+ctx.serviceFee,
-    });
     const amountCents=Math.round((ctx.subtotal+ctx.deliveryFee+ctx.serviceFee)*100);
-    const feeCents=Math.round((ctx.deliveryFee||0)*100); // delivery fee uniquement (service fee calculé par le serveur via clientLevel)
-    console.log('[DEBUG-STRIPE] amountCents envoyé au serveur:', amountCents, '| feeCents (livraison):', feeCents);
+    const feeCents=Math.round((ctx.deliveryFee||0)*100);
     // Lire le pending context pour passer les données de commande à create-checkout
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
     const extraParams={
@@ -3805,9 +3800,9 @@ async function stripePayOnline(){
       rewardNom:        pending?.reward_nom           || null,
       ptsACrediter:     pending?.pts_a_crediter       || 0,
       presence_token:   pending?.presence_token       || null,
-      // Livraison Uber Direct
+      // Livraison Uber Direct — deliveryFeeCents calculé depuis ctx (source fiable)
       deliveryAddress:  pending?.deliveryAddress      || null,
-      deliveryFeeCents: pending?.deliveryFeeCents      ?? null,
+      deliveryFeeCents: ctx.deliveryFee > 0 ? Math.round(ctx.deliveryFee * 100) : (pending?.deliveryFeeCents ?? null),
     };
     const {url}=await callStripeEdgeFunction(ctx.orderId,amountCents,feeCents,ctx.levelKey,ctx.label,extraParams);
     // Backup iOS : sauvegarder dans IndexedDB + cookie avant redirection
@@ -5165,7 +5160,7 @@ function renderOrderOptions(){
 
   // ── Totaux & validation ──────────────────────────────────────────────────
   const _sub=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
-  const _fee=orderCardMode==='livraison'?(_deliveryQuote?_deliveryQuote.fee_cents/100:3.99):0;
+  const _fee=orderCardMode==='livraison'&&_deliveryQuote?_deliveryQuote.fee_cents/100:0;
   // Frais de service 0,50€ (bronze) — uniquement au paiement en ligne, affiché en note
   const _rLvlPts=Math.floor(parseFloat(currentPortalClient?.cagnotte||0));
   const _rLvlKey=currentPortalClient?getLevel(_rLvlPts).label.toLowerCase():'bronze';
@@ -5915,7 +5910,7 @@ async function submitClientOrder(){
   const clientPts=Math.floor(parseFloat(currentPortalClient?.cagnotte||0));
   const levelObj=currentPortalClient?getLevel(clientPts):null;
   const levelKey=levelObj?levelObj.label.toLowerCase():'bronze';
-  const deliveryFee=orderCardMode==='livraison'?(_deliveryQuote?_deliveryQuote.fee_cents/100:3.99):0;
+  const deliveryFee=orderCardMode==='livraison'&&_deliveryQuote?_deliveryQuote.fee_cents/100:0;
   const serviceFee=getStripeFee(levelKey); // 0,50€ bronze · offert Argent/Or · paiement en ligne
   const fee=deliveryFee+serviceFee; // total frais → create-checkout (vérification serveur)
   const label=orderCardMode==='immediat'
@@ -6003,16 +5998,6 @@ async function _doSubmitOrder(selectedReward){
       deliveryAddress:capturedDeliveryAddr||null}
   }));
 
-  console.log('[DEBUG-STRIPE] avant stripeModalOpen', {
-    subtotal: total,
-    deliveryFee,
-    serviceFee,
-    totalClient: total + deliveryFee + serviceFee,
-    amountCentsClient: Math.round((total + deliveryFee + serviceFee) * 100),
-    levelKey,
-    orderCardMode: orderCardMode ?? '(null — déjà réinitialisé)',
-    isLivraison,
-  });
   stripeModalOpen(localId, total, deliveryFee, serviceFee, levelKey, label);
 }
 

@@ -124,21 +124,30 @@ Deno.serve(async (req) => {
     }
 
     // ── Calcul serveur du total ───────────────────────────────────────────────
-    const serverTotal     = calcServerTotal(items);
-    const isLivraison     = orderType === 'livraison';
-    const fee             = isLivraison
-      ? Math.round(Math.max(0, deliveryFeeCents ?? 399)) / 100
-      : getServiceFee(clientLevel);
-    const serverGrandTotal = Math.round((serverTotal + fee) * 100) / 100;
+    const serverTotal  = calcServerTotal(items);
+    const isLivraison  = orderType === 'livraison';
+    // Frais de livraison Uber Direct (uniquement si livraison)
+    // deliveryFeeCents DOIT être fourni par le client pour les livraisons (pas de fallback forfaitaire)
+    if (isLivraison && (deliveryFeeCents === undefined || deliveryFeeCents === null)) {
+      console.warn('[create-checkout] livraison sans deliveryFeeCents — refusé');
+      return jsonResp({ error: 'Frais de livraison manquants — recalculez le devis' }, 400);
+    }
+    const deliveryFee  = isLivraison
+      ? Math.round(Math.max(0, Number(deliveryFeeCents))) / 100
+      : 0;
+    // Frais de service 0,50€ — s'applique à TOUS les paiements en ligne par carte (bronze uniquement)
+    // Y compris les livraisons : Stripe est utilisé pour toutes les commandes non sur-place
+    const serviceFee   = getServiceFee(clientLevel);
+    const serverGrandTotal = Math.round((serverTotal + deliveryFee + serviceFee) * 100) / 100;
     const serverCents      = Math.round(serverGrandTotal * 100);
 
-    console.log(`[create-checkout] total serveur: ${serverTotal.toFixed(2)}€ + fee ${fee.toFixed(2)}€ = ${serverGrandTotal.toFixed(2)}€ (${serverCents} cts)`);
+    console.log(`[create-checkout] total serveur: ${serverTotal.toFixed(2)}€ + livraison ${deliveryFee.toFixed(2)}€ + service ${serviceFee.toFixed(2)}€ = ${serverGrandTotal.toFixed(2)}€ (${serverCents} cts)`);
 
     // ── Anti-fraude : comparaison avec le montant client (±10cts) ────────────
     if (clientAmountCents !== undefined) {
       const diff = Math.abs(Number(clientAmountCents) - serverCents);
       if (diff > 10) {
-        console.warn(`[create-checkout] montant tampered: client=${clientAmountCents} server=${serverCents} diff=${diff}`);
+        console.warn(`[create-checkout] montant tampered: client=${clientAmountCents} server=${serverCents} diff=${diff} | deliveryFeeCents=${deliveryFeeCents} isLivraison=${isLivraison}`);
         return jsonResp({ error: 'Montant invalide — commande refusée' }, 400);
       }
     }
@@ -172,11 +181,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── Créer la session Stripe — UN seul line item générique ─────────────────
+    // ── Créer la session Stripe — line items séparés par type de frais ─────────
     // Stripe est un processeur de paiement, pas un catalogue produit.
-    const feeLabel    = isLivraison ? 'Frais de livraison (Uber Direct)' : 'Frais de service';
-    const feeSubLabel = isLivraison ? 'Livraison à domicile'              : 'Offerts dès le niveau Argent';
-
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
         price_data: {
@@ -188,12 +194,25 @@ Deno.serve(async (req) => {
       },
     ];
 
-    if (fee > 0) {
+    // Frais de livraison Uber Direct (line item séparé si livraison)
+    if (deliveryFee > 0) {
       lineItems.push({
         price_data: {
           currency:     'eur',
-          product_data: { name: feeLabel, description: feeSubLabel },
-          unit_amount:  Math.round(fee * 100),
+          product_data: { name: 'Frais de livraison (Uber Direct)', description: 'Livraison à domicile' },
+          unit_amount:  Math.round(deliveryFee * 100),
+        },
+        quantity: 1,
+      });
+    }
+
+    // Frais de service (line item séparé — offerts dès Argent)
+    if (serviceFee > 0) {
+      lineItems.push({
+        price_data: {
+          currency:     'eur',
+          product_data: { name: 'Frais de service', description: 'Offerts dès le niveau Argent' },
+          unit_amount:  Math.round(serviceFee * 100),
         },
         quantity: 1,
       });
