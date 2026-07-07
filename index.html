@@ -3104,14 +3104,15 @@ async function dbByTel(tel){
   }catch(e){ console.error('[dbByTel] erreur pour tel=…'+String(tel).slice(-4),e.message||e); return null; }
   return lLoad().find(c=>c.telephone===tel||c.tel===tel)||null;
 }
-// Rafraîchit le solde du client connecté depuis Supabase (fire-and-forget)
+// Rafraîchit le solde du client connecté depuis Supabase
+// Les données serveur font TOUJOURS autorité pour cagnotte/points
 function refreshClientSolde(){
   if(!currentPortalClient||!supaOk()) return;
   const tel=currentPortalClient.telephone||currentPortalClient.tel;
   if(!tel) return;
   dbByTel(tel).then(fresh=>{
     if(fresh){currentPortalClient=fresh;renderPortal(fresh);}
-  }).catch(()=>{});
+  }).catch(e=>{ console.warn('[refreshClientSolde] échec:',e.message||e); });
 }
 
 /* ── Statut restaurant dynamique (lit depuis settings Supabase) ── */
@@ -3717,6 +3718,7 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
         rewardId:        extraParams?.rewardId        || null,
         rewardPts:       extraParams?.rewardPts       || 0,
         rewardNom:       extraParams?.rewardNom       || null,
+        rewardDiscount:  extraParams?.rewardDiscount  || 0,
         ptsACrediter:    extraParams?.ptsACrediter    || 0,
         presence_token:   extraParams?.presence_token  || null,
         deliveryAddress:  extraParams?.deliveryAddress || null,
@@ -3753,9 +3755,10 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
 // État global pour la modal
 let _stripePendingCtx=null;
 
-function stripeModalOpen(orderId, subtotal, deliveryFee, serviceFee, levelKey, label){
-  _stripePendingCtx={orderId, subtotal, deliveryFee, serviceFee, levelKey, label};
-  const totalOnline=subtotal+deliveryFee+serviceFee;
+function stripeModalOpen(orderId, subtotal, deliveryFee, serviceFee, levelKey, label, rewardDiscount){
+  rewardDiscount=rewardDiscount||0;
+  _stripePendingCtx={orderId, subtotal, deliveryFee, serviceFee, levelKey, label, rewardDiscount};
+  const totalOnline=subtotal+deliveryFee+serviceFee-rewardDiscount;
   document.getElementById('stripe-sheet-sub').textContent=label;
   document.getElementById('stripe-sheet-amount').textContent=totalOnline.toFixed(2).replace('.',',')+'€';
   const feeZone=document.getElementById('stripe-fee-zone');
@@ -3764,6 +3767,9 @@ function stripeModalOpen(orderId, subtotal, deliveryFee, serviceFee, levelKey, l
   if(deliveryFee>0){
     feeHtml+=`<div class="stripe-breakdown-row"><span>🛵 Livraison Uber Direct</span><span>+ ${deliveryFee.toFixed(2).replace('.',',')} €</span></div>`;
   }
+  if(rewardDiscount>0){
+    feeHtml+=`<div class="stripe-breakdown-row" style="color:#2e7d32;"><span>🎁 Livraison offerte (fidélité)</span><span>− ${rewardDiscount.toFixed(2).replace('.',',')} €</span></div>`;
+  }
   if(serviceFee>0){
     feeHtml+=`<div class="stripe-breakdown-row stripe-breakdown-service"><span>Frais de service</span><span>+ ${serviceFee.toFixed(2).replace('.',',')} €</span></div>`;
     feeHtml+=`<div class="stripe-breakdown-caption">Frais appliqués sur le paiement en ligne par carte</div>`;
@@ -3771,7 +3777,7 @@ function stripeModalOpen(orderId, subtotal, deliveryFee, serviceFee, levelKey, l
     feeHtml+=`<div class="stripe-breakdown-caption stripe-fee-free">Frais de service offerts ✨</div>`;
   }
   feeHtml+=`<div class="stripe-breakdown-total"><span>Total</span><span>${totalOnline.toFixed(2).replace('.',',')} €</span></div>`;
-  if(deliveryFee>0){
+  if(deliveryFee>0&&rewardDiscount<=0){
     feeHtml+=`<div class="stripe-uber-mention">🛵 Livraison assurée par Uber Direct — Les frais peuvent varier selon l'heure et la distance</div>`;
   }
   feeHtml+='</div>';
@@ -3796,7 +3802,8 @@ async function stripePayOnline(){
   const _lbl=document.getElementById('stripe-btn-label');
   if(_lbl) _lbl.textContent='⏳ Redirection…'; else btn.textContent='⏳ Redirection…';
   try{
-    const amountCents=Math.round((ctx.subtotal+ctx.deliveryFee+ctx.serviceFee)*100);
+    const rewardDiscount=ctx.rewardDiscount||0;
+    const amountCents=Math.round((ctx.subtotal+ctx.deliveryFee+ctx.serviceFee-rewardDiscount)*100);
     const feeCents=Math.round((ctx.deliveryFee||0)*100);
     // Lire le pending context pour passer les données de commande à create-checkout
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');
@@ -3806,6 +3813,7 @@ async function stripePayOnline(){
       rewardId:       pending?.reward_id          || null,
       rewardPts:      pending?.reward_pts         || 0,
       rewardNom:        pending?.reward_nom           || null,
+      rewardDiscount:   rewardDiscount,
       ptsACrediter:     pending?.pts_a_crediter       || 0,
       presence_token:   pending?.presence_token       || null,
       // Livraison Uber Direct — deliveryFeeCents calculé depuis ctx (source fiable)
@@ -4038,6 +4046,7 @@ async function _verifyPaymentWithRetry(sessionId, pending=null, maxAttempts=15, 
     rewardId:       pending?.reward_id  || null,
     rewardPts:      pending?.reward_pts || 0,
     rewardNom:      pending?.reward_nom || null,
+    rewardDiscount: pending?.reward_discount || 0,
     deliveryAddress: pending?.deliveryAddress || null,
   };
   for(let attempt=1; attempt<=maxAttempts; attempt++){
@@ -5946,6 +5955,14 @@ async function _doSubmitOrder(selectedReward){
   if(!ctx) return;
   const {total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,levelKey,fee,deliveryFee,serviceFee,label}=ctx;
 
+  // ── Calcul du discount "Livraison offerte" ──
+  let rewardDiscount=0;
+  if(selectedReward&&selectedReward.type==='livraison_offerte'&&deliveryFee>0){
+    const plafond=parseFloat(selectedReward.plafond||8);
+    rewardDiscount=Math.min(deliveryFee, plafond);
+    rewardDiscount=Math.round(rewardDiscount*100)/100;
+  }
+
   // Capturer avant reset — orderMode/orderCardMode/orderServiceMode sont nuls après
   const isSurPlace = orderCardMode === 'immediat'; // les deux modes immédiats → caisse
   const isLivraison = orderCardMode === 'livraison';
@@ -5992,6 +6009,9 @@ async function _doSubmitOrder(selectedReward){
     reward_id: selectedReward?.id||null,
     reward_pts: selectedReward?.points_requis||0,
     reward_nom: selectedReward?.nom||null,
+    reward_type: selectedReward?.type||null,
+    reward_plafond: selectedReward?.plafond||null,
+    reward_discount: rewardDiscount||0,
     reward_client_id: currentPortalClient?.id||null,
     clientData: currentPortalClient||null,
     // Livraison Uber Direct
@@ -6006,7 +6026,7 @@ async function _doSubmitOrder(selectedReward){
       deliveryAddress:capturedDeliveryAddr||null}
   }));
 
-  stripeModalOpen(localId, total, deliveryFee, serviceFee, levelKey, label);
+  stripeModalOpen(localId, total, deliveryFee, serviceFee, levelKey, label, rewardDiscount);
 }
 
 // Finalise une commande sur place sans paiement Stripe.
@@ -6942,6 +6962,8 @@ function clearSession(){
   document.cookie='kbb_session=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
   _idbDel('kbb_session').catch(()=>{});
   clearIdentity(); // Effacer aussi le numéro → force re-login complet
+  // Effacer aussi le cache client local — empêche la réutilisation de points/cagnotte périmés
+  try{ localStorage.removeItem(LK); }catch(_){}
 }
 
 function commanderOuLogin(){
@@ -7104,13 +7126,16 @@ function renderPortal(c){
   // Mettre à jour l'état du bouton notifications
   setTimeout(updatePushBtnState, 0);
   // Persister en local DB pour que l'auto-login fonctionne hors-ligne
+  // IMPORTANT : les champs financiers (cagnotte, points) du serveur écrasent TOUJOURS le local
   try{
     const tel=c.telephone||c.tel;
     if(tel){
       const ldb=lLoad();
       const li=ldb.findIndex(x=>x.telephone===tel||x.tel===tel);
-      if(li>=0) ldb[li]={...ldb[li],...c,tel};
-      else ldb.push({...c,tel});
+      const serverFields={cagnotte:c.cagnotte,points:c.points,passages:c.passages,
+        parrain_status:c.parrain_status,bloque:c.bloque};
+      if(li>=0) ldb[li]={...ldb[li],...c,...serverFields,tel};
+      else ldb.push({...c,...serverFields,tel});
       lSave(ldb);
     }
   }catch(e){}
@@ -9118,22 +9143,27 @@ async function rewardOverlayShow(allRecs, clientPts, cartTotal){
     +'<div class="reward-card-none-hint">Continuer sans utiliser de points</div>'
   +'</div>';
 
+  const isLivraisonMode=orderCardMode==='livraison';
   const active=allRecs.filter(r=>r.actif!==false);
   if(!active.length){
     html+='<div style="color:var(--text3);font-size:13px;padding:.5rem;text-align:center;">Aucune récompense disponible en ce moment.</div>';
   } else {
     active.forEach((r,i)=>{
+      const isLivraisonReward=r.type==='livraison_offerte';
       const hasPoints=clientPts>=r.points_requis;
       const hasMin=cartTotal>=parseFloat(r.commande_minimum||0);
-      const eligible=hasPoints&&hasMin;
+      const modeLivraisonOk=!isLivraisonReward||isLivraisonMode;
+      const eligible=hasPoints&&hasMin&&modeLivraisonOk;
       const manquePts=!hasPoints?(r.points_requis-clientPts)+' pt'+((r.points_requis-clientPts)>1?'s':'')+' manquants':'';
       const minCmd=parseFloat(r.commande_minimum||0);
-      const manqueMin=!hasMin?(minCmd-cartTotal).toFixed(2).replace('.',',')+'€ de plus requis':'';
-      const hint=manquePts||(manqueMin?'Commande min. '+minCmd.toFixed(0)+'€ ('+manqueMin+')':'');
+      const manqueMin=hasPoints&&!hasMin?(minCmd-cartTotal).toFixed(2).replace('.',',')+'€ de plus requis':'';
+      const manqueMode=hasPoints&&hasMin&&!modeLivraisonOk?'Uniquement en mode livraison 🛵':'';
+      const hint=manquePts||manqueMode||(manqueMin?'Commande min. '+minCmd.toFixed(0)+'€ ('+manqueMin+')':'');
       const desc=r.description?`<div style="font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4;">${r.description}</div>`:'';
+      const rewardIcon=isLivraisonReward?'🛵':(icons[i%icons.length]||'🎁');
       html+='<div class="reward-card'+(eligible?'':' locked')+'" id="rwcard-'+r.id+'" '+(eligible?'onclick="rewardCardSelect(this,\''+r.id+'\')"':'')+'>'
         +'<div class="reward-card-top">'
-          +'<span class="reward-card-name">'+(icons[i%icons.length]||'🎁')+' '+r.nom+'</span>'
+          +'<span class="reward-card-name">'+rewardIcon+' '+r.nom+'</span>'
           +'<span class="reward-card-pts">'+r.points_requis+' pts</span>'
         +'</div>'
         +desc
@@ -10626,7 +10656,7 @@ function _statusLabelCmd(s){
   return {cls:'en_attente',txt:'⏳ En attente'};
 }
 
-function _renderCmdItems(itemsStr, rewardNom){
+function _renderCmdItems(itemsStr, rewardNom, rewardDiscount){
   try{
     const arr=JSON.parse(itemsStr);
     if(!Array.isArray(arr)) return '<div class="cmd-item-row"><div class="cmd-item-name">Commande</div></div>';
@@ -10644,6 +10674,7 @@ function _renderCmdItems(itemsStr, rewardNom){
       </div>`;
     }).join('');
     if(rewardNom) h+=`<div class="cmd-item-row"><div class="cmd-reward-badge">🎁 Offert fidélité : ${rewardNom}</div></div>`;
+    if(rewardDiscount>0) h+=`<div class="cmd-item-row"><div class="cmd-reward-badge" style="color:#2e7d32;">🛵 Livraison offerte (récompense fidélité − ${parseFloat(rewardDiscount).toFixed(2).replace('.',',')}€)</div></div>`;
     return h;
   }catch(_){
     return '<div class="cmd-item-row"><div class="cmd-item-name">'+itemsStr+'</div></div>';
@@ -10667,7 +10698,7 @@ function _renderCmdCard(cmd, facture){
       </div>
     </div>
     <div class="cmd-items-section">
-      ${_renderCmdItems(cmd.items||'[]', cmd.reward_nom||null)}
+      ${_renderCmdItems(cmd.items||'[]', cmd.reward_nom||null, cmd.reward_discount||0)}
     </div>
     <div class="cmd-footer">
       <div class="cmd-total">${parseFloat(cmd.montant||0).toFixed(2).replace('.',',')}€</div>
@@ -11102,10 +11133,19 @@ window.addEventListener('load', async function(){
           go('page-dashboard');
         }
       }
-      // Rafraîchir depuis Supabase en arrière-plan (non bloquant, met à jour les points)
-      if(currentPortalClient){
+      // Rafraîchir depuis Supabase — les données serveur font TOUJOURS autorité pour les points
+      if(currentPortalClient && supaOk()){
         const tel = currentPortalClient.tel||currentPortalClient.telephone;
-        if(tel) dbByTel(tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
+        if(tel){
+          try{
+            const fresh = await Promise.race([
+              dbByTel(tel),
+              new Promise(r=>setTimeout(()=>r(null), 3000)) // timeout 3s
+            ]);
+            if(fresh) renderPortal(fresh);
+            else console.warn('[init] refresh Supabase timeout ou échec — points potentiellement périmés');
+          }catch(e){ console.warn('[init] refresh Supabase erreur:',e.message||e); }
+        }
       }
     }
   }catch(e){}

@@ -98,6 +98,7 @@ Deno.serve(async (req) => {
       rewardId,
       rewardPts,
       rewardNom,
+      rewardDiscount: clientRewardDiscount,
       ptsACrediter,
       amountCents: clientAmountCents,
       presence_token,
@@ -143,16 +144,50 @@ Deno.serve(async (req) => {
 
     console.log(`[create-checkout] total serveur: ${serverTotal.toFixed(2)}€ + livraison ${deliveryFee.toFixed(2)}€ + service ${serviceFee.toFixed(2)}€ = ${serverGrandTotal.toFixed(2)}€ (${serverCents} cts)`);
 
+    // ── Reward "Livraison offerte" : validation serveur ─────────────────────
+    let serverRewardDiscount = 0;
+    if (rewardId) {
+      const { data: reward, error: rwErr } = await supabase
+        .from('recompenses')
+        .select('type, points_requis, commande_minimum, plafond, actif')
+        .eq('id', rewardId)
+        .eq('actif', true)
+        .single();
+
+      if (rwErr || !reward) {
+        console.warn(`[create-checkout] reward ${rewardId} introuvable ou désactivée`);
+        // Récompense invalide : on ignore le discount (pas de blocage)
+      } else if (reward.type === 'livraison_offerte') {
+        // Vérification conditions côté serveur
+        if (!isLivraison) {
+          return jsonResp({ error: 'Livraison offerte : uniquement en mode livraison' }, 400);
+        }
+        if (serverTotal < parseFloat(reward.commande_minimum || 35)) {
+          return jsonResp({ error: `Livraison offerte : commande minimum ${reward.commande_minimum}€ requise (sous-total : ${serverTotal.toFixed(2)}€)` }, 400);
+        }
+        // Discount = min(frais de livraison, plafond récompense)
+        const plafond = parseFloat(reward.plafond || 8);
+        serverRewardDiscount = Math.min(deliveryFee, plafond);
+        serverRewardDiscount = Math.round(serverRewardDiscount * 100) / 100;
+        console.log(`[create-checkout] reward livraison_offerte: discount ${serverRewardDiscount.toFixed(2)}€ (plafond ${plafond}€, livraison ${deliveryFee.toFixed(2)}€)`);
+      }
+      // Autres types de reward : pas de discount sur le montant (article offert géré autrement)
+    }
+
+    // Recalculer le total avec le discount récompense
+    const serverGrandTotalFinal = Math.round((serverGrandTotal - serverRewardDiscount) * 100) / 100;
+    const serverCentsFinal      = Math.round(serverGrandTotalFinal * 100);
+
     // ── Anti-fraude : comparaison avec le montant client (±10cts) ────────────
     if (clientAmountCents !== undefined) {
-      const diff = Math.abs(Number(clientAmountCents) - serverCents);
+      const diff = Math.abs(Number(clientAmountCents) - serverCentsFinal);
       if (diff > 10) {
-        console.warn(`[create-checkout] montant tampered: client=${clientAmountCents} server=${serverCents} diff=${diff} | deliveryFeeCents=${deliveryFeeCents} isLivraison=${isLivraison}`);
+        console.warn(`[create-checkout] montant tampered: client=${clientAmountCents} server=${serverCentsFinal} diff=${diff} | deliveryFeeCents=${deliveryFeeCents} isLivraison=${isLivraison} rewardDiscount=${serverRewardDiscount}`);
         return jsonResp({ error: 'Montant invalide — commande refusée' }, 400);
       }
     }
 
-    if (serverCents < 50) return jsonResp({ error: 'Montant minimum Stripe non atteint (0,50€)' }, 400);
+    if (serverCentsFinal < 50) return jsonResp({ error: 'Montant minimum Stripe non atteint (0,50€)' }, 400);
 
     // ── Vérification capacité créneau ─────────────────────────────────────────
     if (heureRetrait && (orderType === 'click_collect' || orderType === 'reservation')) {
@@ -195,15 +230,24 @@ Deno.serve(async (req) => {
     ];
 
     // Frais de livraison Uber Direct (line item séparé si livraison)
-    if (deliveryFee > 0) {
+    // Si reward "livraison offerte" : réduire les frais affichés du discount
+    const effectiveDeliveryFee = Math.round((deliveryFee - serverRewardDiscount) * 100) / 100;
+    if (effectiveDeliveryFee > 0) {
       lineItems.push({
         price_data: {
           currency:     'eur',
-          product_data: { name: 'Frais de livraison (Uber Direct)', description: 'Livraison à domicile' },
-          unit_amount:  Math.round(deliveryFee * 100),
+          product_data: {
+            name: serverRewardDiscount > 0 ? 'Frais de livraison (après réduction fidélité)' : 'Frais de livraison (Uber Direct)',
+            description: serverRewardDiscount > 0 ? `Livraison ${deliveryFee.toFixed(2)}€ − ${serverRewardDiscount.toFixed(2)}€ offerts` : 'Livraison à domicile',
+          },
+          unit_amount:  Math.round(effectiveDeliveryFee * 100),
         },
         quantity: 1,
       });
+    } else if (deliveryFee > 0 && serverRewardDiscount > 0) {
+      // Livraison entièrement offerte — line item à 0 pour visibilité
+      // Stripe n'accepte pas les montants à 0 dans les line items, donc on ajoute juste dans les metadata
+      console.log(`[create-checkout] livraison entièrement offerte par récompense fidélité`);
     }
 
     // Frais de service (line item séparé — offerts dès Argent)
@@ -225,18 +269,20 @@ Deno.serve(async (req) => {
       success_url:          successUrl,
       cancel_url:           cancelUrl,
       metadata: {
-        client_tel:   String(clientTel || ''),
-        client_level: String(clientLevel || 'bronze'),
-        server_total: String(serverGrandTotal),
+        client_tel:      String(clientTel || ''),
+        client_level:    String(clientLevel || 'bronze'),
+        server_total:    String(serverGrandTotalFinal),
+        reward_discount: serverRewardDiscount > 0 ? String(serverRewardDiscount) : '',
+        reward_id:       rewardId ? String(rewardId) : '',
       },
       phone_number_collection: { enabled: false },
     });
 
-    console.log(`[create-checkout] session Stripe créée: ${session.id} | ${serverGrandTotal.toFixed(2)}€`);
+    console.log(`[create-checkout] session Stripe créée: ${session.id} | ${serverGrandTotalFinal.toFixed(2)}€` + (serverRewardDiscount > 0 ? ` (dont −${serverRewardDiscount.toFixed(2)}€ livraison offerte)` : ''));
 
     // La commande sera créée dans verify-payment après confirmation Stripe.
     // Aucune pré-création ici — pas de commandes fantômes en cas d'abandon.
-    return jsonResp({ url: session.url, sessionId: session.id, serverTotal: serverGrandTotal });
+    return jsonResp({ url: session.url, sessionId: session.id, serverTotal: serverGrandTotalFinal, rewardDiscount: serverRewardDiscount });
 
   } catch (err) {
     const e = err as { message?: string; type?: string; code?: string; statusCode?: number };

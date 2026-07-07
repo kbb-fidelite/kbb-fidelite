@@ -23,7 +23,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const FIELDS = 'id, statut, montant, pts_a_crediter, client_telephone, telephone_client, items, type, heure_retrait, stripe_session_id, delivery_address';
+const FIELDS = 'id, statut, montant, pts_a_crediter, client_telephone, telephone_client, items, type, heure_retrait, stripe_session_id, delivery_address, reward_discount';
 
 function res(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -61,6 +61,7 @@ Deno.serve(async (req) => {
     const rewardId      = parseInt(String(body?.rewardId      ?? 0)) || null;
     const rewardPts     = parseInt(String(body?.rewardPts     ?? 0)) || 0;
     const rewardNom     = body?.rewardNom     ? String(body.rewardNom)     : null;
+    const rewardDiscount = parseFloat(String(body?.rewardDiscount ?? 0)) || 0;
     const deliveryAddress = (body?.deliveryAddress && typeof body.deliveryAddress === 'object')
       ? body.deliveryAddress
       : null;
@@ -171,6 +172,7 @@ Deno.serve(async (req) => {
     if (rewardNom) orderPayload.reward_nom = rewardNom;
     if (rewardPts) orderPayload.reward_pts = rewardPts;
     if (rewardId && !isNaN(rewardId) && rewardId > 0) orderPayload.reward_id = rewardId;
+    if (rewardDiscount > 0) orderPayload.reward_discount = rewardDiscount;
     if (deliveryAddress) orderPayload.delivery_address = deliveryAddress;
 
     const { data: newOrder, error: insertErr } = await supabase
