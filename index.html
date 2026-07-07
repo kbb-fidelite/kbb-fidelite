@@ -3086,22 +3086,22 @@ async function dbByTel(tel){
       const empToken=_getEmpToken();
       let r=null;
       if(empToken){
-        // Contexte employé : via get-admin-data (emp_token)
         const j=await callEdge('get-admin-data',{action:'clients_by_tel',tel,emp_token:empToken});
         r=j.client||null;
       } else {
-        // Contexte client : via get-client-profile (client_tel)
         const j=await callEdge('get-client-profile',{client_tel:tel});
         r=j.client||null;
       }
-      if(!r) return null;
+      if(!r){ console.warn('[dbByTel] serveur retourne null pour tel=…'+String(tel).slice(-4)); return null; }
+      console.log('[dbByTel] serveur OK — cagnotte:',r.cagnotte,'tel:…'+String(tel).slice(-4));
       const localDb=lLoad();
       const localClient=localDb.find(lc=>lc.telephone===r.telephone||lc.tel===r.telephone);
       const history=localClient?localClient.history:[];
-      // Always read cagnotte from Supabase, not local
+      // Cagnotte/points viennent TOUJOURS du serveur — local fournit seulement l'historique
       return {...r,tel:r.telephone||r.tel,passages:r.points||0,cagnotte:parseFloat(r.cagnotte)||0,code_secret:r.code_secret||'',pin_rapide:r.pin_rapide||'',parrain_status:r.parrain_status||'',parrain_tel:r.parrain_tel||'',parrain_mois:r.parrain_mois||0,parrain_mois_count:r.parrain_mois_count||0,parrain_de:r.parrain_de||[],session_token:r.session_token||'',derniere_visite:r.derniere_visite||'',dernier_bonus_anniv:r.dernier_bonus_anniv||'',date_naissance:r.date_naissance||'',history};
     }
   }catch(e){ console.error('[dbByTel] erreur pour tel=…'+String(tel).slice(-4),e.message||e); return null; }
+  console.warn('[dbByTel] fallback localStorage (supaOk=false) — données potentiellement périmées');
   return lLoad().find(c=>c.telephone===tel||c.tel===tel)||null;
 }
 // Rafraîchit le solde du client connecté depuis Supabase
@@ -3110,8 +3110,14 @@ function refreshClientSolde(){
   if(!currentPortalClient||!supaOk()) return;
   const tel=currentPortalClient.telephone||currentPortalClient.tel;
   if(!tel) return;
+  const _avant=Math.floor(parseFloat(currentPortalClient.cagnotte||0));
+  console.log('[refreshClientSolde] début — cagnotte locale:',_avant);
   dbByTel(tel).then(fresh=>{
-    if(fresh){currentPortalClient=fresh;renderPortal(fresh);}
+    if(fresh){
+      console.log('[refreshClientSolde] serveur → cagnotte:',fresh.cagnotte,'(était:',_avant,')');
+      currentPortalClient=fresh;
+      renderPortal(fresh);
+    }
   }).catch(e=>{ console.warn('[refreshClientSolde] échec:',e.message||e); });
 }
 
@@ -3928,8 +3934,17 @@ async function handleStripeReturn(){
     // ── UX immédiate : restaurer client + page confirmation provisoire ─
     if(pending?.clientData){
       renderPortal(pending.clientData);
+      // Rafraîchir immédiatement depuis le serveur (données clientData sont un snapshot périmé)
       const tel=pending.clientData.telephone||pending.clientData.tel;
-      if(tel) dbByTel(tel).then(fresh=>{ if(fresh) renderPortal(fresh); }).catch(()=>{});
+      if(tel && supaOk()){
+        console.log('[stripe-return] refresh profil après retour Stripe, tel=…'+String(tel).slice(-4));
+        dbByTel(tel).then(fresh=>{
+          if(fresh){
+            console.log('[stripe-return] profil rafraîchi — cagnotte serveur:',fresh.cagnotte);
+            renderPortal(fresh);
+          }
+        }).catch(e=>console.warn('[stripe-return] refresh profil échoué:',e.message||e));
+      }
     }
     renderConfirmation(pending?.orderNum||null, pending?.label||'', pending?.grouped||[], pending?.total||0);
     go('page-confirmation');
@@ -4021,6 +4036,21 @@ async function _stripeFinalize(sessionId, vData, pending){
     };
   }
   _stripeCleanup();
+
+  // ── Rafraîchir le profil client depuis le serveur après paiement ──
+  // Les points sont crédités par l'employé (Remis au client) — ici on synchronise
+  // la cagnotte serveur → client pour que l'affichage soit toujours à jour
+  const _refreshTel=pending?.clientTel||currentPortalClient?.telephone||currentPortalClient?.tel;
+  if(_refreshTel && supaOk()){
+    console.log('[stripe-finalize] refresh profil client après paiement, tel=…'+String(_refreshTel).slice(-4));
+    dbByTel(_refreshTel).then(fresh=>{
+      if(fresh){
+        console.log('[stripe-finalize] profil rafraîchi — cagnotte serveur:',fresh.cagnotte);
+        renderPortal(fresh);
+      }
+    }).catch(e=>console.warn('[stripe-finalize] refresh profil échoué:',e.message||e));
+  }
+
   if(_hasSavePending){
     setTimeout(_showSaveAddrPrompt, 1200);
     setTimeout(()=>showFeedbackOverlay(supaId), 5000);
@@ -6084,7 +6114,7 @@ function renderConfirmation(orderNum, label, grouped, total){
   document.getElementById('conf-num').textContent=orderNum;
   document.getElementById('conf-label').textContent=label;
   document.getElementById('conf-total').textContent=total.toFixed(2).replace('.',',')+'€';
-  document.getElementById('conf-pts').innerHTML='🔥 &nbsp;<strong>+'+Math.floor(total)+' points</strong> fidélité ajoutés à votre compte';
+  document.getElementById('conf-pts').innerHTML='🔥 &nbsp;Vos <strong>points fidélité</strong> seront crédités à la réception de votre commande';
   document.getElementById('conf-items').innerHTML=Object.entries(grouped).map(([key,{item,qty}])=>{
     const isObj=typeof item==='object';
     const m=isObj?item:MENU_DATA[item];
@@ -7118,6 +7148,7 @@ function updatePushBtnState(){
 // ─────────────────────────────────────────────────────────────────────────────
 
 function renderPortal(c){
+  console.log('[renderPortal] cagnotte reçue:',c.cagnotte,'prenom:',c.prenom);
   currentPortalClient=c;
   // Rafraîchir la session à chaque rendu (localStorage + cookie + IDB)
   saveSession(c);
@@ -11136,14 +11167,20 @@ window.addEventListener('load', async function(){
       // Rafraîchir depuis Supabase — les données serveur font TOUJOURS autorité pour les points
       if(currentPortalClient && supaOk()){
         const tel = currentPortalClient.tel||currentPortalClient.telephone;
+        const _cachedPts=Math.floor(parseFloat(currentPortalClient.cagnotte||0));
+        console.log('[init] refresh Supabase — tel=…'+String(tel).slice(-4)+' cached cagnotte='+_cachedPts);
         if(tel){
           try{
             const fresh = await Promise.race([
               dbByTel(tel),
-              new Promise(r=>setTimeout(()=>r(null), 3000)) // timeout 3s
+              new Promise(r=>setTimeout(()=>r(null), 5000)) // timeout 5s
             ]);
-            if(fresh) renderPortal(fresh);
-            else console.warn('[init] refresh Supabase timeout ou échec — points potentiellement périmés');
+            if(fresh){
+              console.log('[init] refresh OK — cagnotte serveur:',fresh.cagnotte,'(était:',_cachedPts,')');
+              renderPortal(fresh);
+            } else {
+              console.warn('[init] refresh Supabase timeout ou null — affichage potentiellement périmé (cagnotte:',_cachedPts,')');
+            }
           }catch(e){ console.warn('[init] refresh Supabase erreur:',e.message||e); }
         }
       }
