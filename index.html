@@ -9585,12 +9585,12 @@ async function loadDashboard(){
 
     const top10clients=Object.entries(clientCA).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([tel,cca])=>{
       const cl=clients.find(c=>c.telephone===tel);
-      return{tel,ca:cca,orders:clientOrders[tel]||0,nom:cl?(cl.prenom+' '+cl.nom):tel,pts:parseInt(cl?.points_cumul??cl?.cagnotte||0)};
+      return{tel,ca:cca,orders:clientOrders[tel]||0,nom:cl?(cl.prenom+' '+cl.nom):tel,pts:parseInt(cl?.points_cumul??(cl?.cagnotte||0))};
     });
 
     const thirtyAgo=new Date(Date.now()-30*86400000);
     const inactifs=clients.filter(c=>!c.derniere_visite||new Date(c.derniere_visite)<thirtyAgo)
-      .sort((a,b)=>parseInt(b.points_cumul??b.cagnotte||0)-parseInt(a.points_cumul??a.cagnotte||0)).slice(0,8);
+      .sort((a,b)=>parseInt(b.points_cumul??(b.cagnotte||0))-parseInt(a.points_cumul??(a.cagnotte||0))).slice(0,8);
 
     // Récompenses utilisées dans la période
     const rewardByNom={};
