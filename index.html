@@ -2813,6 +2813,7 @@ body{
 <div class="toast" id="toast"></div>
 
 <script>
+console.log('[KBB] script start — v210');
 /* ══ CONFIG ══ */
 // PINs vérifiés exclusivement côté serveur (verify-pin Edge Function)
 // Aucun PIN n'est stocké ni comparé côté client
@@ -11113,6 +11114,9 @@ async function recoverOrphanedFacture(){
 
 window.addEventListener('load', async function(){
 
+  // Safety timer — garantit que le splash disparaît même si une erreur bloque le boot
+  const safetyTimer = setTimeout(()=>{ hideSplash(); }, 6000);
+
   // ══ ÉTAPE 1 — SYNCHRONE, BLOQUANTE ══
   // Détection kiosque + lecture session : currentPortalClient doit être défini
   // AVANT tout accès au routeur go() et AVANT tout autre traitement.
@@ -11131,6 +11135,7 @@ window.addEventListener('load', async function(){
   // 1b. Session locale — lecture synchrone localStorage + cookie, zéro réseau, zéro délai.
   //     Si la session est là, currentPortalClient est défini ici, avant go() et avant Stripe.
   _restoreEmpSession(); // Restaure empRole depuis le token stocké (si non expiré)
+  try{
   if(window._kioskMode){
     go('page-pin');
   } else {
@@ -11140,6 +11145,7 @@ window.addEventListener('load', async function(){
       go('page-dashboard');
     }
   }
+  }catch(e){ console.error('[KBB boot] erreur session/renderPortal:',e); }
 
   // ── Auth guard débloqué ─────────────────────────────────────────────────
   // getSession() synchrone est terminé. currentPortalClient est désormais défini
@@ -11161,8 +11167,6 @@ window.addEventListener('load', async function(){
 
   // ══ ÉTAPE 3 — FALLBACK ASYNC (IDB si localStorage était vide) ══
   // + refresh Supabase en arrière-plan pour mettre à jour les points
-
-  const safetyTimer = setTimeout(()=>{ hideSplash(); }, 6000);
 
   try{
     if(!window._kioskMode){
