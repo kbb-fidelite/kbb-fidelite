@@ -52,8 +52,14 @@ async function verifyPresenceToken(token: string, secret: string, clientTel: str
   } catch { return false; }
 }
 
-function getServiceFee(clientLevel: string): number {
-  return (clientLevel === 'bronze' || !clientLevel) ? 0.50 : 0;
+function getServiceFee(statut: string): number {
+  return (statut === 'bronze' || !statut) ? 0.50 : 0;
+}
+
+function getStatutFromCumul(pointsCumul: number): string {
+  if (pointsCumul >= 500) return 'or';
+  if (pointsCumul >= 200) return 'argent';
+  return 'bronze';
 }
 
 // ── Calcul serveur : somme les prix reçus dans le payload (source : MENU_DATA client) ──
@@ -136,9 +142,22 @@ Deno.serve(async (req) => {
     const deliveryFee  = isLivraison
       ? Math.round(Math.max(0, Number(deliveryFeeCents))) / 100
       : 0;
+    // ── Statut serveur : lookup points_cumul en base ───────────────────────
+    let serverStatut = 'bronze';
+    if (clientTel) {
+      const { data: cRow } = await supabase
+        .from('clients')
+        .select('points_cumul')
+        .eq('telephone', String(clientTel))
+        .maybeSingle();
+      if (cRow) {
+        serverStatut = getStatutFromCumul(Math.floor(parseFloat(String(cRow.points_cumul ?? 0))));
+        console.log(`[create-checkout] statut serveur: ${serverStatut} (points_cumul=${cRow.points_cumul})`);
+      }
+    }
     // Frais de service 0,50€ — s'applique à TOUS les paiements en ligne par carte (bronze uniquement)
     // Y compris les livraisons : Stripe est utilisé pour toutes les commandes non sur-place
-    const serviceFee   = getServiceFee(clientLevel);
+    const serviceFee   = getServiceFee(serverStatut);
     const serverGrandTotal = Math.round((serverTotal + deliveryFee + serviceFee) * 100) / 100;
     const serverCents      = Math.round(serverGrandTotal * 100);
 
@@ -270,7 +289,7 @@ Deno.serve(async (req) => {
       cancel_url:           cancelUrl,
       metadata: {
         client_tel:      String(clientTel || ''),
-        client_level:    String(clientLevel || 'bronze'),
+        client_level:    serverStatut,
         server_total:    String(serverGrandTotalFinal),
         reward_discount: serverRewardDiscount > 0 ? String(serverRewardDiscount) : '',
         reward_id:       rewardId ? String(rewardId) : '',

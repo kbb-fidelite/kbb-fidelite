@@ -2235,7 +2235,7 @@ body{
     <div id="portal-adresses" style="margin-bottom:.875rem;"></div>
     <div class="stats-row">
       <div class="sbox"><div class="sv" id="portal-passages">0</div><div class="sl">Passages</div></div>
-      <div class="sbox"><div class="sv" id="portal-total">0€</div><div class="sl">Total dépensé</div></div>
+      <div class="sbox"><div class="sv" id="portal-cumul">0</div><div class="sl">Points cumulés</div></div>
     </div>
     <button onclick="go('page-menu')" style="width:100%;background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:.9rem 1.25rem;color:var(--text);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:.875rem;">
       <span style="font-size:20px;">🍖</span> Voir notre carte
@@ -3075,7 +3075,7 @@ async function dbAll(){
     const localDb=lLoad();
     return rows.map(r=>{
       const lc=localDb.find(x=>x.telephone===r.telephone||x.tel===r.telephone);
-      return {...r,tel:r.telephone||r.tel,passages:r.points||0,cagnotte:parseFloat(r.cagnotte)||0,history:lc?lc.history:[]};
+      return {...r,tel:r.telephone||r.tel,passages:parseInt(r.passages)||0,cagnotte:parseFloat(r.cagnotte)||0,points_cumul:parseFloat(r.points_cumul)||0,statut:r.statut||'bronze',history:lc?lc.history:[]};
     });
   }
   return lLoad();
@@ -3093,12 +3093,12 @@ async function dbByTel(tel){
         r=j.client||null;
       }
       if(!r){ console.warn('[dbByTel] serveur retourne null pour tel=…'+String(tel).slice(-4)); return null; }
-      console.log('[dbByTel] serveur OK — cagnotte:',r.cagnotte,'tel:…'+String(tel).slice(-4));
+      console.log('[dbByTel] serveur OK — cagnotte:',r.cagnotte,'points_cumul:',r.points_cumul,'statut:',r.statut,'tel:…'+String(tel).slice(-4));
       const localDb=lLoad();
       const localClient=localDb.find(lc=>lc.telephone===r.telephone||lc.tel===r.telephone);
       const history=localClient?localClient.history:[];
-      // Cagnotte/points viennent TOUJOURS du serveur — local fournit seulement l'historique
-      return {...r,tel:r.telephone||r.tel,passages:r.points||0,cagnotte:parseFloat(r.cagnotte)||0,code_secret:r.code_secret||'',pin_rapide:r.pin_rapide||'',parrain_status:r.parrain_status||'',parrain_tel:r.parrain_tel||'',parrain_mois:r.parrain_mois||0,parrain_mois_count:r.parrain_mois_count||0,parrain_de:r.parrain_de||[],session_token:r.session_token||'',derniere_visite:r.derniere_visite||'',dernier_bonus_anniv:r.dernier_bonus_anniv||'',date_naissance:r.date_naissance||'',history};
+      // Cagnotte/points_cumul/statut/passages viennent TOUJOURS du serveur — local fournit seulement l'historique
+      return {...r,tel:r.telephone||r.tel,passages:parseInt(r.passages)||0,cagnotte:parseFloat(r.cagnotte)||0,points_cumul:parseFloat(r.points_cumul)||0,statut:r.statut||'bronze',code_secret:r.code_secret||'',pin_rapide:r.pin_rapide||'',parrain_status:r.parrain_status||'',parrain_tel:r.parrain_tel||'',parrain_mois:r.parrain_mois||0,parrain_mois_count:r.parrain_mois_count||0,parrain_de:r.parrain_de||[],session_token:r.session_token||'',derniere_visite:r.derniere_visite||'',dernier_bonus_anniv:r.dernier_bonus_anniv||'',date_naissance:r.date_naissance||'',history};
     }
   }catch(e){ console.error('[dbByTel] erreur pour tel=…'+String(tel).slice(-4),e.message||e); return null; }
   console.warn('[dbByTel] fallback localStorage (supaOk=false) — données potentiellement périmées');
@@ -3234,7 +3234,7 @@ async function dbCreate(client){
     if(j.error&&(j.error==='duplicate'||j.code==='23505')) throw Object.assign(new Error('23505'),{message:'23505'});
     const saved=j.client||j;
     console.log('create-client: réponse id='+saved.id);
-    return {...saved,tel:saved.telephone,passages:saved.points||0,history:[]};
+    return {...saved,tel:saved.telephone,passages:parseInt(saved.passages)||0,points_cumul:0,statut:'bronze',history:[]};
   }
   const d=lLoad();
   const withId={...client,id:client.id||'c'+Date.now()};
@@ -3242,7 +3242,7 @@ async function dbCreate(client){
 }
 async function dbUpdate(id,u){
   if(supaOk()){
-    const EMP_FIELDS=['points','cagnotte','telephone','nom','prenom','code_secret','pin_rapide',
+    const EMP_FIELDS=['passages','cagnotte','points_cumul','telephone','nom','prenom','code_secret','pin_rapide',
       'parrain_status','parrain_tel','parrain_mois','parrain_mois_count','parrain_de',
       'session_token','derniere_visite','dernier_bonus_anniv','date_naissance','bloque'];
     const safe={};
@@ -5209,8 +5209,7 @@ function renderOrderOptions(){
   const _sub=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
   const _fee=orderCardMode==='livraison'&&_deliveryQuote?_deliveryQuote.fee_cents/100:0;
   // Frais de service 0,50€ (bronze) — uniquement au paiement en ligne, affiché en note
-  const _rLvlPts=Math.floor(parseFloat(currentPortalClient?.cagnotte||0));
-  const _rLvlKey=currentPortalClient?getLevel(_rLvlPts).label.toLowerCase():'bronze';
+  const _rLvlKey=currentPortalClient?.statut||'bronze';
   const _serviceFee=getStripeFee(_rLvlKey);
   const _tot=_sub+_fee; // bouton CTA : sans frais de service (ajouté dans la modal Stripe)
   const _subStr=_sub.toFixed(2).replace('.',',')+'€';
@@ -5955,8 +5954,7 @@ async function submitClientOrder(){
   const clientTel=currentPortalClient?.telephone||currentPortalClient?.tel||null;
   const pts_a_crediter=clientTel?computePoints(total):0;
   const clientPts=Math.floor(parseFloat(currentPortalClient?.cagnotte||0));
-  const levelObj=currentPortalClient?getLevel(clientPts):null;
-  const levelKey=levelObj?levelObj.label.toLowerCase():'bronze';
+  const levelKey=currentPortalClient?.statut||'bronze';
   const deliveryFee=orderCardMode==='livraison'&&_deliveryQuote?_deliveryQuote.fee_cents/100:0;
   const serviceFee=getStripeFee(levelKey); // 0,50€ bronze · offert Argent/Or · paiement en ligne
   const fee=deliveryFee+serviceFee; // total frais → create-checkout (vérification serveur)
@@ -6576,14 +6574,15 @@ async function appliquerBonusAuto(c, montant){
   }
   if(bonus>0){
     c.cagnotte=Math.floor((parseFloat(c.cagnotte)||0)+bonus);
+    c.points_cumul=Math.floor((parseFloat(c.points_cumul)||0)+bonus);
     const ds=new Date().getDate()+' '+['jan','fév','mar','avr','mai','jun','jul','août','sep','oct','nov','déc'][new Date().getMonth()];
     c.history=c.history||[];
     labels.forEach(l=>c.history.push({type:'g',label:l,amount:'+'+bonus/labels.length+' pts',date:ds}));
     c.derniere_visite=new Date().toISOString();
-    await dbUpdate(c.id,{cagnotte:c.cagnotte,derniere_visite:c.derniere_visite,dernier_bonus_anniv:c.dernier_bonus_anniv||''});
+    await dbUpdate(c.id,{cagnotte:c.cagnotte,points_cumul:c.points_cumul,derniere_visite:c.derniere_visite,dernier_bonus_anniv:c.dernier_bonus_anniv||''});
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===c.id);
-    if(li>=0){Object.assign(ldb[li],{cagnotte:c.cagnotte,history:c.history,derniere_visite:c.derniere_visite});lSave(ldb);}
+    if(li>=0){Object.assign(ldb[li],{cagnotte:c.cagnotte,points_cumul:c.points_cumul,history:c.history,derniere_visite:c.derniere_visite});lSave(ldb);}
   }
   return bonus;
 }
@@ -6650,7 +6649,8 @@ async function verifierParrainageFilleul(client, montant){
   // Commande valide → créditer filleul +20 pts
   const ds=fmtDateParr(new Date().toISOString());
   const newPtsFilleul=(parseFloat(client.cagnotte)||0)+20;
-  await dbUpdate(client.id,{cagnotte:newPtsFilleul,parrain_status:'valide'});
+  const newCumulFilleul=(parseFloat(client.points_cumul)||0)+20;
+  await dbUpdate(client.id,{cagnotte:newPtsFilleul,points_cumul:newCumulFilleul,parrain_status:'valide'});
   const ldbF=lLoad();const lif=ldbF.findIndex(x=>x.id===client.id);
   if(lif>=0){
     ldbF[lif].cagnotte=newPtsFilleul;ldbF[lif].parrain_status='valide';
@@ -6676,7 +6676,8 @@ async function verifierParrainageFilleul(client, montant){
   if(parrain){
     if(!estReporte){
       const newPtsP=(parseFloat(parrain.cagnotte)||0)+15;
-      await dbUpdate(parrain.id,{cagnotte:newPtsP});
+      const newCumulP=(parseFloat(parrain.points_cumul)||0)+15;
+      await dbUpdate(parrain.id,{cagnotte:newPtsP,points_cumul:newCumulP});
       const ldbP=lLoad();const lip=ldbP.findIndex(x=>x.id===parrain.id);
       if(lip>=0){
         ldbP[lip].cagnotte=newPtsP;
@@ -7163,7 +7164,7 @@ function renderPortal(c){
     if(tel){
       const ldb=lLoad();
       const li=ldb.findIndex(x=>x.telephone===tel||x.tel===tel);
-      const serverFields={cagnotte:c.cagnotte,points:c.points,passages:c.passages,
+      const serverFields={cagnotte:c.cagnotte,points_cumul:c.points_cumul,statut:c.statut,passages:c.passages,
         parrain_status:c.parrain_status,bloque:c.bloque};
       if(li>=0) ldb[li]={...ldb[li],...c,...serverFields,tel};
       else ldb.push({...c,...serverFields,tel});
@@ -7171,7 +7172,8 @@ function renderPortal(c){
     }
   }catch(e){}
   const rewards=getRewards();
-  const pts=Math.floor(parseFloat(c.cagnotte)||0);
+  const pts=Math.floor(parseFloat(c.cagnotte)||0); // points dépensables
+  const cumul=Math.floor(parseFloat(c.points_cumul)||0); // points cumulés (pour statut/progression)
   const prevPts=parseInt(localStorage.getItem('kbb_prev_pts_'+(c.tel||c.telephone))||'0');
   localStorage.setItem('kbb_prev_pts_'+(c.tel||c.telephone), pts);
 
@@ -7187,8 +7189,8 @@ function renderPortal(c){
     streakEl.innerHTML=`🔥 ${streakN} visite${streakN>1?'s':''} au total · ${c.passages||0} passage${(c.passages||0)>1?'s':''}`;
   }
 
-  // Level badge
-  const lvl=getLevel(pts);
+  // Level badge — basé sur points_cumul (jamais décrémenté)
+  const lvl=getLevel(cumul);
   const lvlEl=document.getElementById('portal-lvl-badge');
   if(lvlEl) lvlEl.innerHTML=`<div class="lvl-badge ${lvl.cls}">${lvl.emoji} Niveau ${lvl.label}</div>`;
 
@@ -7260,7 +7262,8 @@ function renderPortal(c){
 
   // passages
   document.getElementById('portal-passages').textContent=c.passages||0;
-  document.getElementById('portal-total').textContent=pts+'€';
+  const cumulEl=document.getElementById('portal-cumul');
+  if(cumulEl) cumulEl.textContent=cumul;
 
   // rewards list
   const rwEl=document.getElementById('portal-rewards');
@@ -7325,8 +7328,8 @@ function renderPortal(c){
   });
   const lvlNext=document.getElementById('fidel-lvl-next-msg');
   if(lvlNext){
-    if(lvl.label==='Bronze') lvlNext.innerHTML=`Encore <strong style="color:#CD7F32">${200-pts} pts</strong> pour passer au niveau ⭐ Argent`;
-    else if(lvl.label==='Argent') lvlNext.innerHTML=`Encore <strong style="color:var(--gold)">${500-pts} pts</strong> pour atteindre le niveau 👑 Or`;
+    if(lvl.label==='Bronze') lvlNext.innerHTML=`Encore <strong style="color:#CD7F32">${200-cumul} pts</strong> pour passer au niveau ⭐ Argent`;
+    else if(lvl.label==='Argent') lvlNext.innerHTML=`Encore <strong style="color:var(--gold)">${500-cumul} pts</strong> pour atteindre le niveau 👑 Or`;
     else lvlNext.innerHTML='<strong style="color:var(--gold)">👑 Vous êtes au sommet — niveau Or !</strong>';
   }
 
@@ -7865,9 +7868,10 @@ async function crediterPointsCommande(orderId){
     const pts=o.pts_a_crediter>0?o.pts_a_crediter:computePoints(montant);
     const pass=computePassages(montant);
     if(pts<=0) return;
-    // 6. Niveau avant
+    // 6. Niveau avant (basé sur points_cumul — jamais décrémenté)
+    const ancienCumul=Math.floor(parseFloat(client.points_cumul)||0);
     const ancienSolde=Math.floor(parseFloat(client.cagnotte)||0);
-    const ancienNiveau=getLevel(ancienSolde).label;
+    const ancienNiveau=getLevel(ancienCumul).label;
     // 6b. Déduire les pts de récompense (protégé par points_credites contre double exécution)
     let soldeBase=ancienSolde;
     const rewardPts=parseInt(o.reward_pts||0);
@@ -7878,16 +7882,17 @@ async function crediterPointsCommande(orderId){
     // 7. Mettre à jour le client : solde après récompense + points gagnés
     const c={...client};
     c.cagnotte=soldeBase+pts;
+    c.points_cumul=Math.floor((parseFloat(client.points_cumul)||0)+pts);
     c.passages=(c.passages||0)+pass;
-    await dbUpdate(c.id,{cagnotte:c.cagnotte,points:c.passages});
+    await dbUpdate(c.id,{cagnotte:c.cagnotte,points_cumul:c.points_cumul,passages:c.passages});
     // 8. Marquer la commande comme créditée
     await empUpdateCommande(orderId,{points_credites:true});
     // 9. Sync cache local
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===c.id||x.telephone===c.telephone||x.tel===c.tel);
-    if(li>=0){ldb[li].cagnotte=c.cagnotte;ldb[li].passages=c.passages;lSave(ldb);}
+    if(li>=0){ldb[li].cagnotte=c.cagnotte;ldb[li].points_cumul=c.points_cumul;ldb[li].passages=c.passages;lSave(ldb);}
     // 10. Niveau après — notifier montée de niveau si besoin
-    const nouveauNiveau=getLevel(c.cagnotte).label;
+    const nouveauNiveau=getLevel(c.points_cumul).label;
     if(nouveauNiveau!==ancienNiveau)
       console.log('[Points] 🎉 Montée niveau '+ancienNiveau+' → '+nouveauNiveau+' ('+c.cagnotte+' pts)');
     console.log('[Points] +'+pts+' pts → '+c.cagnotte+' pts total ('+o.client_telephone+')');
@@ -7959,12 +7964,13 @@ async function _cptPtsDoSearch(q){
     return;
   }
   el.innerHTML=results.map(c=>{
-    const pts=Math.floor(parseFloat(c.cagnotte||c.points||0));
-    const lvl=getLevel(pts);
+    const pts=Math.floor(parseFloat(c.cagnotte||0));
+    const cumul=Math.floor(parseFloat(c.points_cumul||c.cagnotte||0));
+    const lvl=getLevel(cumul);
     const tel=c.telephone||c.tel||'—';
     return `<div class="cpt-client-card" id="cpt-cc-${c.id}">
       <div class="cpt-client-name">${c.prenom||''} ${c.nom||''}</div>
-      <div class="cpt-client-meta">${tel} · ${c.passages||c.points||0} passage${(c.passages||0)>1?'s':''}</div>
+      <div class="cpt-client-meta">${tel} · ${c.passages||0} passage${(c.passages||0)>1?'s':''}</div>
       <div class="cpt-client-pts">${pts} pts</div>
       <div class="cpt-client-lvl">${lvl.emoji} Niveau ${lvl.label}</div>
       <div class="cpt-pts-actions">
@@ -8030,11 +8036,12 @@ async function cptPtsAddConfirm(clientId, tel){
     const client=await dbByTel(tel);
     if(!client){ showToast('Client introuvable'); return; }
     const newPts=Math.floor(parseFloat(client.cagnotte||0))+pts;
-    await dbUpdate(client.id,{cagnotte:newPts,points:client.passages||0});
+    const newCumul=Math.floor(parseFloat(client.points_cumul||0))+pts;
+    await dbUpdate(client.id,{cagnotte:newPts,points_cumul:newCumul,passages:client.passages||0});
     // sync local
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===client.id||x.telephone===tel||x.tel===tel);
-    if(li>=0){ldb[li].cagnotte=newPts;lSave(ldb);}
+    if(li>=0){ldb[li].cagnotte=newPts;ldb[li].points_cumul=newCumul;lSave(ldb);}
     showToast(`✅ +${pts} points ajoutés (total : ${newPts} pts)`);
     cptPtsFormClose(clientId);
     // refresh card
@@ -8075,7 +8082,7 @@ async function cptPtsRemoveConfirm(clientId, tel, currentPts){
     const client=await dbByTel(tel);
     if(!client){ showToast('Client introuvable'); return; }
     const newPts=Math.max(0,Math.floor(parseFloat(client.cagnotte||0))-pts);
-    await dbUpdate(client.id,{cagnotte:newPts,points:client.passages||0});
+    await dbUpdate(client.id,{cagnotte:newPts});
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===client.id||x.telephone===tel||x.tel===tel);
     if(li>=0){ldb[li].cagnotte=newPts;lSave(ldb);}
@@ -8095,7 +8102,8 @@ async function _cptRefreshCard(clientId, tel){
     const client=await dbByTel(tel);
     if(!client) return;
     const pts=Math.floor(parseFloat(client.cagnotte||0));
-    const lvl=getLevel(pts);
+    const cumul=Math.floor(parseFloat(client.points_cumul||client.cagnotte||0));
+    const lvl=getLevel(cumul);
     const card=document.getElementById('cpt-cc-'+clientId);
     if(!card) return;
     card.querySelector('.cpt-client-pts').textContent=pts+' pts';
@@ -8634,12 +8642,13 @@ async function validateOrder(){
   const c={...empClient};
   c.passages=(c.passages||0)+pass;
   c.cagnotte=Math.floor((parseFloat(c.cagnotte)||0)+pts);
+  c.points_cumul=Math.floor((parseFloat(empClient.points_cumul)||0)+pts);
   const today=new Date();
   const ds=`${today.getDate()} ${['jan','fév','mar','avr','mai','jun','jul','août','sep','oct','nov','déc'][today.getMonth()]}`;
   c.history=c.history||[];
   if(pts>0) c.history.push({type:'g',label:`Commande ${amount.toFixed(0)}€${pass>1?' ('+pass+' passages)':''}`,amount:`+${pts} pts`,date:ds});
   try{
-    await dbUpdate(c.id,{points:c.passages,cagnotte:c.cagnotte});
+    await dbUpdate(c.id,{passages:c.passages,cagnotte:c.cagnotte,points_cumul:c.points_cumul});
     try{
       const cmdPayload={client_telephone:c.telephone||c.tel||null,montant:Number(amount),points_gagnes:Number(pts),statut:'archive',created_at:new Date().toISOString()};
       const cmdObj=await createCommande(cmdPayload).catch(e=>{console.error('validateOrder createCommande:',e);return null;});
@@ -8651,7 +8660,7 @@ async function validateOrder(){
     }catch(e){ console.error('Erreur save commande:',e.message); }
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===c.id||x.telephone===c.telephone||x.tel===c.tel);
-    if(li>-1){ldb[li].cagnotte=c.cagnotte;ldb[li].history=c.history;ldb[li].passages=c.passages;lSave(ldb);}
+    if(li>-1){ldb[li].cagnotte=c.cagnotte;ldb[li].points_cumul=c.points_cumul;ldb[li].history=c.history;ldb[li].passages=c.passages;lSave(ldb);}
     else{ldb.push({...c});lSave(ldb);}
   }catch(e){
     console.error('Erreur update:',e);
@@ -9556,7 +9565,7 @@ async function loadDashboard(){
 
     // ── 5. Clients & Fidélité ─────────────────────────────────────────────
     const niveaux={bronze:0,argent:0,or:0};
-    clients.forEach(c=>{niveaux[_niveau(c.points)]++;});
+    clients.forEach(c=>{niveaux[_niveau(c.points_cumul??c.cagnotte)]++;});
     const totalClients=clients.length;
     const newThisMonth=clients.filter(c=>c.created_at&&c.created_at.startsWith(monthStr)).length;
     const prevMoisStr=new Date(new Date().setMonth(new Date().getMonth()-1)).toISOString().slice(0,7);
@@ -9575,12 +9584,12 @@ async function loadDashboard(){
 
     const top10clients=Object.entries(clientCA).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([tel,cca])=>{
       const cl=clients.find(c=>c.telephone===tel);
-      return{tel,ca:cca,orders:clientOrders[tel]||0,nom:cl?(cl.prenom+' '+cl.nom):tel,pts:parseInt(cl?.points||0)};
+      return{tel,ca:cca,orders:clientOrders[tel]||0,nom:cl?(cl.prenom+' '+cl.nom):tel,pts:parseInt(cl?.points_cumul??cl?.cagnotte||0)};
     });
 
     const thirtyAgo=new Date(Date.now()-30*86400000);
     const inactifs=clients.filter(c=>!c.derniere_visite||new Date(c.derniere_visite)<thirtyAgo)
-      .sort((a,b)=>parseInt(b.points||0)-parseInt(a.points||0)).slice(0,8);
+      .sort((a,b)=>parseInt(b.points_cumul??b.cagnotte||0)-parseInt(a.points_cumul??a.cagnotte||0)).slice(0,8);
 
     // Récompenses utilisées dans la période
     const rewardByNom={};
@@ -10342,8 +10351,9 @@ async function exportMyData(){
       date_naissance: fresh.date_naissance||null,
       date_inscription: fresh.created_at||null,
       cagnotte: fresh.cagnotte,
-      passages: fresh.passages||fresh.points,
-      niveau: fresh.niveau||'bronze',
+      passages: parseInt(fresh.passages)||0,
+      points_cumul: parseFloat(fresh.points_cumul)||0,
+      niveau: fresh.statut||fresh.niveau||'bronze',
       derniere_visite: fresh.derniere_visite||null
     },
     commandes: commandes.map(x=>({id:x.id,date:x.created_at,montant:x.montant,points_gagnes:x.points_gagnes,statut:x.statut}))

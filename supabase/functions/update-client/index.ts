@@ -44,7 +44,7 @@ async function verifyEmpToken(
 
 // Champs autorisés en mode employé
 const EMP_FIELDS = [
-  'points', 'cagnotte', 'telephone', 'nom', 'prenom', 'code_secret',
+  'passages', 'cagnotte', 'points_cumul', 'telephone', 'nom', 'prenom', 'code_secret',
   'pin_rapide', 'parrain_status', 'parrain_tel', 'parrain_mois',
   'parrain_mois_count', 'parrain_de', 'session_token',
   'derniere_visite', 'dernier_bonus_anniv', 'date_naissance', 'bloque',

@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     // ── 1. Charger le client par téléphone ───────────────────────────────────
     const { data: clientRows, error: clientErr } = await supabase
       .from('clients')
-      .select('id, telephone, cagnotte, prenom')
+      .select('id, telephone, cagnotte, points_cumul, prenom')
       .eq('telephone', tel)
       .limit(1);
 
@@ -106,9 +106,12 @@ Deno.serve(async (req) => {
     const ancienSolde = Math.round(parseFloat(String(client.cagnotte ?? 0)) * 100) / 100;
     const nouveauSolde = Math.round((ancienSolde + totalPts) * 100) / 100;
 
+    const ancienCumul = Math.round(parseFloat(String(client.points_cumul ?? client.cagnotte ?? 0)) * 100) / 100;
+    const nouveauCumul = Math.round((ancienCumul + totalPts) * 100) / 100;
+
     const { error: updateClientErr } = await supabase
       .from('clients')
-      .update({ cagnotte: nouveauSolde })
+      .update({ cagnotte: nouveauSolde, points_cumul: nouveauCumul })
       .eq('id', client.id);
 
     if (updateClientErr) {

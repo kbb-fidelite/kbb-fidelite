@@ -13,3 +13,4 @@ URL production : https://kbb-fidelite.github.io/kbb-fidelite/
 6. Aucune donnée sensible (clés API, tokens, téléphones complets) côté client ou dans les logs
 7. Montants Stripe toujours recalculés et vérifiés côté serveur dans l'Edge Function
 8. Uber Direct : credentials uniquement dans les secrets Supabase, jamais côté client
+9. Après chaque tâche, TOUJOURS terminer par commit + push + afficher `git log --oneline -2` en preuve. Ne jamais décrire un travail comme terminé sans preuve de commit poussé.
