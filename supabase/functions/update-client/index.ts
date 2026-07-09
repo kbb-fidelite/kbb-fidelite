@@ -51,7 +51,7 @@ const EMP_FIELDS = [
 ];
 
 // Champs autorisés en mode client (propre compte uniquement)
-// SÉCURITÉ : 'cagnotte' et 'points' intentionnellement absents —
+// SÉCURITÉ : 'cagnotte' et 'points_cumul' intentionnellement absents —
 // toute écriture de solde passe par une Edge Function dédiée (emp_token ou credit-referral-bonus).
 // SÉCURITÉ : champs restreints en mode client — pas de cagnotte, points, ni champs parrainage
 // Le parrainage est géré côté serveur (inscription → create-client, crédit → credit-referral-bonus)

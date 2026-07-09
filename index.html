@@ -6276,7 +6276,7 @@ async function registerClient(){
   try{
     const exist=await dbByTel(tel);
     if(exist){showToast('Vous avez déjà un compte — connectez-vous directement');return;}
-    const payload={prenom,nom,telephone:tel,code_secret:code,cagnotte:0,points:0};
+    const payload={prenom,nom,telephone:tel,code_secret:code,cagnotte:0};
     if(ddn) payload.date_naissance=ddn;
     let saved;
     try{
@@ -7966,7 +7966,7 @@ async function _cptPtsDoSearch(q){
   }
   el.innerHTML=results.map(c=>{
     const pts=Math.floor(parseFloat(c.cagnotte||0));
-    const cumul=Math.floor(parseFloat(c.points_cumul||c.cagnotte||0));
+    const cumul=Math.floor(parseFloat(c.points_cumul||0));
     const lvl=getLevel(cumul);
     const tel=c.telephone||c.tel||'—';
     return `<div class="cpt-client-card" id="cpt-cc-${c.id}">
@@ -8103,7 +8103,7 @@ async function _cptRefreshCard(clientId, tel){
     const client=await dbByTel(tel);
     if(!client) return;
     const pts=Math.floor(parseFloat(client.cagnotte||0));
-    const cumul=Math.floor(parseFloat(client.points_cumul||client.cagnotte||0));
+    const cumul=Math.floor(parseFloat(client.points_cumul||0));
     const lvl=getLevel(cumul);
     const card=document.getElementById('cpt-cc-'+clientId);
     if(!card) return;
@@ -9566,7 +9566,7 @@ async function loadDashboard(){
 
     // ── 5. Clients & Fidélité ─────────────────────────────────────────────
     const niveaux={bronze:0,argent:0,or:0};
-    clients.forEach(c=>{niveaux[_niveau(c.points_cumul??c.cagnotte)]++;});
+    clients.forEach(c=>{niveaux[_niveau(c.points_cumul)]++;});
     const totalClients=clients.length;
     const newThisMonth=clients.filter(c=>c.created_at&&c.created_at.startsWith(monthStr)).length;
     const prevMoisStr=new Date(new Date().setMonth(new Date().getMonth()-1)).toISOString().slice(0,7);
@@ -9585,12 +9585,12 @@ async function loadDashboard(){
 
     const top10clients=Object.entries(clientCA).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([tel,cca])=>{
       const cl=clients.find(c=>c.telephone===tel);
-      return{tel,ca:cca,orders:clientOrders[tel]||0,nom:cl?(cl.prenom+' '+cl.nom):tel,pts:parseInt(cl?.points_cumul??(cl?.cagnotte||0))};
+      return{tel,ca:cca,orders:clientOrders[tel]||0,nom:cl?(cl.prenom+' '+cl.nom):tel,pts:parseInt(cl?.points_cumul||0)};
     });
 
     const thirtyAgo=new Date(Date.now()-30*86400000);
     const inactifs=clients.filter(c=>!c.derniere_visite||new Date(c.derniere_visite)<thirtyAgo)
-      .sort((a,b)=>parseInt(b.points_cumul??(b.cagnotte||0))-parseInt(a.points_cumul??(a.cagnotte||0))).slice(0,8);
+      .sort((a,b)=>parseInt(b.points_cumul||0)-parseInt(a.points_cumul||0)).slice(0,8);
 
     // Récompenses utilisées dans la période
     const rewardByNom={};

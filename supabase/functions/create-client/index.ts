@@ -103,7 +103,6 @@ Deno.serve(async (req) => {
       prenom:      (prenom ?? '').trim(),
       nom:         (nom ?? '').trim(),
       email:       '',
-      points:      0,
       cagnotte:    0,
       points_cumul: 0,
       passages:    0,

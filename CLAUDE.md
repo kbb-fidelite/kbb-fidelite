@@ -14,3 +14,4 @@ URL production : https://kbb-fidelite.github.io/kbb-fidelite/
 7. Montants Stripe toujours recalculés et vérifiés côté serveur dans l'Edge Function
 8. Uber Direct : credentials uniquement dans les secrets Supabase, jamais côté client
 9. Après chaque tâche, TOUJOURS terminer par commit + push + afficher `git log --oneline -2` en preuve. Ne jamais décrire un travail comme terminé sans preuve de commit poussé.
+10. Edge Functions : quand un fichier `_shared/` ou une Edge Function est modifié, lister systématiquement TOUTES les fonctions interdépendantes à redéployer. Le workflow CI `deploy-functions.yml` doit contenir la liste exhaustive de toutes les Edge Functions du projet — ne jamais en oublier.

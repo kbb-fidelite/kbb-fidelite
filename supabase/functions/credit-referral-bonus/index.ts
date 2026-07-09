@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
     const ancienSolde = Math.round(parseFloat(String(client.cagnotte ?? 0)) * 100) / 100;
     const nouveauSolde = Math.round((ancienSolde + totalPts) * 100) / 100;
 
-    const ancienCumul = Math.round(parseFloat(String(client.points_cumul ?? client.cagnotte ?? 0)) * 100) / 100;
+    const ancienCumul = Math.round(parseFloat(String(client.points_cumul ?? 0)) * 100) / 100;
     const nouveauCumul = Math.round((ancienCumul + totalPts) * 100) / 100;
 
     const { error: updateClientErr } = await supabase
