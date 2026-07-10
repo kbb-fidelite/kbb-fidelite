@@ -8,13 +8,15 @@
 //   - Comparé au montant envoyé par le client (±10cts de tolérance arrondi)
 //   - La clé secrète Stripe n'est jamais exposée côté client
 //
-// Pré-crée la commande en "pending_payment" dans Supabase avec stripe_session_id.
 // verify-payment activera la commande en "en_attente" après confirmation Stripe.
+//
+// IMPORTANT : aucun SDK Stripe — fetch natif uniquement.
+// Le SDK npm `stripe` tire deno.land/std/node/* (couche compat Node) qui crash
+// le Edge Runtime Supabase (Deno v2.1.4) avec "Deno.core.runMicrotasks() not supported".
 //
 // Secrets requis : STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // Déploiement : supabase functions deploy create-checkout
 
-import Stripe from 'https://esm.sh/stripe@14?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -28,6 +30,50 @@ function jsonResp(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// ── Appel REST Stripe — sans SDK ────────────────────────────────────────────
+async function stripeCreateCheckoutSession(
+  stripeKey: string,
+  params: {
+    line_items: Array<{ name: string; description?: string; amount: number; quantity: number }>;
+    success_url: string;
+    cancel_url: string;
+    metadata: Record<string, string>;
+  }
+): Promise<{ id: string; url: string }> {
+  const body = new URLSearchParams();
+  body.append('mode', 'payment');
+  body.append('payment_method_types[0]', 'card');
+  body.append('phone_number_collection[enabled]', 'false');
+  body.append('success_url', params.success_url);
+  body.append('cancel_url', params.cancel_url);
+
+  for (let i = 0; i < params.line_items.length; i++) {
+    const li = params.line_items[i];
+    body.append(`line_items[${i}][price_data][currency]`, 'eur');
+    body.append(`line_items[${i}][price_data][product_data][name]`, li.name);
+    if (li.description) body.append(`line_items[${i}][price_data][product_data][description]`, li.description);
+    body.append(`line_items[${i}][price_data][unit_amount]`, String(li.amount));
+    body.append(`line_items[${i}][quantity]`, String(li.quantity));
+  }
+
+  for (const [k, v] of Object.entries(params.metadata)) {
+    body.append(`metadata[${k}]`, v);
+  }
+
+  const r = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + stripeKey,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: body.toString(),
+  });
+
+  const json = await r.json();
+  if (!r.ok) throw new Error('Stripe ' + r.status + ': ' + (json?.error?.message ?? r.statusText));
+  return { id: json.id, url: json.url };
 }
 
 // ── Vérifie le presence_token émis par verify-presence-code ──────────────────
@@ -88,7 +134,6 @@ Deno.serve(async (req) => {
 
     const supaUrl  = Deno.env.get('SUPABASE_URL')!;
     const supaKey  = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY'))!;
-    const stripe   = new Stripe(stripeKey, { apiVersion: '2024-04-10' });
     const supabase = createClient(supaUrl, supaKey);
 
     const {
@@ -236,14 +281,11 @@ Deno.serve(async (req) => {
     }
 
     // ── Créer la session Stripe — line items séparés par type de frais ─────────
-    // Stripe est un processeur de paiement, pas un catalogue produit.
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+    const lineItems: Array<{ name: string; description?: string; amount: number; quantity: number }> = [
       {
-        price_data: {
-          currency:     'eur',
-          product_data: { name: 'Commande KBB à la braise', description: orderLabel || undefined },
-          unit_amount:  Math.round(serverTotal * 100),
-        },
+        name: 'Commande KBB à la braise',
+        description: orderLabel || undefined,
+        amount: Math.round(serverTotal * 100),
         quantity: 1,
       },
     ];
@@ -253,40 +295,30 @@ Deno.serve(async (req) => {
     const effectiveDeliveryFee = Math.round((deliveryFee - serverRewardDiscount) * 100) / 100;
     if (effectiveDeliveryFee > 0) {
       lineItems.push({
-        price_data: {
-          currency:     'eur',
-          product_data: {
-            name: serverRewardDiscount > 0 ? 'Frais de livraison (après réduction fidélité)' : 'Frais de livraison (Uber Direct)',
-            description: serverRewardDiscount > 0 ? `Livraison ${deliveryFee.toFixed(2)}€ − ${serverRewardDiscount.toFixed(2)}€ offerts` : 'Livraison à domicile',
-          },
-          unit_amount:  Math.round(effectiveDeliveryFee * 100),
-        },
+        name: serverRewardDiscount > 0 ? 'Frais de livraison (après réduction fidélité)' : 'Frais de livraison (Uber Direct)',
+        description: serverRewardDiscount > 0 ? `Livraison ${deliveryFee.toFixed(2)}€ − ${serverRewardDiscount.toFixed(2)}€ offerts` : 'Livraison à domicile',
+        amount: Math.round(effectiveDeliveryFee * 100),
         quantity: 1,
       });
     } else if (deliveryFee > 0 && serverRewardDiscount > 0) {
-      // Livraison entièrement offerte — line item à 0 pour visibilité
-      // Stripe n'accepte pas les montants à 0 dans les line items, donc on ajoute juste dans les metadata
+      // Livraison entièrement offerte — Stripe n'accepte pas les montants à 0
       console.log(`[create-checkout] livraison entièrement offerte par récompense fidélité`);
     }
 
     // Frais de service (line item séparé — offerts dès Argent)
     if (serviceFee > 0) {
       lineItems.push({
-        price_data: {
-          currency:     'eur',
-          product_data: { name: 'Frais de service', description: 'Offerts dès le niveau Argent' },
-          unit_amount:  Math.round(serviceFee * 100),
-        },
+        name: 'Frais de service',
+        description: 'Offerts dès le niveau Argent',
+        amount: Math.round(serviceFee * 100),
         quantity: 1,
       });
     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items:           lineItems,
-      mode:                 'payment',
-      success_url:          successUrl,
-      cancel_url:           cancelUrl,
+    const session = await stripeCreateCheckoutSession(stripeKey, {
+      line_items: lineItems,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         client_tel:      String(clientTel || ''),
         client_level:    serverStatut,
@@ -294,7 +326,6 @@ Deno.serve(async (req) => {
         reward_discount: serverRewardDiscount > 0 ? String(serverRewardDiscount) : '',
         reward_id:       rewardId ? String(rewardId) : '',
       },
-      phone_number_collection: { enabled: false },
     });
 
     console.log(`[create-checkout] session Stripe créée: ${session.id} | ${serverGrandTotalFinal.toFixed(2)}€` + (serverRewardDiscount > 0 ? ` (dont −${serverRewardDiscount.toFixed(2)}€ livraison offerte)` : ''));
