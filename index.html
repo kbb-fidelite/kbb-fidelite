@@ -3686,10 +3686,6 @@ const SAUCE_EXTRA_PRICE=0.30;
 const STRIPE_PK='pk_test_51TH7ZMKrgv3kx9WYb1aX1Ek7Z18B2WfHRBNUhuXLfsYAMT4cspj3CXl8Ds1rQNh51fV76arnwFNhUD7F20WE5PiO00Ev22MwPL';
 if(STRIPE_PK.startsWith('pk_test_')) console.warn('[Stripe] Mode TEST — assurez-vous que STRIPE_SECRET_KEY dans Supabase Secrets est aussi sk_test_...');
 
-function getStripeFee(levelKey){
-  // Bronze → 0,50€ · Argent → offert · Or → offert
-  return levelKey==='bronze'||!levelKey ? 0.50 : 0;
-}
 
 function stripeRequired(levelKey){
   // Or peut choisir; Bronze et Argent doivent payer en ligne
@@ -3762,10 +3758,13 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
 // État global pour la modal
 let _stripePendingCtx=null;
 
-function stripeModalOpen(orderId, subtotal, deliveryFee, serviceFee, levelKey, label, rewardDiscount){
+function stripeModalOpen(orderId, subtotal, deliveryFee, levelKey, label, rewardDiscount){
   rewardDiscount=rewardDiscount||0;
-  _stripePendingCtx={orderId, subtotal, deliveryFee, serviceFee, levelKey, label, rewardDiscount};
-  const totalOnline=subtotal+deliveryFee+serviceFee-rewardDiscount;
+  _stripePendingCtx={orderId, subtotal, deliveryFee, levelKey, label, rewardDiscount};
+  // Total affiché = sous-total + livraison - réduction (SANS frais de service)
+  // Les frais de service sont ajoutés par le serveur — seule autorité sur l'exonération
+  const serviceExempt=(levelKey==='argent'||levelKey==='or');
+  const totalOnline=subtotal+deliveryFee-rewardDiscount+(serviceExempt?0:0.50);
   document.getElementById('stripe-sheet-sub').textContent=label;
   document.getElementById('stripe-sheet-amount').textContent=totalOnline.toFixed(2).replace('.',',')+'€';
   const feeZone=document.getElementById('stripe-fee-zone');
@@ -3777,11 +3776,11 @@ function stripeModalOpen(orderId, subtotal, deliveryFee, serviceFee, levelKey, l
   if(rewardDiscount>0){
     feeHtml+=`<div class="stripe-breakdown-row" style="color:#2e7d32;"><span>🎁 Livraison offerte (fidélité)</span><span>− ${rewardDiscount.toFixed(2).replace('.',',')} €</span></div>`;
   }
-  if(serviceFee>0){
-    feeHtml+=`<div class="stripe-breakdown-row stripe-breakdown-service"><span>Frais de service</span><span>+ ${serviceFee.toFixed(2).replace('.',',')} €</span></div>`;
-    feeHtml+=`<div class="stripe-breakdown-caption">Frais appliqués sur le paiement en ligne par carte</div>`;
+  if(serviceExempt){
+    feeHtml+=`<div class="stripe-breakdown-caption stripe-fee-free">Frais de service offerts ✨ (${levelKey==='or'?'Or 👑':'Argent ⭐'})</div>`;
   } else {
-    feeHtml+=`<div class="stripe-breakdown-caption stripe-fee-free">Frais de service offerts ✨</div>`;
+    feeHtml+=`<div class="stripe-breakdown-row stripe-breakdown-service"><span>Frais de service</span><span>+ 0,50 €</span></div>`;
+    feeHtml+=`<div class="stripe-breakdown-caption">Offerts dès le niveau Argent</div>`;
   }
   feeHtml+=`<div class="stripe-breakdown-total"><span>Total</span><span>${totalOnline.toFixed(2).replace('.',',')} €</span></div>`;
   if(deliveryFee>0&&rewardDiscount<=0){
@@ -5211,10 +5210,11 @@ function renderOrderOptions(){
   // ── Totaux & validation ──────────────────────────────────────────────────
   const _sub=cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0);
   const _fee=orderCardMode==='livraison'&&_deliveryQuote?_deliveryQuote.fee_cents/100:0;
-  // Frais de service 0,50€ (bronze) — uniquement au paiement en ligne, affiché en note
+  // Frais de service : le serveur est la seule autorité (create-checkout).
+  // L'UI affiche une mention informative basée sur le statut serveur, jamais un montant calculé localement.
   const _rLvlKey=currentPortalClient?.statut||'bronze';
-  const _serviceFee=getStripeFee(_rLvlKey);
-  const _tot=_sub+_fee; // bouton CTA : sans frais de service (ajouté dans la modal Stripe)
+  const _serviceExempt=(_rLvlKey==='argent'||_rLvlKey==='or');
+  const _tot=_sub+_fee; // total affiché = sous-total + livraison (sans frais de service)
   const _subStr=_sub.toFixed(2).replace('.',',')+'€';
   const _totStr=_tot.toFixed(2).replace('.',',')+'€';
   const _livPhoneVal=_deliveryAddress.phone||(currentPortalClient?.telephone||currentPortalClient?.tel||'');
@@ -5362,7 +5362,7 @@ function renderOrderOptions(){
         <div class="om-cta-fee-row"><span>🛵 Livraison Uber Direct</span><span>+ ${_fee.toFixed(2).replace('.',',')} €</span></div>
         <div style="font-size:10px;color:#666;text-align:right;margin-top:-4px;margin-bottom:6px;">Frais calculés en temps réel · peuvent varier</div>
       `:''}
-      ${_serviceFee>0?`<div style="font-size:11px;color:#888;text-align:center;margin-bottom:6px;">+ ${_serviceFee.toFixed(2).replace('.',',')}€ frais de service · paiement en ligne par carte</div>`:''}
+      ${_serviceExempt?`<div style="font-size:11px;color:#2e7d32;text-align:center;margin-bottom:6px;">Frais de service offerts ✨ (niveau ${_rLvlKey==='or'?'Or 👑':'Argent ⭐'})</div>`:`<div style="font-size:11px;color:#888;text-align:center;margin-bottom:6px;">+ 0,50€ frais de service ajoutés au paiement en ligne</div>`}
       <button id="om-cta-btn" class="om-cta" onclick="submitClientOrder()" ${_canConfirm&&orderCardMode?'':' disabled'}>
         <span>${_ctaLabel}</span>
         <span style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">${_totStr}</span>
@@ -5959,8 +5959,8 @@ async function submitClientOrder(){
   const clientPts=Math.floor(parseFloat(currentPortalClient?.cagnotte||0));
   const levelKey=currentPortalClient?.statut||'bronze';
   const deliveryFee=orderCardMode==='livraison'&&_deliveryQuote?_deliveryQuote.fee_cents/100:0;
-  const serviceFee=getStripeFee(levelKey); // 0,50€ bronze · offert Argent/Or · paiement en ligne
-  const fee=deliveryFee+serviceFee; // total frais → create-checkout (vérification serveur)
+  // serviceFee n'est plus calculé localement — le serveur (create-checkout) est la seule autorité
+  const fee=deliveryFee; // frais affichés = livraison uniquement (service ajouté par le serveur)
   const label=orderCardMode==='immediat'
     ?(orderServiceMode==='a_emporter'?'À emporter — immédiat':'Sur place — immédiat')
     :orderCardMode==='livraison'
@@ -5968,7 +5968,7 @@ async function submitClientOrder(){
       :(orderServiceMode==='a_emporter'?'À emporter — retrait à '+selectedPickupTime:'Sur place — arrivée à '+selectedPickupTime);
 
   // ── Stocker le contexte dans la variable globale ──
-  _pendingOrderCtx={total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,clientPts,levelKey,fee,deliveryFee,serviceFee,label};
+  _pendingOrderCtx={total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,clientPts,levelKey,fee,deliveryFee,label};
 
   // ── Afficher l'overlay récompenses si des récompenses actives existent ──
   const allRecs=await loadRecompenses();
@@ -5984,7 +5984,7 @@ async function _doSubmitOrder(selectedReward){
   const ctx=_pendingOrderCtx;
   _pendingOrderCtx=null;
   if(!ctx) return;
-  const {total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,levelKey,fee,deliveryFee,serviceFee,label}=ctx;
+  const {total,grouped,itemsArr,itemsText,clientTel,pts_a_crediter,levelKey,fee,deliveryFee,label}=ctx;
 
   // ── Calcul du discount "Livraison offerte" ──
   let rewardDiscount=0;
@@ -6035,7 +6035,7 @@ async function _doSubmitOrder(selectedReward){
 
   // ── Stocker le contexte complet pour handleStripeReturn (Stripe uniquement) ──
   localStorage.setItem('kbb_stripe_pending',JSON.stringify({
-    orderId: localId, orderNum, label, grouped, total, levelKey, fee, deliveryFee, serviceFee, clientTel, pts_a_crediter,
+    orderId: localId, orderNum, label, grouped, total, levelKey, fee, deliveryFee, clientTel, pts_a_crediter,
     presence_token: null,
     reward_id: selectedReward?.id||null,
     reward_pts: selectedReward?.points_requis||0,
@@ -6057,7 +6057,7 @@ async function _doSubmitOrder(selectedReward){
       deliveryAddress:capturedDeliveryAddr||null}
   }));
 
-  stripeModalOpen(localId, total, deliveryFee, serviceFee, levelKey, label, rewardDiscount);
+  stripeModalOpen(localId, total, deliveryFee, levelKey, label, rewardDiscount);
 }
 
 // Finalise une commande sur place sans paiement Stripe.
