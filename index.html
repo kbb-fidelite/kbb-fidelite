@@ -3810,7 +3810,9 @@ async function stripePayOnline(){
   if(_lbl) _lbl.textContent='⏳ Redirection…'; else btn.textContent='⏳ Redirection…';
   try{
     const rewardDiscount=ctx.rewardDiscount||0;
-    const amountCents=Math.round((ctx.subtotal+ctx.deliveryFee+ctx.serviceFee-rewardDiscount)*100);
+    // amountCents EXCLUT les frais de service — le serveur est la seule autorité
+    // sur l'exonération Argent/Or et les ajoute lui-même au total Stripe.
+    const amountCents=Math.round((ctx.subtotal+ctx.deliveryFee-rewardDiscount)*100);
     const feeCents=Math.round((ctx.deliveryFee||0)*100);
     // Lire le pending context pour passer les données de commande à create-checkout
     const pending=JSON.parse(localStorage.getItem('kbb_stripe_pending')||'null');

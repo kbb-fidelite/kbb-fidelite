@@ -243,10 +243,13 @@ Deno.serve(async (req) => {
     const serverCentsFinal      = Math.round(serverGrandTotalFinal * 100);
 
     // ── Anti-fraude : comparaison avec le montant client (±10cts) ────────────
+    // Le client envoie amountCents SANS frais de service (le serveur est la seule
+    // autorité sur l'exonération Argent/Or). On compare donc sans serviceFee.
+    const serverCentsWithoutService = Math.round((serverTotal + deliveryFee - serverRewardDiscount) * 100);
     if (clientAmountCents !== undefined) {
-      const diff = Math.abs(Number(clientAmountCents) - serverCentsFinal);
+      const diff = Math.abs(Number(clientAmountCents) - serverCentsWithoutService);
       if (diff > 10) {
-        console.warn(`[create-checkout] montant tampered: client=${clientAmountCents} server=${serverCentsFinal} diff=${diff} | deliveryFeeCents=${deliveryFeeCents} isLivraison=${isLivraison} rewardDiscount=${serverRewardDiscount}`);
+        console.warn(`[create-checkout] montant tampered: client=${clientAmountCents} serverSansService=${serverCentsWithoutService} serverAvecService=${serverCentsFinal} diff=${diff} | serviceFee=${serviceFee} statut=${serverStatut} deliveryFeeCents=${deliveryFeeCents} isLivraison=${isLivraison} rewardDiscount=${serverRewardDiscount}`);
         return jsonResp({ error: 'Montant invalide — commande refusée' }, 400);
       }
     }
@@ -332,7 +335,7 @@ Deno.serve(async (req) => {
 
     // La commande sera créée dans verify-payment après confirmation Stripe.
     // Aucune pré-création ici — pas de commandes fantômes en cas d'abandon.
-    return jsonResp({ url: session.url, sessionId: session.id, serverTotal: serverGrandTotalFinal, rewardDiscount: serverRewardDiscount });
+    return jsonResp({ url: session.url, sessionId: session.id, serverTotal: serverGrandTotalFinal, serviceFee, serverStatut, rewardDiscount: serverRewardDiscount });
 
   } catch (err) {
     const e = err as { message?: string; type?: string; code?: string; statusCode?: number };
