@@ -1313,21 +1313,48 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .stripe-sheet-sub{font-size:13px;color:var(--text3);margin-bottom:1.5rem;line-height:1.5;}
 .stripe-sheet-amount{font-family:var(--font-d);font-size:32px;color:var(--fire);margin-bottom:1.25rem;}
 .stripe-sheet-fee{font-size:12px;color:var(--text3);margin-top:-1rem;margin-bottom:1.25rem;}
-.reward-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9998;display:flex;align-items:flex-end;justify-content:center;}
+.reward-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9998;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
 @media(min-width:440px){.reward-overlay{align-items:center;}}
-.reward-sheet{background:var(--coal2);border-radius:var(--radius) var(--radius) 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:420px;border-top:1px solid var(--border2);max-height:85vh;overflow-y:auto;}
-@media(min-width:440px){.reward-sheet{border-radius:var(--radius);border:1px solid var(--border2);}}
-.reward-card{position:relative;padding:.8rem 1rem;border-radius:var(--radius-sm);border:2px solid rgba(255,255,255,.1);background:#1a1a1a;margin-bottom:8px;cursor:pointer;transition:border-color .18s,background .18s;}
-.reward-card.selected{border-color:#e65100;background:rgba(230,81,0,.15);}
-.reward-card.selected::after{content:'✓';position:absolute;top:.85rem;right:1rem;font-size:14px;font-weight:800;color:#e65100;}
-.reward-card-none-hint{font-size:11px;color:var(--text3);margin-top:2px;}
-.reward-card.locked{opacity:.45;cursor:default;}
-.reward-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;padding-right:1.5rem;}
-.reward-card-name{font-size:14px;font-weight:700;color:#888888;transition:color .18s;}
-.reward-card.selected .reward-card-name{color:#ffffff;}
-.reward-card-pts{font-size:12px;font-weight:700;color:#555555;transition:color .18s;}
-.reward-card.selected .reward-card-pts{color:#e65100;}
-.reward-card-hint{font-size:11px;color:var(--fire);margin-top:2px;}
+.reward-sheet{background:#121212;border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:420px;border-top:1px solid rgba(255,140,0,.25);max-height:85vh;overflow-y:auto;}
+@media(min-width:440px){.reward-sheet{border-radius:16px;border:1px solid rgba(255,140,0,.2);}}
+.reward-header-pts{font-size:22px;font-weight:800;color:#fff;text-align:center;margin-bottom:.2rem;}
+.reward-header-pts span{color:#FF8C00;}
+.reward-card{position:relative;padding:1rem 1.1rem;border-radius:14px;border:2px solid rgba(255,255,255,.08);background:#1a1a1a;margin-bottom:10px;cursor:pointer;transition:all .2s ease;min-height:52px;display:flex;flex-direction:column;gap:4px;}
+.reward-card:active{transform:scale(.97);}
+.reward-card.available{border-color:rgba(255,140,0,.35);box-shadow:0 0 12px rgba(255,140,0,.1);}
+.reward-card.available .reward-card-name{color:#fff;}
+.reward-card.available .reward-card-pts{color:#FF8C00;}
+.reward-card.recommended{border-color:rgba(255,140,0,.6);box-shadow:0 0 20px rgba(255,140,0,.18);}
+.reward-card.selected{border-color:#FF8C00;background:rgba(255,140,0,.12);box-shadow:0 0 24px rgba(255,140,0,.2);}
+.reward-card.selected::after{content:'✓';position:absolute;top:1rem;right:1rem;font-size:16px;font-weight:800;color:#FF8C00;}
+.reward-card-none-hint{font-size:12px;color:var(--text3);margin-top:2px;}
+.reward-card.locked{opacity:1;cursor:default;background:#141414;border-color:rgba(255,255,255,.04);}
+.reward-card.locked .reward-card-name{color:#555;}
+.reward-card.locked .reward-card-pts{color:#444;}
+.reward-card-top{display:flex;justify-content:space-between;align-items:center;padding-right:1.8rem;}
+.reward-card-name{font-size:16px;font-weight:700;color:#888;transition:color .18s;}
+.reward-card.selected .reward-card-name{color:#fff;}
+.reward-card-pts{font-size:14px;font-weight:800;color:#555;transition:color .18s;white-space:nowrap;}
+.reward-card.selected .reward-card-pts{color:#FF8C00;}
+.reward-card-hint{font-size:12px;color:var(--fire);margin-top:2px;}
+.reward-card-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-top:4px;}
+.reward-card-badge.dispo{background:rgba(255,140,0,.15);color:#FF8C00;}
+.reward-card-badge.reco{background:rgba(255,140,0,.25);color:#FFB347;}
+.reward-card-progress{height:4px;border-radius:99px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden;}
+.reward-card-progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#FF8C00,#FFB347);transition:width .3s ease;}
+.reward-card-progress-label{font-size:11px;color:#666;margin-top:3px;}
+@keyframes rewardPop{0%{transform:scale(.95);opacity:0}100%{transform:scale(1);opacity:1}}
+.reward-card{animation:rewardPop .25s ease forwards;}
+/* Floating cart badge */
+.cart-float-badge{position:fixed;bottom:80px;right:16px;z-index:55;display:none;align-items:center;gap:8px;background:#1a1a1a;border:1.5px solid rgba(255,140,0,.5);border-radius:50px;padding:10px 16px 10px 14px;box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04);cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:transform .2s ease,opacity .2s ease;}
+.cart-float-badge:active{transform:scale(.94);}
+.cart-float-badge-icon{font-size:20px;line-height:1;}
+.cart-float-badge-count{background:#FF8C00;color:#fff;font-size:12px;font-weight:800;min-width:20px;height:20px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
+.cart-float-badge-total{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;}
+@keyframes cartBadgePop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes cartBadgePulse{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+.cart-float-badge.pop-in{animation:cartBadgePop .3s ease forwards;}
+.cart-float-badge-count.pulse{animation:cartBadgePulse .3s ease;}
 .reclist-row{display:flex;align-items:center;gap:.5rem;padding:.65rem .75rem;background:var(--coal4);border-radius:var(--radius-sm);margin-bottom:6px;}
 .reclist-info{flex:1;min-width:0;}
 .reclist-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -2346,6 +2373,13 @@ body{
   </div>
 </div>
 
+<!-- Floating cart badge (visible hors page-menu/page-cart) -->
+<div class="cart-float-badge" id="cart-float-badge" onclick="showCart()">
+  <span class="cart-float-badge-icon">🛒</span>
+  <span class="cart-float-badge-count" id="cart-float-count">0</span>
+  <span class="cart-float-badge-total" id="cart-float-total">0,00€</span>
+</div>
+
 <!-- CART PAGE -->
 <div class="page" id="page-cart">
   <div class="topbar"><button class="tbback" onclick="goBack()">←</button><div class="tbtitle">Mon panier</div></div>
@@ -2616,11 +2650,11 @@ body{
 <!-- REWARD SELECTION OVERLAY -->
 <div id="reward-overlay" class="reward-overlay" style="display:none;" onclick="if(event.target===this)rewardOverlayConfirm()">
   <div class="reward-sheet">
-    <div style="font-size:17px;font-weight:800;margin-bottom:.2rem;">🎁 Vos récompenses</div>
-    <div id="reward-overlay-pts-hint" style="font-size:12px;color:var(--text3);margin-bottom:1rem;"></div>
-    <div id="reward-overlay-list"></div>
-    <div style="margin-top:1rem;">
-      <button id="reward-overlay-btn" onclick="rewardOverlayConfirm()" style="width:100%;padding:.9rem;border-radius:var(--radius-sm);border:none;background:linear-gradient(130deg,#FF9A1E,#FF8C00);color:#fff;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;min-height:50px;">Confirmer →</button>
+    <div style="font-size:20px;font-weight:800;text-align:center;margin-bottom:.3rem;">🎁 Vos récompenses</div>
+    <div id="reward-overlay-pts-hint" class="reward-header-pts"></div>
+    <div id="reward-overlay-list" style="margin-top:.8rem;"></div>
+    <div style="margin-top:1.2rem;">
+      <button id="reward-overlay-btn" onclick="rewardOverlayConfirm()" style="width:100%;padding:1rem;border-radius:14px;border:none;background:linear-gradient(130deg,#FF9A1E,#FF8C00);color:#fff;font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;min-height:52px;box-shadow:0 4px 16px rgba(255,140,0,.3);">Confirmer →</button>
     </div>
     <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:.6rem;">Les points sont déduits immédiatement à la validation.</div>
   </div>
@@ -3391,6 +3425,10 @@ function go(p){
     document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
     document.getElementById(p).classList.add('active');
     updateBottomNav(p);
+    // Refresh floating cart badge visibility on page change
+    const _fc=cart.length;
+    if(_fc>0) updateCartFloatBadge(_fc, cart.reduce((s,item)=>s+(typeof item==='object'?item.price:MENU_DATA[item].price),0));
+    else updateCartFloatBadge(0,0);
     if(p==='page-qr') genQR();
     if(p==='page-menu'){initMenu();updateCartBar();}
     if(p==='page-employee'){refreshEmp();loadSettingsUI();}
@@ -5034,6 +5072,38 @@ function updateCartBar(){
   } else {
     bar.style.display='none';
     badge.style.display='none';
+  }
+  updateCartFloatBadge(count, total);
+}
+
+function updateCartFloatBadge(count, total){
+  const fb=document.getElementById('cart-float-badge');
+  if(!fb) return;
+  const countEl=document.getElementById('cart-float-count');
+  const totalEl=document.getElementById('cart-float-total');
+  // Visible uniquement hors page-menu et page-cart, quand panier non vide
+  const activePage=document.querySelector('.page.active');
+  const pageId=activePage?activePage.id:'';
+  const hidePages=['page-menu','page-cart'];
+  const shouldShow=count>0&&!hidePages.includes(pageId);
+  if(shouldShow){
+    fb.style.display='flex';
+    const prevCount=parseInt(countEl.textContent)||0;
+    countEl.textContent=count;
+    totalEl.textContent=count+' \u00b7 '+total.toFixed(2).replace('.',',')+'\u202f\u20ac';
+    if(count!==prevCount){
+      // Pulse animation on count change
+      countEl.classList.remove('pulse');
+      void countEl.offsetWidth;
+      countEl.classList.add('pulse');
+      if(prevCount===0){
+        fb.classList.remove('pop-in');
+        void fb.offsetWidth;
+        fb.classList.add('pop-in');
+      }
+    }
+  } else {
+    fb.style.display='none';
   }
 }
 
@@ -9177,15 +9247,34 @@ async function recompenseAddSave(){
 async function rewardOverlayShow(allRecs, clientPts, cartTotal){
   _selectedReward=null;
   const list=document.getElementById('reward-overlay-list');
-  if(!list){ _doSubmitOrder(null); return; } // DOM manquant → soumettre quand même
+  if(!list){ _doSubmitOrder(null); return; }
 
-  // Hint solde
+  // En-tête solde
   const hintEl=document.getElementById('reward-overlay-pts-hint');
-  if(hintEl) hintEl.innerHTML=`Votre solde&nbsp;: <strong style="color:#e65100;">${clientPts} pts</strong>`;
+  if(hintEl) hintEl.innerHTML=`Votre cagnotte : <span>${clientPts} pts</span>`;
 
-  const icons=['🥤','🍰','🥙','👑','🎁'];
-  // Carte "Sans récompense" — sélectionnée par défaut
-  let html='<div class="reward-card selected" id="rwcard-none" onclick="rewardCardSelectNone(this)">'
+  const icons=['🥤','🍰','🥙','👑','🎁','🍟','🔥'];
+  const isLivraisonMode=orderCardMode==='livraison';
+  const active=allRecs.filter(r=>r.actif!==false);
+
+  // Classifier chaque récompense
+  const eligible=[];
+  const locked=[];
+  active.forEach(r=>{
+    const isLivraisonReward=r.type==='livraison_offerte';
+    const hasPoints=clientPts>=r.points_requis;
+    const hasMin=cartTotal>=parseFloat(r.commande_minimum||0);
+    const modeLivraisonOk=!isLivraisonReward||isLivraisonMode;
+    const ok=hasPoints&&hasMin&&modeLivraisonOk;
+    if(ok) eligible.push(r); else locked.push({...r, _hasPoints:hasPoints, _hasMin:hasMin, _modeLivraisonOk:modeLivraisonOk});
+  });
+
+  // Tri intelligent
+  eligible.sort((a,b)=>b.points_requis-a.points_requis); // plus valorisante en premier
+  locked.sort((a,b)=>a.points_requis-b.points_requis);   // plus proche du déblocage en premier
+
+  // Carte "Sans récompense"
+  let html='<div class="reward-card selected" id="rwcard-none" onclick="rewardCardSelectNone(this)" style="animation-delay:0ms;">'
     +'<div class="reward-card-top">'
       +'<span class="reward-card-name">⊘ Sans récompense</span>'
       +'<span class="reward-card-pts" style="color:var(--text3);">0 pt</span>'
@@ -9193,32 +9282,56 @@ async function rewardOverlayShow(allRecs, clientPts, cartTotal){
     +'<div class="reward-card-none-hint">Continuer sans utiliser de points</div>'
   +'</div>';
 
-  const isLivraisonMode=orderCardMode==='livraison';
-  const active=allRecs.filter(r=>r.actif!==false);
+  let cardIdx=1;
   if(!active.length){
-    html+='<div style="color:var(--text3);font-size:13px;padding:.5rem;text-align:center;">Aucune récompense disponible en ce moment.</div>';
+    html+='<div style="color:var(--text3);font-size:13px;padding:.8rem;text-align:center;">Aucune récompense disponible en ce moment.</div>';
   } else {
-    active.forEach((r,i)=>{
+    // Eligible cards
+    eligible.forEach((r,i)=>{
       const isLivraisonReward=r.type==='livraison_offerte';
-      const hasPoints=clientPts>=r.points_requis;
-      const hasMin=cartTotal>=parseFloat(r.commande_minimum||0);
-      const modeLivraisonOk=!isLivraisonReward||isLivraisonMode;
-      const eligible=hasPoints&&hasMin&&modeLivraisonOk;
-      const manquePts=!hasPoints?(r.points_requis-clientPts)+' pt'+((r.points_requis-clientPts)>1?'s':'')+' manquants':'';
-      const minCmd=parseFloat(r.commande_minimum||0);
-      const manqueMin=hasPoints&&!hasMin?(minCmd-cartTotal).toFixed(2).replace('.',',')+'€ de plus requis':'';
-      const manqueMode=hasPoints&&hasMin&&!modeLivraisonOk?'Uniquement en mode livraison 🛵':'';
-      const hint=manquePts||manqueMode||(manqueMin?'Commande min. '+minCmd.toFixed(0)+'€ ('+manqueMin+')':'');
-      const desc=r.description?`<div style="font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4;">${r.description}</div>`:'';
-      const rewardIcon=isLivraisonReward?'🛵':(icons[i%icons.length]||'🎁');
-      html+='<div class="reward-card'+(eligible?'':' locked')+'" id="rwcard-'+r.id+'" '+(eligible?'onclick="rewardCardSelect(this,\''+r.id+'\')"':'')+'>'
+      const rewardIcon=isLivraisonReward?'🛵':(icons[cardIdx%icons.length]||'🎁');
+      const isReco=(i===0&&eligible.length>1);
+      const cls='reward-card available'+(isReco?' recommended':'');
+      const desc=r.description?`<div style="font-size:12px;color:#aaa;margin-top:2px;line-height:1.4;">${r.description}</div>`:'';
+      const badge=isReco?'<span class="reward-card-badge reco">⭐ Recommandé</span>':'<span class="reward-card-badge dispo">✓ Disponible</span>';
+      html+=`<div class="${cls}" id="rwcard-${r.id}" onclick="rewardCardSelect(this,'${r.id}')" style="animation-delay:${cardIdx*50}ms;">`
         +'<div class="reward-card-top">'
-          +'<span class="reward-card-name">'+rewardIcon+' '+r.nom+'</span>'
-          +'<span class="reward-card-pts">'+r.points_requis+' pts</span>'
+          +`<span class="reward-card-name">${rewardIcon} ${r.nom}</span>`
+          +`<span class="reward-card-pts">${r.points_requis} pts</span>`
+        +'</div>'
+        +desc+badge
+      +'</div>';
+      cardIdx++;
+    });
+    // Locked cards
+    locked.forEach(r=>{
+      const isLivraisonReward=r.type==='livraison_offerte';
+      const rewardIcon=isLivraisonReward?'🛵':(icons[cardIdx%icons.length]||'🎁');
+      const desc=r.description?`<div style="font-size:11px;color:#555;margin-top:2px;line-height:1.4;">${r.description}</div>`:'';
+      // Hint contextuel
+      let hint='';
+      if(!r._hasPoints){
+        const manque=r.points_requis-clientPts;
+        hint=`Plus que ${manque} pt${manque>1?'s':''}`;
+      } else if(!r._modeLivraisonOk){
+        hint='Uniquement en mode livraison 🛵';
+      } else if(!r._hasMin){
+        const minCmd=parseFloat(r.commande_minimum||0);
+        hint=`Commande min. ${minCmd.toFixed(0)}€`;
+      }
+      // Progress bar (points)
+      const pct=Math.min(100,Math.round((clientPts/r.points_requis)*100));
+      const progressBar=!r._hasPoints?`<div class="reward-card-progress"><div class="reward-card-progress-fill" style="width:${pct}%"></div></div><div class="reward-card-progress-label">${clientPts}/${r.points_requis} pts</div>`:'';
+      html+=`<div class="reward-card locked" id="rwcard-${r.id}" style="animation-delay:${cardIdx*50}ms;">`
+        +'<div class="reward-card-top">'
+          +`<span class="reward-card-name">${rewardIcon} ${r.nom}</span>`
+          +`<span class="reward-card-pts">${r.points_requis} pts</span>`
         +'</div>'
         +desc
-        +(hint?'<div class="reward-card-hint">'+hint+'</div>':'')
+        +(hint?`<div class="reward-card-hint">${hint}</div>`:'')
+        +progressBar
       +'</div>';
+      cardIdx++;
     });
   }
   list.innerHTML=html;
