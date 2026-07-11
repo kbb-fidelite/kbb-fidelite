@@ -2813,7 +2813,8 @@ body{
 <div class="toast" id="toast"></div>
 
 <script>
-console.log('[KBB] script start — v210');
+const _bootT0=Date.now();
+console.log('[KBB] script start — v217, t0='+_bootT0);
 /* ══ CONFIG ══ */
 // PINs vérifiés exclusivement côté serveur (verify-pin Edge Function)
 // Aucun PIN n'est stocké ni comparé côté client
@@ -3762,11 +3763,12 @@ function stripeModalOpen(orderId, subtotal, deliveryFee, levelKey, label, reward
   rewardDiscount=rewardDiscount||0;
   _stripePendingCtx={orderId, subtotal, deliveryFee, levelKey, label, rewardDiscount};
   // Total affiché = sous-total + livraison - réduction (SANS frais de service)
-  // Les frais de service sont ajoutés par le serveur — seule autorité sur l'exonération
+  // Les frais de service sont ajoutés par le serveur (create-checkout) — seule autorité.
+  // L'UI affiche une mention informative mais NE les inclut PAS dans le total.
   const serviceExempt=(levelKey==='argent'||levelKey==='or');
-  const totalOnline=subtotal+deliveryFee-rewardDiscount+(serviceExempt?0:0.50);
+  const totalOnline=subtotal+deliveryFee-rewardDiscount;
   document.getElementById('stripe-sheet-sub').textContent=label;
-  document.getElementById('stripe-sheet-amount').textContent=totalOnline.toFixed(2).replace('.',',')+'€';
+  // Le montant affiché (stripe-sheet-amount) est rempli après calcul de totalDisplay ci-dessous
   const feeZone=document.getElementById('stripe-fee-zone');
   let feeHtml='<div class="stripe-breakdown">';
   feeHtml+=`<div class="stripe-breakdown-row"><span>Sous-total</span><span>${subtotal.toFixed(2).replace('.',',')} €</span></div>`;
@@ -3782,14 +3784,16 @@ function stripeModalOpen(orderId, subtotal, deliveryFee, levelKey, label, reward
     feeHtml+=`<div class="stripe-breakdown-row stripe-breakdown-service"><span>Frais de service</span><span>+ 0,50 €</span></div>`;
     feeHtml+=`<div class="stripe-breakdown-caption">Offerts dès le niveau Argent</div>`;
   }
-  feeHtml+=`<div class="stripe-breakdown-total"><span>Total</span><span>${totalOnline.toFixed(2).replace('.',',')} €</span></div>`;
+  const totalDisplay=serviceExempt?totalOnline:totalOnline+0.50;
+  feeHtml+=`<div class="stripe-breakdown-total"><span>Total</span><span>${totalDisplay.toFixed(2).replace('.',',')} €</span></div>`;
   if(deliveryFee>0&&rewardDiscount<=0){
     feeHtml+=`<div class="stripe-uber-mention">🛵 Livraison assurée par Uber Direct — Les frais peuvent varier selon l'heure et la distance</div>`;
   }
   feeHtml+='</div>';
   feeZone.innerHTML=feeHtml;
+  document.getElementById('stripe-sheet-amount').textContent=totalDisplay.toFixed(2).replace('.',',')+'€';
   const priceEl=document.getElementById('stripe-btn-price');
-  if(priceEl) priceEl.textContent=totalOnline.toFixed(2).replace('.',',')+'€';
+  if(priceEl) priceEl.textContent=totalDisplay.toFixed(2).replace('.',',')+'€';
   // "Payer sur place" masqué — sur_place ne passe plus par Stripe (paiement en caisse)
   document.getElementById('stripe-btn-inplace').style.display='none';
   document.getElementById('stripe-overlay').style.display='flex';
@@ -11167,44 +11171,40 @@ window.addEventListener('load', async function(){
   loadRecompenses().catch(()=>{});
   refreshFlashCache().catch(()=>{});
 
-  // ══ ÉTAPE 3 — FALLBACK ASYNC (IDB si localStorage était vide) ══
-  // + refresh Supabase en arrière-plan pour mettre à jour les points
-
+  // ══ ÉTAPE 3 — IDB fallback (si localStorage était vide) ══
   try{
-    if(!window._kioskMode){
-      if(!currentPortalClient){
-        // localStorage et cookie vides → tenter IndexedDB (purge iOS possible)
-        const idbSess = await getSessionAsync();
-        if(idbSess && idbSess.clientData){
-          renderPortal(idbSess.clientData);
-          go('page-dashboard');
-        }
-      }
-      // Rafraîchir depuis Supabase — les données serveur font TOUJOURS autorité pour les points
-      if(currentPortalClient && supaOk()){
-        const tel = currentPortalClient.tel||currentPortalClient.telephone;
-        const _cachedPts=Math.floor(parseFloat(currentPortalClient.cagnotte||0));
-        console.log('[init] refresh Supabase — tel=…'+String(tel).slice(-4)+' cached cagnotte='+_cachedPts);
-        if(tel){
-          try{
-            const fresh = await Promise.race([
-              dbByTel(tel),
-              new Promise(r=>setTimeout(()=>r(null), 5000)) // timeout 5s
-            ]);
-            if(fresh){
-              console.log('[init] refresh OK — cagnotte serveur:',fresh.cagnotte,'(était:',_cachedPts,')');
-              renderPortal(fresh);
-            } else {
-              console.warn('[init] refresh Supabase timeout ou null — affichage potentiellement périmé (cagnotte:',_cachedPts,')');
-            }
-          }catch(e){ console.warn('[init] refresh Supabase erreur:',e.message||e); }
-        }
+    if(!window._kioskMode && !currentPortalClient){
+      // localStorage et cookie vides → tenter IndexedDB (purge iOS possible)
+      const idbSess = await getSessionAsync();
+      if(idbSess && idbSess.clientData){
+        renderPortal(idbSess.clientData);
+        go('page-dashboard');
       }
     }
   }catch(e){}
 
+  // ── Splash masqué IMMÉDIATEMENT — les données en cache suffisent ──
   clearTimeout(safetyTimer);
   hideSplash();
+  console.log('[boot] splash hidden — elapsed:', Date.now()-_bootT0, 'ms');
+
+  // ══ ÉTAPE 4 — Refresh Supabase en ARRIÈRE-PLAN (ne bloque pas l'affichage) ══
+  if(!window._kioskMode && currentPortalClient && supaOk()){
+    const tel = currentPortalClient.tel||currentPortalClient.telephone;
+    if(tel){
+      const _cachedPts=Math.floor(parseFloat(currentPortalClient.cagnotte||0));
+      console.log('[init] refresh Supabase (arrière-plan) — tel=…'+String(tel).slice(-4)+' cached cagnotte='+_cachedPts);
+      Promise.race([
+        dbByTel(tel),
+        new Promise(r=>setTimeout(()=>r(null), 5000))
+      ]).then(fresh=>{
+        if(fresh){
+          console.log('[init] refresh OK — cagnotte serveur:',fresh.cagnotte,'(était:',_cachedPts,')');
+          renderPortal(fresh);
+        }
+      }).catch(e=>console.warn('[init] refresh Supabase erreur:',e.message||e));
+    }
+  }
   if(!window._kioskMode){
     rgpdBannerCheck();
     _pwaUpdateHomeBtn();
