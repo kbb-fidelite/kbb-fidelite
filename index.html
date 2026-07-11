@@ -3767,6 +3767,7 @@ function stripeModalOpen(orderId, subtotal, deliveryFee, levelKey, label, reward
   // L'UI affiche une mention informative mais NE les inclut PAS dans le total.
   const serviceExempt=(levelKey==='argent'||levelKey==='or');
   const totalOnline=subtotal+deliveryFee-rewardDiscount;
+  console.log('[stripeModalOpen] DEBUG inputs:', {orderId, subtotal, deliveryFee, levelKey, label, rewardDiscount, serviceExempt, totalOnline, totalDisplay: serviceExempt?totalOnline:totalOnline+0.50});
   document.getElementById('stripe-sheet-sub').textContent=label;
   // Le montant affiché (stripe-sheet-amount) est rempli après calcul de totalDisplay ci-dessous
   const feeZone=document.getElementById('stripe-fee-zone');
@@ -5219,6 +5220,7 @@ function renderOrderOptions(){
   const _rLvlKey=currentPortalClient?.statut||'bronze';
   const _serviceExempt=(_rLvlKey==='argent'||_rLvlKey==='or');
   const _tot=_sub+_fee; // total affiché = sous-total + livraison (sans frais de service)
+  console.log('[renderOrderOptions] DEBUG livraison recap:', {_rLvlKey, _serviceExempt, _sub, _fee, _tot, orderCardMode, statut_raw: currentPortalClient?.statut, clientObj: currentPortalClient ? {id:currentPortalClient.id, statut:currentPortalClient.statut, points_cumul:currentPortalClient.points_cumul} : null});
   const _subStr=_sub.toFixed(2).replace('.',',')+'€';
   const _totStr=_tot.toFixed(2).replace('.',',')+'€';
   const _livPhoneVal=_deliveryAddress.phone||(currentPortalClient?.telephone||currentPortalClient?.tel||'');
@@ -6061,6 +6063,7 @@ async function _doSubmitOrder(selectedReward){
       deliveryAddress:capturedDeliveryAddr||null}
   }));
 
+  console.log('[_doSubmitOrder] DEBUG avant stripeModalOpen:', {localId, total, deliveryFee, levelKey, label, rewardDiscount, currentStatut: currentPortalClient?.statut, points_cumul: currentPortalClient?.points_cumul, orderCardMode: capturedOrderMode});
   stripeModalOpen(localId, total, deliveryFee, levelKey, label, rewardDiscount);
 }
 
