@@ -4940,19 +4940,26 @@ function _cartSuggestGroups(){
     return false;
   });
 
+  // ── Dessert couvert ? ────────────────────────────────────────────────
+  const hasDessert=cart.some(c=>{
+    const cat=MENU_DATA[typeof c==='object'?c.idx:c]?.cat;
+    return cat==='desserts';
+  });
+
+  // Priorité : manques d'abord (boisson, accompagnement), puis impulse (desserts) toujours en dernier
   const groups=[];
-  if(!hasAccomp) groups.push('accompagnement');
   if(!hasBoisson) groups.push('boisson');
-  const result=groups.slice(0,2);
+  if(!hasAccomp) groups.push('accompagnement');
+  if(!hasDessert) groups.push('dessert'); // impulse — toujours proposé en dernier
 
   // ── Debug console ────────────────────────────────────────────────────────
   const dbg=cart.map(c=>typeof c==='object'
     ?{name:c.name,cat:MENU_DATA[c.idx]?.cat??c.cat,menu:c.menu,boisson:c.boisson||null}
     :{name:MENU_DATA[c]?.name,cat:MENU_DATA[c]?.cat});
   console.log('[upsell] panier:',JSON.stringify(dbg));
-  console.log('[upsell] hasMain:',hasMain,'| hasAccomp:',hasAccomp,'| hasBoisson:',hasBoisson,'→ suggestions:',result.length?result:'aucune');
+  console.log('[upsell] hasMain:',hasMain,'| hasAccomp:',hasAccomp,'| hasBoisson:',hasBoisson,'| hasDessert:',hasDessert,'→ suggestions:',groups.length?groups:'aucune');
 
-  return result;
+  return groups;
 }
 
 // ── "Et avec ça ?" — upsell visuel pré-paiement ──────────────────────────────
@@ -4973,14 +4980,8 @@ function _showUpsellPre(groups){
   if(!container){ submitClientOrder(); return; }
   _upsellPreSel={};
   let html='';
-  const hasDessert=cart.some(c=>{
-    const cat=MENU_DATA[typeof c==='object'?c.idx:c]?.cat;
-    return cat==='desserts';
-  });
-  const allGroups=[...groups];
-  if(!hasDessert&&allGroups.length<2) allGroups.push('dessert');
 
-  allGroups.slice(0,2).forEach((group,gi)=>{
+  groups.forEach((group,gi)=>{
     let items=[];
     if(group==='boisson'){
       items=MENU_DATA.map((m,i)=>({...m,_idx:i})).filter(m=>m.cat==='boissons');
