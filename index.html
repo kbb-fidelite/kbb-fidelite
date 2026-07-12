@@ -399,7 +399,6 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .suppl-card .suppl-icon{transition:color .22s;}
 .suppl-card.is-active .suppl-icon-premium{color:#FF8C00;}
 .suppl-card.is-active .suppl-icon-extra{color:#FF8C00;}
-.cart-upsell-hint{background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.2);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:.875rem;font-size:12px;color:var(--gold);line-height:1.5;}
 .flash-timer{font-family:var(--font-d);font-size:32px;color:var(--fire);letter-spacing:2px;text-align:center;margin:.5rem 0;}
 .flash-badge{display:inline-block;background:var(--fire);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:3px 10px;margin-bottom:.5rem;}
 @keyframes pulse-flash{0%,100%{opacity:1}50%{opacity:.7}}
@@ -935,14 +934,6 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .ps-recap-pill{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.3);background:rgba(255,255,255,.03);border-radius:99px;padding:3px 8px;border:1px solid transparent;}
 .ps-recap-pill.done{color:rgba(76,175,80,.9);background:rgba(76,175,80,.07);border-color:rgba(76,175,80,.15);}
 .ps-recap-pill.missing{color:rgba(255,140,0,.8);background:rgba(255,140,0,.06);border-color:rgba(255,140,0,.15);}
-/* Post-add upsell overlay */
-.ps-upsell-row{display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid rgba(255,255,255,.05);}
-.ps-upsell-row:last-child{border-bottom:none;padding-bottom:0;}
-.ps-upsell-info{flex:1;min-width:0;}
-.ps-upsell-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.2;}
-.ps-upsell-price{font-size:12px;color:#FF8C00;font-weight:700;margin-top:3px;}
-.ps-upsell-add{flex-shrink:0;padding:.42rem .85rem;background:linear-gradient(130deg,#FF8C00,#c45200);color:#fff;border:none;border-radius:99px;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 8px rgba(180,80,0,.3);}
-.ps-upsell-add:active{opacity:.85;}
 /* Accordion retrait */
 .ps-accord-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:.2rem 0;margin:1.25rem 0 0;}
 .ps-accord-chevron{transition:transform .25s ease;flex-shrink:0;}
@@ -1173,8 +1164,6 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .pwa-banner-actions{margin-top:.625rem;display:flex;gap:.5rem;}
 .pwa-banner-install{background:#FF6B2B;color:#fff;border:none;border-radius:8px;padding:.5rem 1.25rem;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;}
 /* ══ DRINK UPSELL ══ */
-.cart-drink-card{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;background:var(--coal3);border:1px solid rgba(79,195,247,.25);border-radius:var(--radius-sm);margin:.5rem 0 .875rem;cursor:pointer;transition:border-color .15s;}
-.cart-drink-card:active{border-color:rgba(79,195,247,.55);}
 /* ══ ET AVEC ÇA — upsell pré-paiement ══ */
 .upsell-pre-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9990;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
 .upsell-pre-overlay.show{display:flex;}
@@ -1188,7 +1177,6 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .upsell-pre-scroll::-webkit-scrollbar{display:none;}
 .upsell-pre-card{flex:0 0 130px;background:#1a1a1a;border:1.5px solid rgba(255,255,255,.06);border-radius:14px;padding:10px;text-align:center;cursor:pointer;scroll-snap-align:start;transition:all .2s ease;-webkit-tap-highlight-color:transparent;min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;}
 .upsell-pre-card:active{transform:scale(.96);}
-.upsell-pre-card.added{border-color:#FF8C00;background:rgba(255,140,0,.08);}
 .upsell-pre-card.added{border-color:#FF8C00;background:rgba(255,140,0,.08);}
 .upsell-pre-card.added .upsell-pre-card-name{color:#fff;}
 .upsell-pre-card-img{width:90px;height:90px;object-fit:contain;border-radius:10px;margin-bottom:6px;}
@@ -2173,27 +2161,7 @@ body{
   </div>
 </div>
 
-<!-- UPSELL SUPPLÉMENTS post-ajout kebab/tacos -->
-<div class="upsell-overlay" id="overlay-suppl-suggest">
-  <div class="upsell-sheet" style="max-height:80vh;overflow-y:auto;">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:3px;text-align:center;">🔥 Les clients ajoutent souvent</div>
-    <div style="font-size:12px;color:rgba(255,255,255,.35);text-align:center;margin-bottom:1rem;">Ajoutez en un clic</div>
-    <div id="suppl-suggest-list"></div>
-    <button onclick="closeSupplSuggest()" style="width:100%;background:none;border:none;color:rgba(255,255,255,.4);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;padding:.9rem 0;min-height:44px;margin-top:.25rem;">Non merci</button>
-  </div>
-</div>
-
-<!-- SUGGESTION ACCOMPAGNEMENT -->
-<div class="upsell-overlay" id="overlay-accompagnement-suggest">
-  <div class="upsell-sheet" style="max-height:85vh;overflow-y:auto;">
-    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;text-align:center;">🍟 Un accompagnement ?</div>
-    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1rem;">Complétez votre commande</div>
-    <div id="accompagnement-suggest-list"></div>
-    <button onclick="closeAccompagnementSuggest()" style="width:100%;background:none;border:none;color:#ffffff;font-size:15px;font-weight:500;cursor:pointer;padding:.85rem 0;min-height:44px;opacity:.72;letter-spacing:.1px;">Non merci</button>
-  </div>
-</div>
-
-<!-- ET AVEC ÇA — upsell pré-paiement -->
+<!-- ET AVEC ÇA — upsell pré-paiement (unique point d'upsell boissons/accomp/desserts) -->
 <div class="upsell-pre-overlay" id="overlay-upsell-pre" onclick="if(event.target===this)upsellPreSkip()">
   <div class="upsell-pre-sheet">
     <div class="upsell-pre-title">Et avec ça ? 🔥</div>
@@ -4934,22 +4902,8 @@ function finalAddToCart(idx, taille, menuUpgrade, removed, sauces, suppls, pain,
   showToast(`✓ ${name} ajouté${extras.length?' — '+extras.join(' | '):''}`);
   pendingIdx=null; pendingTaille=null; selectedSupplements={};
   sheetRemovedIngredients=[]; sheetSauces=[]; sheetPain=null;
-  // Suggestion post-ajout — uniquement si plat principal
-  const _skipCats=['accompagnements','boissons','desserts'];
-  if(!_skipCats.includes(m.cat)){
-    if(m.cat==='kebabs'||m.cat==='tacos'){
-      // Upsell suppléments + boisson pour kebabs/tacos
-      setTimeout(()=>showSupplSuggest(idx, menuUpgrade, boisson),400);
-    } else {
-      // Accompagnement pour les autres plats principaux (salades…)
-      const _hasAccompCovered=cart.some(c=>{
-        if(MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='accompagnements') return true;
-        if(typeof c==='object'&&c.menu===true) return true;
-        return false;
-      });
-      if(!_hasAccompCovered) setTimeout(showAccompagnementSuggest,350);
-    }
-  }
+  // Les suggestions post-ajout (suppléments, accompagnements, boissons) sont
+  // désormais regroupées dans l'écran unique "Et avec ça ?" pré-paiement.
 }
 
 // ── Analyse du panier pour suggestions upsell (max 2) ────────────────────────
@@ -4999,62 +4953,6 @@ function _cartSuggestGroups(){
   console.log('[upsell] hasMain:',hasMain,'| hasAccomp:',hasAccomp,'| hasBoisson:',hasBoisson,'→ suggestions:',result.length?result:'aucune');
 
   return result;
-}
-
-function showAccompagnementSuggest(){
-  const items=MENU_DATA.filter(m=>m.cat==='accompagnements');
-  const list=document.getElementById('accompagnement-suggest-list');
-  if(!list) return;
-  list.innerHTML=items.map(m=>{
-    const idx=MENU_DATA.indexOf(m);
-    return `<div class="boisson-card" onclick="finalAddToCart(${idx},null,false,[],[],[],null,false,null,null,null);closeAccompagnementSuggest();">
-      <img src="${m.image}" alt="${m.name}" loading="lazy" decoding="async">
-      <div class="boisson-card-name">${m.name}</div>
-      <div class="boisson-card-price">${m.price.toFixed(2).replace('.',',')}€</div>
-    </div>`;
-  }).join('');
-  document.getElementById('overlay-accompagnement-suggest').classList.add('show');
-}
-
-function closeAccompagnementSuggest(){
-  document.getElementById('overlay-accompagnement-suggest').classList.remove('show');
-}
-
-// ── Upsell post-ajout kebab/tacos ────────────────────────────────────────────
-function showSupplSuggest(addedIdx, menuUpgrade, boisson){
-  const m=MENU_DATA[addedIdx];
-  if(!m||!['kebabs','tacos'].includes(m.cat)) return;
-  const items=[];
-  // Sauce fromagère (star item — toujours en premier)
-  items.push({icon:'🧀',name:'Sauce fromagère maison',price:1.00,
-    action:"_quickAddSuppl('fro',1.00,'Sauce fromagère maison');closeSupplSuggest()"});
-  // Double viande
-  items.push({icon:'🥩',name:'Double viande',price:2.50,
-    action:"_quickAddSuppl('vkeb',2.50,'Double viande');closeSupplSuggest()"});
-  // Boisson uniquement si pas déjà couverte (incluse dans menu, ou déjà en standalone)
-  const hasBoisson=menuUpgrade||!!boisson||cart.some(c=>MENU_DATA[typeof c==='object'?c.idx:c]?.cat==='boissons');
-  if(!hasBoisson){
-    const bM=MENU_DATA.find(x=>x.cat==='boissons'&&x.price);
-    if(bM){
-      const bIdx=MENU_DATA.indexOf(bM);
-      items.push({icon:'🥤',name:'Boisson — dès '+bM.price.toFixed(2).replace('.',',')+'€',price:null,
-        action:`finalAddToCart(${bIdx},null,false,[],[],[],null,false,null,null,null);closeSupplSuggest()`});
-    }
-  }
-  const list=document.getElementById('suppl-suggest-list');
-  if(!list) return;
-  list.innerHTML=items.map(it=>`<div class="ps-upsell-row">
-    <div class="ps-upsell-info">
-      <div class="ps-upsell-name">${it.icon} ${it.name}</div>
-      ${it.price!==null?`<div class="ps-upsell-price">+${it.price.toFixed(2).replace('.',',')}€</div>`:''}
-    </div>
-    <button class="ps-upsell-add" onclick="${it.action}">+ Ajouter</button>
-  </div>`).join('');
-  document.getElementById('overlay-suppl-suggest').classList.add('show');
-}
-
-function closeSupplSuggest(){
-  document.getElementById('overlay-suppl-suggest').classList.remove('show');
 }
 
 // ── "Et avec ça ?" — upsell visuel pré-paiement ──────────────────────────────
@@ -5223,13 +5121,6 @@ function upsellPreSkip(){
 }
 
 // Ajoute un supplément comme produit standalone (sans re-ouvrir la fiche)
-function _quickAddSuppl(id, price, label){
-  cart.push({idx:-1,price,name:label,taille:null,pain:null,removed:[],sauces:[],suppls:[],
-    menu:false,icon:'🔥',cat:'extras',sansSauce:false,boisson:null,viande:null,produitJunior:null});
-  updateCartBar();initMenu();
-  showToast('✓ '+label+' ajouté');
-}
-
 // Passe le produit en cours de personnalisation de Solo → Menu (dans la fiche)
 function _switchSheetToMenu(){
   if(sheetIdx===null) return;
