@@ -1,7 +1,7 @@
 // Supabase Edge Function — validate-reward
 // Valide et déduit les points d'une récompense fidélité après paiement confirmé.
 //
-// Appelée côté serveur uniquement, jamais exposée au client directement.
+// Sécurité : exige session_token + client_tel pour vérifier l'identité du client.
 // Secrets requis : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (auto-injectés)
 //
 // Déploiement : supabase functions deploy validate-reward
@@ -13,6 +13,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function jsonResp(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -21,13 +28,36 @@ Deno.serve(async (req) => {
     const supaKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supaUrl, supaKey);
 
-    const { commande_id, client_id, reward_id } = await req.json();
+    const { commande_id, client_id, reward_id, session_token, client_tel } = await req.json();
 
     if (!commande_id || !client_id || !reward_id) {
-      return new Response(
-        JSON.stringify({ error: 'Paramètres manquants: commande_id, client_id, reward_id requis' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({ error: 'Paramètres manquants: commande_id, client_id, reward_id requis' }, 400);
+    }
+
+    // ── 0. Vérification session_token ────────────────────────────
+    if (!session_token || !client_tel) {
+      return jsonResp({ error: 'Authentification requise (session_token + client_tel)' }, 401);
+    }
+
+    const { data: authRow, error: authErr } = await supabase
+      .from('clients')
+      .select('id, session_token')
+      .eq('telephone', client_tel)
+      .single();
+
+    if (authErr || !authRow) {
+      return jsonResp({ error: 'Client introuvable' }, 404);
+    }
+
+    if (!authRow.session_token || authRow.session_token !== session_token) {
+      console.warn('[validate-reward] session_token invalide tel=…' + String(client_tel).slice(-4));
+      return jsonResp({ error: 'Session invalide — reconnectez-vous' }, 401);
+    }
+
+    // Vérifier que le client_id correspond bien au téléphone authentifié
+    if (String(authRow.id) !== String(client_id)) {
+      console.warn('[validate-reward] client_id mismatch: auth=' + authRow.id + ' req=' + client_id);
+      return jsonResp({ error: 'Accès refusé' }, 403);
     }
 
     // ── 1. Charger la récompense ──────────────────────────────────
@@ -39,10 +69,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (rErr || !recompense) {
-      return new Response(
-        JSON.stringify({ error: 'Récompense introuvable ou désactivée' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({ error: 'Récompense introuvable ou désactivée' }, 404);
     }
 
     // ── 2. Charger la commande ────────────────────────────────────
@@ -53,29 +80,20 @@ Deno.serve(async (req) => {
       .single();
 
     if (cErr || !commande) {
-      return new Response(
-        JSON.stringify({ error: 'Commande introuvable' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({ error: 'Commande introuvable' }, 404);
     }
 
     // Vérifier que la récompense n'a pas déjà été validée
     if (commande.reward_valide) {
-      return new Response(
-        JSON.stringify({ ok: true, note: 'already_validated' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({ ok: true, note: 'already_validated' });
     }
 
     // ── 3. Vérifier le montant minimum de commande ────────────────
     const montant = parseFloat(commande.montant || 0);
     if (montant < parseFloat(recompense.commande_minimum)) {
-      return new Response(
-        JSON.stringify({
-          error: `Montant insuffisant: ${montant}€ < ${recompense.commande_minimum}€ requis`
-        }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({
+        error: `Montant insuffisant: ${montant}€ < ${recompense.commande_minimum}€ requis`
+      }, 422);
     }
 
     // ── 4. Charger le client et vérifier les points ───────────────
@@ -86,20 +104,14 @@ Deno.serve(async (req) => {
       .single();
 
     if (clErr || !client) {
-      return new Response(
-        JSON.stringify({ error: 'Client introuvable' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({ error: 'Client introuvable' }, 404);
     }
 
     const cagnotte = Math.floor(parseFloat(client.cagnotte || 0));
     if (cagnotte < recompense.points_requis) {
-      return new Response(
-        JSON.stringify({
-          error: `Points insuffisants: ${cagnotte} pts < ${recompense.points_requis} pts requis`
-        }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({
+        error: `Points insuffisants: ${cagnotte} pts < ${recompense.points_requis} pts requis`
+      }, 422);
     }
 
     // ── 5. Déduire les points (opération atomique) ────────────────
@@ -112,10 +124,7 @@ Deno.serve(async (req) => {
       .eq('cagnotte', cagnotte); // optimistic lock: évite double déduction
 
     if (updateClientErr) {
-      return new Response(
-        JSON.stringify({ error: 'Erreur mise à jour points: ' + updateClientErr.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({ error: 'Erreur mise à jour points: ' + updateClientErr.message }, 500);
     }
 
     // ── 6. Marquer la commande comme récompense validée ───────────
@@ -129,21 +138,15 @@ Deno.serve(async (req) => {
       ` — ${recompense.points_requis} pts déduits — solde: ${newCagnotte} pts`
     );
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        reward_nom: recompense.nom,
-        pts_deduits: recompense.points_requis,
-        nouveau_solde: newCagnotte
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return jsonResp({
+      ok: true,
+      reward_nom: recompense.nom,
+      pts_deduits: recompense.points_requis,
+      nouveau_solde: newCagnotte
+    });
 
   } catch (err) {
     console.error('validate-reward error:', err);
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return jsonResp({ error: (err as Error).message }, 500);
   }
 });

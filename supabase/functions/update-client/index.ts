@@ -2,8 +2,8 @@
 // Met à jour un enregistrement client avec vérification d'identité.
 //
 // Mode A — employé (emp_token valide) : tous les champs de la whitelist autorisés.
-// Mode B — client (client_tel) : uniquement son propre enregistrement,
-//           champs restreints (pas de nom/telephone/code_secret par client_tel seul).
+// Mode B — client (session_token) : uniquement son propre enregistrement,
+//           champs restreints (pas de cagnotte, points, parrainage).
 //
 // Secrets requis : EMP_TOKEN_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (auto-injectés)
 // Déploiement : supabase functions deploy update-client
@@ -14,6 +14,13 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+function jsonResp(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
 
 async function verifyEmpToken(
   token: string,
@@ -42,7 +49,7 @@ async function verifyEmpToken(
   }
 }
 
-// Champs autorisés en mode employé
+// Champs autorisés en mode employé (accès total)
 const EMP_FIELDS = [
   'passages', 'cagnotte', 'points_cumul', 'telephone', 'nom', 'prenom', 'code_secret',
   'pin_rapide', 'parrain_status', 'parrain_tel', 'parrain_mois',
@@ -51,26 +58,22 @@ const EMP_FIELDS = [
 ];
 
 // Champs autorisés en mode client (propre compte uniquement)
-// SÉCURITÉ : 'cagnotte' et 'points_cumul' intentionnellement absents —
-// toute écriture de solde passe par une Edge Function dédiée (emp_token ou credit-referral-bonus).
-// SÉCURITÉ : champs restreints en mode client — pas de cagnotte, points, ni champs parrainage
-// Le parrainage est géré côté serveur (inscription → create-client, crédit → credit-referral-bonus)
+// SÉCURITÉ : cagnotte, points_cumul, passages, code_secret, session_token, parrain_*
+// sont INTERDITS — seul le serveur (verify-payment, validate-reward, credit-referral-bonus)
+// peut modifier les soldes et l'identité.
 const CLIENT_FIELDS = [
-  'pin_rapide', 'date_naissance', 'derniere_visite', 'dernier_bonus_anniv',
-  'session_token',
+  'nom', 'prenom', 'date_naissance', 'push_subscription',
+  'pin_rapide', 'derniere_visite', 'dernier_bonus_anniv',
 ];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { id, data, emp_token, client_tel } = await req.json();
+    const { id, data, emp_token, client_tel, session_token } = await req.json();
 
     if (!id || !data || typeof data !== 'object') {
-      return new Response(
-        JSON.stringify({ error: 'id et data requis' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({ error: 'id et data requis' }, 400);
     }
 
     const supabase = createClient(
@@ -85,45 +88,38 @@ Deno.serve(async (req) => {
       const secret  = Deno.env.get('EMP_TOKEN_SECRET') ?? 'kbb-default-secret-change-me';
       const payload = await verifyEmpToken(emp_token, secret);
       if (!payload) {
-        return new Response(
-          JSON.stringify({ error: 'Token invalide ou expiré — reconnectez-vous' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return jsonResp({ error: 'Token invalide ou expiré — reconnectez-vous' }, 401);
       }
       allowedFields = EMP_FIELDS;
       console.log('update-client: mode employé —', payload.role);
 
-    // ── Mode B : téléphone client (propre compte seulement) ───────
-    } else if (client_tel && typeof client_tel === 'string') {
-      // Vérifier que l'enregistrement appartient bien à ce numéro
+    // ── Mode B : client avec session_token ─────────────────────────
+    } else if (client_tel && typeof client_tel === 'string' && session_token && typeof session_token === 'string') {
+      // Vérifier que l'enregistrement appartient bien à ce numéro ET que le session_token match
       const { data: record, error: findError } = await supabase
         .from('clients')
-        .select('telephone')
+        .select('telephone, session_token')
         .eq('id', String(id))
         .single();
 
       if (findError || !record) {
-        return new Response(
-          JSON.stringify({ error: 'Client introuvable' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return jsonResp({ error: 'Client introuvable' }, 404);
       }
 
       if (record.telephone !== client_tel) {
-        return new Response(
-          JSON.stringify({ error: 'Accès refusé — ce n\'est pas votre compte' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return jsonResp({ error: 'Accès refusé — ce n\'est pas votre compte' }, 403);
+      }
+
+      if (!record.session_token || record.session_token !== session_token) {
+        console.warn('update-client: session_token invalide pour tel=…' + client_tel.slice(-4));
+        return jsonResp({ error: 'Session invalide — reconnectez-vous' }, 401);
       }
 
       allowedFields = CLIENT_FIELDS;
-      console.log('update-client: mode client — tel', client_tel.slice(-4));
+      console.log('update-client: mode client — tel …' + client_tel.slice(-4));
 
     } else {
-      return new Response(
-        JSON.stringify({ error: 'emp_token ou client_tel requis' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({ error: 'Authentification requise (emp_token ou session_token)' }, 401);
     }
 
     // ── Filtrer les champs autorisés ──────────────────────────────
@@ -132,10 +128,7 @@ Deno.serve(async (req) => {
       if (field in data) safe[field] = data[field];
     }
     if (Object.keys(safe).length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Aucun champ valide à mettre à jour' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResp({ error: 'Aucun champ valide à mettre à jour' }, 400);
     }
 
     // ── Mettre à jour via service_role (bypass RLS) ───────────────
@@ -148,16 +141,10 @@ Deno.serve(async (req) => {
 
     if (error) throw new Error('Supabase clients update: ' + error.message);
 
-    return new Response(
-      JSON.stringify({ ok: true, client: updated }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return jsonResp({ ok: true, client: updated });
 
   } catch (err) {
     console.error('update-client error:', err);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return jsonResp({ error: (err as Error).message }, 500);
   }
 });

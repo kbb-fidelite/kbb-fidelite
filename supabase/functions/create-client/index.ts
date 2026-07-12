@@ -1,15 +1,16 @@
 // Supabase Edge Function — create-client
 //
-// Remplace supaReq('clients','POST',payload) depuis index.html.
-// Accepte deux modes d'authentification :
-//   1. Auto-inscription client : sans emp_token — crée un compte avec numéro de téléphone
+// Crée un nouveau client fidélité.
+// Accepte deux modes :
+//   1. Auto-inscription client : sans emp_token
 //   2. Création par employé    : emp_token valide requis
 //
 // Sécurité :
+//   - Rate-limiting : max 3 créations par IP par heure (via table rate_limits)
+//   - Validation format téléphone français (06/07/+33)
 //   - Vérifie l'unicité du téléphone avant insertion
 //   - Insertion via service_role (bypass RLS)
 //   - Téléphone jamais loggué en clair
-//   - Valide les champs obligatoires
 //
 // Secrets requis : EMP_TOKEN_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
@@ -47,6 +48,23 @@ async function verifyEmpToken(token: string, secret: string): Promise<{ role: st
   } catch { return null; }
 }
 
+// Valide le format téléphone français : 06/07 ou +336/+337 (10 chiffres)
+function isValidFrenchPhone(tel: string): boolean {
+  const cleaned = tel.replace(/[\s.\-()]/g, '');
+  // Format +33 6/7 XX XX XX XX (12 chars) ou 06/07 XX XX XX XX (10 chars)
+  return /^(?:\+33[67]\d{8}|0[67]\d{8})$/.test(cleaned);
+}
+
+// Normalise le téléphone : +33 → 0
+function normalizeTel(tel: string): string {
+  const cleaned = tel.replace(/[\s.\-()]/g, '');
+  if (cleaned.startsWith('+33')) return '0' + cleaned.slice(3);
+  return cleaned;
+}
+
+const RATE_LIMIT_MAX = 3;       // max créations par IP
+const RATE_LIMIT_WINDOW = 3600; // fenêtre en secondes (1h)
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
@@ -59,14 +77,20 @@ Deno.serve(async (req) => {
       return json({ error: 'telephone requis' }, 400);
     }
     if (!prenom && !nom && !emp_token) {
-      // Auto-inscription minimale requiert prenom
       return json({ error: 'prenom requis' }, 400);
     }
 
-    const tel = telephone.trim();
+    const rawTel = telephone.trim();
+
+    // ── 2. Validation format téléphone français ──────────────────────────
+    if (!isValidFrenchPhone(rawTel)) {
+      return json({ error: 'Format téléphone invalide — attendu : 06/07 ou +33 6/7' }, 400);
+    }
+
+    const tel = normalizeTel(rawTel);
     const telMasked = '…' + tel.slice(-4);
 
-    // ── 2. Vérification emp_token (optionnel — requis pour employee flow) ─
+    // ── 3. Vérification emp_token (optionnel) ────────────────────────────
     let empRole: string | null = null;
     if (emp_token) {
       const secret = Deno.env.get('EMP_TOKEN_SECRET') ?? 'kbb-default-secret-change-me';
@@ -82,7 +106,32 @@ Deno.serve(async (req) => {
       (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY'))!
     );
 
-    // ── 3. Vérifier unicité téléphone ─────────────────────────────────────
+    // ── 4. Rate-limiting par IP (auto-inscription uniquement) ────────────
+    if (!empRole) {
+      const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || req.headers.get('cf-connecting-ip')
+        || 'unknown';
+
+      const cutoff = new Date(Date.now() - RATE_LIMIT_WINDOW * 1000).toISOString();
+      const { count, error: rlErr } = await supabase
+        .from('pin_attempts')
+        .select('*', { count: 'exact', head: true })
+        .eq('identifier', 'create_client_' + clientIP)
+        .gte('created_at', cutoff);
+
+      if (!rlErr && (count ?? 0) >= RATE_LIMIT_MAX) {
+        console.warn(`[create-client] rate limit atteint pour IP ${clientIP.slice(-6)}`);
+        return json({ error: 'Trop de tentatives — réessayez dans une heure' }, 429);
+      }
+
+      // Enregistrer la tentative
+      await supabase.from('pin_attempts').insert({
+        identifier: 'create_client_' + clientIP,
+        created_at: new Date().toISOString(),
+      }).catch(() => {}); // best-effort
+    }
+
+    // ── 5. Vérifier unicité téléphone ─────────────────────────────────────
     const { data: existing, error: checkErr } = await supabase
       .from('clients')
       .select('id')
@@ -97,7 +146,7 @@ Deno.serve(async (req) => {
       return json({ error: 'duplicate', code: '23505' }, 409);
     }
 
-    // ── 4. Insertion ──────────────────────────────────────────────────────
+    // ── 6. Insertion ──────────────────────────────────────────────────────
     const payload: Record<string, unknown> = {
       telephone:   tel,
       prenom:      (prenom ?? '').trim(),
@@ -118,7 +167,6 @@ Deno.serve(async (req) => {
 
     if (insertErr) {
       console.error('[create-client] insert:', insertErr.message);
-      // Doublon concurrent (race condition)
       if (insertErr.code === '23505') {
         return json({ error: 'duplicate', code: '23505' }, 409);
       }

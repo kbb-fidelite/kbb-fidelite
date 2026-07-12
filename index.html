@@ -3138,7 +3138,17 @@ async function dbByTel(tel){
         const j=await callEdge('get-admin-data',{action:'clients_by_tel',tel,emp_token:empToken});
         r=j.client||null;
       } else {
-        const j=await callEdge('get-client-profile',{client_tel:tel});
+        // session_token : priorité currentPortalClient, sinon session sauvegardée
+        let st=currentPortalClient?.session_token||'';
+        if(!st){
+          const sess=getSession();
+          st=sess?.clientData?.session_token||'';
+        }
+        const j=await callEdge('get-client-profile',{client_tel:tel,session_token:st});
+        if(j.error&&(j.error.includes('Session invalide')||j.error.includes('reconnectez'))){
+          console.warn('[dbByTel] session expirée — client doit se reconnecter');
+          return null;
+        }
         r=j.client||null;
       }
       if(!r){ console.warn('[dbByTel] serveur retourne null pour tel=…'+String(tel).slice(-4)); return null; }
@@ -3300,7 +3310,10 @@ async function dbUpdate(id,u){
     const clientTel=currentPortalClient?.telephone||currentPortalClient?.tel||null;
     const body={id:String(id),data:safe};
     if(empToken) body.emp_token=empToken;
-    else if(clientTel) body.client_tel=clientTel;
+    else if(clientTel){
+      body.client_tel=clientTel;
+      body.session_token=currentPortalClient?.session_token||'';
+    }
     const j=await callEdge('update-client',body);
     return j.client;
   }
@@ -6972,12 +6985,31 @@ async function loginWithCodeSecret(){
   const btn=document.querySelector('#otp-step-code-secret .abtn');
   if(btn){ btn.disabled=true; btn.textContent='Connexion…'; }
   try{
+    // Login côté serveur avec vérification code_secret + génération session_token
+    if(supaOk()){
+      const j=await callEdge('get-client-profile',{client_tel:tel,action:'login',code_secret:code});
+      if(j.error){
+        if(j.error==='Code secret incorrect') showToast('Code secret incorrect');
+        else showToast('Numéro introuvable — êtes-vous bien inscrit ?');
+        return;
+      }
+      const r=j.client;
+      if(!r){ showToast('Numéro introuvable — êtes-vous bien inscrit ?'); return; }
+      const localDb=lLoad();
+      const localClient=localDb.find(lc=>lc.telephone===r.telephone||lc.tel===r.telephone);
+      const history=localClient?localClient.history:[];
+      const c={...r,tel:r.telephone||r.tel,passages:parseInt(r.passages)||0,cagnotte:parseFloat(r.cagnotte)||0,points_cumul:parseFloat(r.points_cumul)||0,statut:r.statut||'bronze',pin_rapide:r.pin_rapide||'',session_token:r.session_token||'',derniere_visite:r.derniere_visite||'',dernier_bonus_anniv:r.dernier_bonus_anniv||'',date_naissance:r.date_naissance||'',history};
+      saveSession(c);
+      renderPortal(c);
+      _postLoginRedirect();
+      showToast('Connecté ! Bienvenue '+c.prenom+' 🔥');
+      return;
+    }
+    // Fallback hors-ligne
     const c=await dbByTel(tel);
     if(!c){ showToast('Numéro introuvable — êtes-vous bien inscrit ?'); return; }
     const storedCode=c.code_secret||'';
-    // Si le compte a un code secret, il faut le fournir
     if(storedCode && storedCode!==code){ showToast('Code secret incorrect'); return; }
-    // Si le compte n'a pas de code secret, connexion libre par numéro seul
     saveSession(c);
     renderPortal(c);
     _postLoginRedirect();
@@ -7166,21 +7198,43 @@ async function clientLogin(){
   const code=document.getElementById('login-code').value.trim();
 
   if(!tel||!code){showToast('Remplissez tous les champs');return;}
+
+  // Login côté serveur : vérifie code_secret + génère session_token
+  if(supaOk()){
+    try{
+      const j=await callEdge('get-client-profile',{client_tel:tel,action:'login',code_secret:code});
+      if(j.error){showToast(j.error==='Code secret incorrect'?j.error:'Numéro introuvable');return;}
+      const r=j.client;
+      if(!r){showToast('Numéro introuvable');return;}
+      const localDb=lLoad();
+      const localClient=localDb.find(lc=>lc.telephone===r.telephone||lc.tel===r.telephone);
+      const history=localClient?localClient.history:[];
+      const c={...r,tel:r.telephone||r.tel,passages:parseInt(r.passages)||0,cagnotte:parseFloat(r.cagnotte)||0,points_cumul:parseFloat(r.points_cumul)||0,statut:r.statut||'bronze',pin_rapide:r.pin_rapide||'',parrain_status:r.parrain_status||'',parrain_tel:r.parrain_tel||'',parrain_mois:r.parrain_mois||0,parrain_mois_count:r.parrain_mois_count||0,parrain_de:r.parrain_de||[],session_token:r.session_token||'',derniere_visite:r.derniere_visite||'',dernier_bonus_anniv:r.dernier_bonus_anniv||'',date_naissance:r.date_naissance||'',history};
+      saveSession(c);
+      if(c.pin_rapide){
+        saveQuickLogin({tel:c.tel||c.telephone,prenom:c.prenom,nom:c.nom,mode:'pin',pin:c.pin_rapide,clientData:c});
+      } else {
+        localStorage.removeItem('kbb_quick_login');
+      }
+      renderPortal(c);_postLoginRedirect();
+      if(!c.pin_rapide) proposerPinRapide(c);
+      return;
+    }catch(e){
+      console.error('[clientLogin] erreur serveur:',e.message||e);
+      // Fallback offline ci-dessous
+    }
+  }
+  // Fallback hors-ligne : vérification locale (données potentiellement périmées)
   const c=await dbByTel(tel);
   if(!c){showToast('Numéro introuvable');return;}
   const storedCode=c.code_secret||'';
   if(storedCode && storedCode!==code){showToast('Code secret incorrect');return;}
-
-  // Persister la session locale (reconnexion sans réseau)
   saveSession(c);
-  // Si PIN configuré, sauvegarder aussi kbb_quick_login en mode pin
   if(c.pin_rapide){
     saveQuickLogin({tel:c.tel||c.telephone,prenom:c.prenom,nom:c.nom,mode:'pin',pin:c.pin_rapide,clientData:c});
   } else {
-    // Supprimer un éventuel ancien quick login pin pour éviter confusion
     localStorage.removeItem('kbb_quick_login');
   }
-
   renderPortal(c);_postLoginRedirect();
   if(!c.pin_rapide) proposerPinRapide(c);
 }
@@ -9442,10 +9496,12 @@ function rewardOverlayConfirm(){
 async function validateRewardServerSide(orderId, clientId, rewardId){
   if(!supaOk()||!orderId||!clientId||!rewardId) return;
   try{
+    const clientTel=currentPortalClient?.telephone||currentPortalClient?.tel||'';
+    const sessionToken=currentPortalClient?.session_token||'';
     await fetch(SURL+'/functions/v1/validate-reward',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
-      body:JSON.stringify({commande_id:orderId,client_id:clientId,reward_id:rewardId})
+      body:JSON.stringify({commande_id:orderId,client_id:clientId,reward_id:rewardId,session_token:sessionToken,client_tel:clientTel})
     });
     // Rafraîchir le solde client en local
     const tel=currentPortalClient?.telephone||currentPortalClient?.tel;
