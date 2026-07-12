@@ -1175,6 +1175,30 @@ body.has-gnav #pwa-banner{bottom:64px;}
 /* ══ DRINK UPSELL ══ */
 .cart-drink-card{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;background:var(--coal3);border:1px solid rgba(79,195,247,.25);border-radius:var(--radius-sm);margin:.5rem 0 .875rem;cursor:pointer;transition:border-color .15s;}
 .cart-drink-card:active{border-color:rgba(79,195,247,.55);}
+/* ══ ET AVEC ÇA — upsell pré-paiement ══ */
+.upsell-pre-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9990;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.upsell-pre-overlay.show{display:flex;}
+@media(min-width:440px){.upsell-pre-overlay{align-items:center;}}
+.upsell-pre-sheet{background:#121212;border-radius:20px 20px 0 0;padding:1.5rem 1rem 1.5rem;width:100%;max-width:430px;max-height:85vh;overflow-y:auto;animation:slideup .28s cubic-bezier(.34,1.56,.64,1);}
+@media(min-width:440px){.upsell-pre-sheet{border-radius:16px;border:1px solid rgba(255,140,0,.2);}}
+.upsell-pre-title{font-size:22px;font-weight:800;text-align:center;color:#fff;margin-bottom:1.2rem;}
+.upsell-pre-cat{margin-bottom:1rem;}
+.upsell-pre-cat-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#FF8C00;margin-bottom:.6rem;padding-left:4px;}
+.upsell-pre-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.upsell-pre-scroll::-webkit-scrollbar{display:none;}
+.upsell-pre-card{flex:0 0 130px;background:#1a1a1a;border:1.5px solid rgba(255,255,255,.06);border-radius:14px;padding:10px;text-align:center;cursor:pointer;scroll-snap-align:start;transition:all .2s ease;-webkit-tap-highlight-color:transparent;min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;}
+.upsell-pre-card:active{transform:scale(.96);}
+.upsell-pre-card.added{border-color:#FF8C00;background:rgba(255,140,0,.08);}
+.upsell-pre-card.added .upsell-pre-add{background:#2e7d32;box-shadow:0 2px 8px rgba(46,125,50,.3);}
+.upsell-pre-card-img{width:90px;height:90px;object-fit:contain;border-radius:10px;margin-bottom:6px;}
+.upsell-pre-card-name{font-size:12px;font-weight:600;color:#ccc;line-height:1.25;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.upsell-pre-card.added .upsell-pre-card-name{color:#fff;}
+.upsell-pre-card-price{font-size:13px;font-weight:800;color:#FF8C00;margin-bottom:6px;}
+.upsell-pre-add{width:32px;height:32px;border-radius:50%;border:none;background:linear-gradient(130deg,#FF8C00,#c45200);color:#fff;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(180,80,0,.3);transition:all .18s;}
+.upsell-pre-skip{width:100%;padding:1rem;border:none;background:none;color:#fff;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;margin-top:.5rem;opacity:.85;transition:opacity .15s;}
+.upsell-pre-skip:active{opacity:1;}
+@keyframes upsellCardPop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
+.upsell-pre-card{animation:upsellCardPop .25s ease forwards;}
 
 /* ══ CART ITEMS WITH THUMBNAIL ══ */
 .cart-item{display:flex;align-items:center;gap:10px;padding:.75rem 0;border-bottom:1px solid var(--border);}
@@ -2157,6 +2181,15 @@ body{
     <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:1rem;">Complétez votre commande</div>
     <div id="accompagnement-suggest-list"></div>
     <button onclick="closeAccompagnementSuggest()" style="width:100%;background:none;border:none;color:#ffffff;font-size:15px;font-weight:500;cursor:pointer;padding:.85rem 0;min-height:44px;opacity:.72;letter-spacing:.1px;">Non merci</button>
+  </div>
+</div>
+
+<!-- ET AVEC ÇA — upsell pré-paiement -->
+<div class="upsell-pre-overlay" id="overlay-upsell-pre" onclick="if(event.target===this)closeUpsellPre()">
+  <div class="upsell-pre-sheet">
+    <div class="upsell-pre-title">Et avec ça ? 🔥</div>
+    <div id="upsell-pre-cats"></div>
+    <button class="upsell-pre-skip" onclick="closeUpsellPre()">Non merci, je finalise →</button>
   </div>
 </div>
 
@@ -5012,6 +5045,87 @@ function closeSupplSuggest(){
   document.getElementById('overlay-suppl-suggest').classList.remove('show');
 }
 
+// ── "Et avec ça ?" — upsell visuel pré-paiement ──────────────────────────────
+// Intercepte le bouton CTA : si des catégories manquent, affiche l'écran ;
+// sinon passe directement à submitClientOrder().
+function tryUpsellPreOrSubmit(){
+  const groups=_cartSuggestGroups();
+  if(groups.length===0){
+    submitClientOrder();
+    return;
+  }
+  _showUpsellPre(groups);
+}
+
+function _showUpsellPre(groups){
+  const container=document.getElementById('upsell-pre-cats');
+  if(!container){ submitClientOrder(); return; }
+  let html='';
+  // Dessert check
+  const hasDessert=cart.some(c=>{
+    const cat=MENU_DATA[typeof c==='object'?c.idx:c]?.cat;
+    return cat==='desserts';
+  });
+  // Add dessert group if missing and we have room (max 2 total)
+  const allGroups=[...groups];
+  if(!hasDessert&&allGroups.length<2) allGroups.push('dessert');
+
+  allGroups.slice(0,2).forEach((group,gi)=>{
+    let items=[];
+    if(group==='boisson'){
+      items=MENU_DATA.map((m,i)=>({...m,_idx:i})).filter(m=>m.cat==='boissons');
+    } else if(group==='accompagnement'){
+      items=MENU_DATA.map((m,i)=>({...m,_idx:i})).filter(m=>m.cat==='accompagnements');
+    } else if(group==='dessert'){
+      items=MENU_DATA.map((m,i)=>({...m,_idx:i})).filter(m=>m.cat==='desserts');
+    }
+    if(!items.length) return;
+    const catLabel=group==='boisson'?'🥤 Boissons':group==='accompagnement'?'🍟 Accompagnements':'🍮 Desserts';
+    html+=`<div class="upsell-pre-cat">`;
+    html+=`<div class="upsell-pre-cat-label">${catLabel}</div>`;
+    html+=`<div class="upsell-pre-scroll">`;
+    items.forEach((m,ci)=>{
+      const imgSrc=m.image||null;
+      const emoji=m.icon||'🍽️';
+      const priceStr=m.portionSelector?m.priceLabel||'dès '+m.price.toFixed(2).replace('.',',')+' €':m.price.toFixed(2).replace('.',',')+' €';
+      html+=`<div class="upsell-pre-card" id="upc-${gi}-${ci}" data-idx="${m._idx}" style="animation-delay:${(gi*items.length+ci)*40}ms;" onclick="upsellPreAdd(this,${m._idx},${m.portionSelector||false})">`;
+      if(imgSrc){
+        html+=`<img class="upsell-pre-card-img" src="${imgSrc}" alt="${m.name}" loading="lazy" decoding="async">`;
+      } else {
+        html+=`<div style="width:90px;height:90px;display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:6px;">${emoji}</div>`;
+      }
+      html+=`<div class="upsell-pre-card-name">${m.name}</div>`;
+      html+=`<div class="upsell-pre-card-price">${priceStr}</div>`;
+      html+=`<button class="upsell-pre-add">+</button>`;
+      html+=`</div>`;
+    });
+    html+=`</div></div>`;
+  });
+  container.innerHTML=html;
+  document.getElementById('overlay-upsell-pre').classList.add('show');
+}
+
+function upsellPreAdd(cardEl, menuIdx, isPortionSelector){
+  if(cardEl.classList.contains('added')) return; // déjà ajouté
+  if(isPortionSelector){
+    // Nuggets → ouvrir le sélecteur de portion, fermer l'upsell
+    closeUpsellPre();
+    document.getElementById('overlay-nuggets-portion').classList.add('show');
+    return;
+  }
+  finalAddToCart(menuIdx,null,false,[],[],[],null,false,null,null,null);
+  cardEl.classList.add('added');
+  const btn=cardEl.querySelector('.upsell-pre-add');
+  if(btn) btn.textContent='✓';
+  updateCartBar();
+  showToast('✓ Ajouté');
+}
+
+function closeUpsellPre(){
+  document.getElementById('overlay-upsell-pre').classList.remove('show');
+  submitClientOrder();
+}
+
 // Ajoute un supplément comme produit standalone (sans re-ouvrir la fiche)
 function _quickAddSuppl(id, price, label){
   cart.push({idx:-1,price,name:label,taille:null,pain:null,removed:[],sauces:[],suppls:[],
@@ -5180,38 +5294,7 @@ function renderCart(){
   const _oldUpsell=document.getElementById('cart-menu-upsell');if(_oldUpsell)_oldUpsell.remove();
   const _oldSuggest=document.getElementById('cart-suggestions');if(_oldSuggest)_oldSuggest.remove();
 
-  // ── Suggestions intelligentes (max 2, contextuelles) ──────────────────────
-  const _suggestGroups=_cartSuggestGroups();
-  if(_suggestGroups.length>0){
-    const suggestEl=document.createElement('div');
-    suggestEl.id='cart-suggestions';
-    suggestEl.style.cssText='margin-bottom:.75rem;';
-    let sgHtml='<div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);margin-bottom:.5rem;">Ajouter à votre commande ?</div>';
-    _suggestGroups.forEach(group=>{
-      if(group==='accompagnement'){
-        const accItems=MENU_DATA.filter(m=>m.cat==='accompagnements').slice(0,2);
-        accItems.forEach(m=>{
-          const idx=MENU_DATA.indexOf(m);
-          sgHtml+=`<button onclick="finalAddToCart(${idx},null,false,[],[],[],null,false,null,null,null);renderCart();" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--card);border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:.6rem .85rem;margin-bottom:.4rem;cursor:pointer;font-family:var(--font);text-align:left;">
-            <span style="font-size:14px;color:var(--text1);">${m.icon||'🍟'} ${m.name}</span>
-            <span style="font-size:13px;color:var(--fire);font-weight:700;">+${m.price.toFixed(2).replace('.',',')}€</span>
-          </button>`;
-        });
-      }
-      if(group==='boisson'){
-        const boissonItems=MENU_DATA.filter(m=>m.cat==='boissons').slice(0,2);
-        boissonItems.forEach(m=>{
-          const idx=MENU_DATA.indexOf(m);
-          sgHtml+=`<button onclick="finalAddToCart(${idx},null,false,[],[],[],null,false,null,null,null);renderCart();" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--card);border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:.6rem .85rem;margin-bottom:.4rem;cursor:pointer;font-family:var(--font);text-align:left;">
-            <span style="font-size:14px;color:var(--text1);">${m.icon||'🥤'} ${m.name}</span>
-            <span style="font-size:13px;color:var(--fire);font-weight:700;">+${m.price.toFixed(2).replace('.',',')}€</span>
-          </button>`;
-        });
-      }
-    });
-    suggestEl.innerHTML=sgHtml;
-    totalSection.insertAdjacentElement('beforebegin',suggestEl);
-  }
+  // Les suggestions sont désormais dans l'écran "Et avec ça ?" pré-paiement (tryUpsellPreOrSubmit)
 
   totalSection.innerHTML=`
     <div class="cart-total-box">
@@ -5439,7 +5522,7 @@ function renderOrderOptions(){
         <div style="font-size:10px;color:#666;text-align:right;margin-top:-4px;margin-bottom:6px;">Frais calculés en temps réel · peuvent varier</div>
       `:''}
       ${_serviceExempt?`<div style="font-size:11px;color:#2e7d32;text-align:center;margin-bottom:6px;">Frais de service offerts ✨ (niveau ${_rLvlKey==='or'?'Or 👑':'Argent ⭐'})</div>`:`<div style="font-size:11px;color:#888;text-align:center;margin-bottom:6px;">+ 0,50€ frais de service ajoutés au paiement en ligne</div>`}
-      <button id="om-cta-btn" class="om-cta" onclick="submitClientOrder()" ${_canConfirm&&orderCardMode?'':' disabled'}>
+      <button id="om-cta-btn" class="om-cta" onclick="tryUpsellPreOrSubmit()" ${_canConfirm&&orderCardMode?'':' disabled'}>
         <span>${_ctaLabel}</span>
         <span style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">${_totStr}</span>
       </button>
