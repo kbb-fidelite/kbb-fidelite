@@ -1189,14 +1189,23 @@ body.has-gnav #pwa-banner{bottom:64px;}
 .upsell-pre-card{flex:0 0 130px;background:#1a1a1a;border:1.5px solid rgba(255,255,255,.06);border-radius:14px;padding:10px;text-align:center;cursor:pointer;scroll-snap-align:start;transition:all .2s ease;-webkit-tap-highlight-color:transparent;min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;}
 .upsell-pre-card:active{transform:scale(.96);}
 .upsell-pre-card.added{border-color:#FF8C00;background:rgba(255,140,0,.08);}
-.upsell-pre-card.added .upsell-pre-add{background:#2e7d32;box-shadow:0 2px 8px rgba(46,125,50,.3);}
+.upsell-pre-card.added{border-color:#FF8C00;background:rgba(255,140,0,.08);}
+.upsell-pre-card.added .upsell-pre-card-name{color:#fff;}
 .upsell-pre-card-img{width:90px;height:90px;object-fit:contain;border-radius:10px;margin-bottom:6px;}
 .upsell-pre-card-name{font-size:12px;font-weight:600;color:#ccc;line-height:1.25;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-.upsell-pre-card.added .upsell-pre-card-name{color:#fff;}
 .upsell-pre-card-price{font-size:13px;font-weight:800;color:#FF8C00;margin-bottom:6px;}
-.upsell-pre-add{width:32px;height:32px;border-radius:50%;border:none;background:linear-gradient(130deg,#FF8C00,#c45200);color:#fff;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(180,80,0,.3);transition:all .18s;}
-.upsell-pre-skip{width:100%;padding:1rem;border:none;background:none;color:#fff;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;margin-top:.5rem;opacity:.85;transition:opacity .15s;}
-.upsell-pre-skip:active{opacity:1;}
+.upsell-pre-add-zone{height:34px;display:flex;align-items:center;justify-content:center;}
+.upsell-pre-add-btn{width:32px;height:32px;border-radius:50%;border:none;background:linear-gradient(130deg,#FF8C00,#c45200);color:#fff;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(180,80,0,.3);transition:all .18s;}
+.upsell-pre-stepper{display:flex;align-items:center;gap:8px;}
+.upsell-pre-stepper button{width:28px;height:28px;border-radius:50%;border:1.5px solid rgba(255,140,0,.5);background:transparent;color:#FF8C00;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.upsell-pre-stepper button:active{background:rgba(255,140,0,.15);}
+.upsell-pre-stepper-qty{font-size:15px;font-weight:800;color:#fff;min-width:16px;text-align:center;}
+.upsell-pre-skip{width:100%;padding:1rem;border:none;background:none;color:rgba(255,255,255,.6);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;margin-top:.3rem;transition:opacity .15s;}
+.upsell-pre-skip:active{opacity:1;color:#fff;}
+.upsell-pre-confirm{position:sticky;bottom:0;background:#121212;padding:.75rem 0 .5rem;border-top:1px solid rgba(255,255,255,.06);}
+.upsell-pre-confirm-btn{width:100%;padding:1rem;border-radius:14px;border:none;background:linear-gradient(130deg,#FF9A1E,#FF8C00);color:#fff;font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;min-height:52px;box-shadow:0 4px 16px rgba(255,140,0,.3);transition:transform .15s;}
+.upsell-pre-confirm-btn:active{transform:scale(.97);}
+.upsell-pre-confirm-btn:disabled{opacity:.4;cursor:default;}
 @keyframes upsellCardPop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
 .upsell-pre-card{animation:upsellCardPop .25s ease forwards;}
 
@@ -2185,11 +2194,14 @@ body{
 </div>
 
 <!-- ET AVEC ÇA — upsell pré-paiement -->
-<div class="upsell-pre-overlay" id="overlay-upsell-pre" onclick="if(event.target===this)closeUpsellPre()">
+<div class="upsell-pre-overlay" id="overlay-upsell-pre" onclick="if(event.target===this)upsellPreSkip()">
   <div class="upsell-pre-sheet">
     <div class="upsell-pre-title">Et avec ça ? 🔥</div>
     <div id="upsell-pre-cats"></div>
-    <button class="upsell-pre-skip" onclick="closeUpsellPre()">Non merci, je finalise →</button>
+    <div class="upsell-pre-confirm">
+      <button class="upsell-pre-confirm-btn" id="upsell-pre-confirm-btn" onclick="upsellPreConfirm()" disabled>Valider la commande →</button>
+      <button class="upsell-pre-skip" onclick="upsellPreSkip()">Non merci, je finalise →</button>
+    </div>
   </div>
 </div>
 
@@ -5046,8 +5058,9 @@ function closeSupplSuggest(){
 }
 
 // ── "Et avec ça ?" — upsell visuel pré-paiement ──────────────────────────────
-// Intercepte le bouton CTA : si des catégories manquent, affiche l'écran ;
-// sinon passe directement à submitClientOrder().
+// Sélections temporaires : {menuIdx: qty, ...} — ajoutées au panier seulement à la confirmation.
+let _upsellPreSel={};
+
 function tryUpsellPreOrSubmit(){
   const groups=_cartSuggestGroups();
   if(groups.length===0){
@@ -5060,13 +5073,12 @@ function tryUpsellPreOrSubmit(){
 function _showUpsellPre(groups){
   const container=document.getElementById('upsell-pre-cats');
   if(!container){ submitClientOrder(); return; }
+  _upsellPreSel={};
   let html='';
-  // Dessert check
   const hasDessert=cart.some(c=>{
     const cat=MENU_DATA[typeof c==='object'?c.idx:c]?.cat;
     return cat==='desserts';
   });
-  // Add dessert group if missing and we have room (max 2 total)
   const allGroups=[...groups];
   if(!hasDessert&&allGroups.length<2) allGroups.push('dessert');
 
@@ -5081,47 +5093,131 @@ function _showUpsellPre(groups){
     }
     if(!items.length) return;
     const catLabel=group==='boisson'?'🥤 Boissons':group==='accompagnement'?'🍟 Accompagnements':'🍮 Desserts';
-    html+=`<div class="upsell-pre-cat">`;
-    html+=`<div class="upsell-pre-cat-label">${catLabel}</div>`;
-    html+=`<div class="upsell-pre-scroll">`;
+    html+='<div class="upsell-pre-cat">';
+    html+='<div class="upsell-pre-cat-label">'+catLabel+'</div>';
+    html+='<div class="upsell-pre-scroll">';
     items.forEach((m,ci)=>{
       const imgSrc=m.image||null;
       const emoji=m.icon||'🍽️';
-      const priceStr=m.portionSelector?m.priceLabel||'dès '+m.price.toFixed(2).replace('.',',')+' €':m.price.toFixed(2).replace('.',',')+' €';
-      html+=`<div class="upsell-pre-card" id="upc-${gi}-${ci}" data-idx="${m._idx}" style="animation-delay:${(gi*items.length+ci)*40}ms;" onclick="upsellPreAdd(this,${m._idx},${m.portionSelector||false})">`;
+      const isPortion=m.portionSelector===true;
+      const priceStr=isPortion?(m.priceLabel||'dès '+m.price.toFixed(2).replace('.',',')+' €'):m.price.toFixed(2).replace('.',',')+' €';
+      const delay=(gi*items.length+ci)*40;
+      html+='<div class="upsell-pre-card" id="upc-'+m._idx+'" data-idx="'+m._idx+'" data-portion="'+(isPortion?1:0)+'" data-price="'+m.price+'" style="animation-delay:'+delay+'ms;">';
       if(imgSrc){
-        html+=`<img class="upsell-pre-card-img" src="${imgSrc}" alt="${m.name}" loading="lazy" decoding="async">`;
+        html+='<img class="upsell-pre-card-img" src="'+imgSrc+'" alt="'+m.name+'" loading="lazy" decoding="async">';
       } else {
-        html+=`<div style="width:90px;height:90px;display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:6px;">${emoji}</div>`;
+        html+='<div style="width:90px;height:90px;display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:6px;">'+emoji+'</div>';
       }
-      html+=`<div class="upsell-pre-card-name">${m.name}</div>`;
-      html+=`<div class="upsell-pre-card-price">${priceStr}</div>`;
-      html+=`<button class="upsell-pre-add">+</button>`;
-      html+=`</div>`;
+      html+='<div class="upsell-pre-card-name">'+m.name+'</div>';
+      html+='<div class="upsell-pre-card-price">'+priceStr+'</div>';
+      html+='<div class="upsell-pre-add-zone" id="upc-zone-'+m._idx+'">';
+      html+='<button class="upsell-pre-add-btn" onclick="event.stopPropagation();upsellPreTap('+m._idx+')">+</button>';
+      html+='</div>';
+      html+='</div>';
     });
-    html+=`</div></div>`;
+    html+='</div></div>';
   });
   container.innerHTML=html;
+  _upsellPreUpdateBtn();
   document.getElementById('overlay-upsell-pre').classList.add('show');
 }
 
-function upsellPreAdd(cardEl, menuIdx, isPortionSelector){
-  if(cardEl.classList.contains('added')) return; // déjà ajouté
-  if(isPortionSelector){
-    // Nuggets → ouvrir le sélecteur de portion, fermer l'upsell
-    closeUpsellPre();
+function upsellPreTap(menuIdx){
+  const card=document.getElementById('upc-'+menuIdx);
+  if(!card) return;
+  const isPortion=card.dataset.portion==='1';
+  if(isPortion){
+    // Nuggets → ouvrir le sélecteur de portion, on reste sur l'overlay
     document.getElementById('overlay-nuggets-portion').classList.add('show');
     return;
   }
-  finalAddToCart(menuIdx,null,false,[],[],[],null,false,null,null,null);
-  cardEl.classList.add('added');
-  const btn=cardEl.querySelector('.upsell-pre-add');
-  if(btn) btn.textContent='✓';
-  updateCartBar();
-  showToast('✓ Ajouté');
+  // Toggle : si pas encore sélectionné → qty 1, sinon on incrémente via stepper
+  if(!_upsellPreSel[menuIdx]){
+    _upsellPreSel[menuIdx]=1;
+  } else {
+    // Déjà sélectionné : tap sur la carte elle-même ne fait rien, le stepper gère
+    return;
+  }
+  _upsellPreRenderCard(menuIdx);
+  _upsellPreUpdateBtn();
 }
 
-function closeUpsellPre(){
+function upsellPrePlus(menuIdx){
+  _upsellPreSel[menuIdx]=(_upsellPreSel[menuIdx]||0)+1;
+  _upsellPreRenderCard(menuIdx);
+  _upsellPreUpdateBtn();
+}
+
+function upsellPreMinus(menuIdx){
+  const qty=(_upsellPreSel[menuIdx]||0)-1;
+  if(qty<=0){
+    delete _upsellPreSel[menuIdx];
+    _upsellPreRenderCard(menuIdx);
+  } else {
+    _upsellPreSel[menuIdx]=qty;
+    _upsellPreRenderCard(menuIdx);
+  }
+  _upsellPreUpdateBtn();
+}
+
+function _upsellPreRenderCard(menuIdx){
+  const card=document.getElementById('upc-'+menuIdx);
+  const zone=document.getElementById('upc-zone-'+menuIdx);
+  if(!card||!zone) return;
+  const qty=_upsellPreSel[menuIdx]||0;
+  if(qty>0){
+    card.classList.add('added');
+    zone.innerHTML='<div class="upsell-pre-stepper">'
+      +'<button onclick="event.stopPropagation();upsellPreMinus('+menuIdx+')">−</button>'
+      +'<span class="upsell-pre-stepper-qty">'+qty+'</span>'
+      +'<button onclick="event.stopPropagation();upsellPrePlus('+menuIdx+')">+</button>'
+      +'</div>';
+  } else {
+    card.classList.remove('added');
+    zone.innerHTML='<button class="upsell-pre-add-btn" onclick="event.stopPropagation();upsellPreTap('+menuIdx+')">+</button>';
+  }
+}
+
+function _upsellPreUpdateBtn(){
+  const btn=document.getElementById('upsell-pre-confirm-btn');
+  if(!btn) return;
+  const entries=Object.entries(_upsellPreSel);
+  if(entries.length===0){
+    btn.disabled=true;
+    btn.textContent='Valider la commande →';
+    return;
+  }
+  let total=0;
+  entries.forEach(([idx,qty])=>{
+    const m=MENU_DATA[parseInt(idx)];
+    if(m) total+=m.price*qty;
+  });
+  btn.disabled=false;
+  btn.textContent='Ajouter à ma commande — +'+total.toFixed(2).replace('.',',')+' € →';
+}
+
+function upsellPreConfirm(){
+  // Ajouter toutes les sélections au panier
+  Object.entries(_upsellPreSel).forEach(([idx,qty])=>{
+    const menuIdx=parseInt(idx);
+    for(let i=0;i<qty;i++){
+      const m=MENU_DATA[menuIdx];
+      cart.push({
+        idx:menuIdx, price:m.price, name:m.name, taille:null,
+        pain:null, removed:[], sauces:[], suppls:[],
+        menu:false, icon:m.icon||'🍴', cat:m.cat,
+        sansSauce:false, boisson:null, viande:null, produitJunior:null
+      });
+    }
+  });
+  _upsellPreSel={};
+  updateCartBar();
+  document.getElementById('overlay-upsell-pre').classList.remove('show');
+  submitClientOrder();
+}
+
+function upsellPreSkip(){
+  _upsellPreSel={};
   document.getElementById('overlay-upsell-pre').classList.remove('show');
   submitClientOrder();
 }
