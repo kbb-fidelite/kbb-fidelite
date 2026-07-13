@@ -61,9 +61,11 @@ const EMP_FIELDS = [
 // SÉCURITÉ : cagnotte, points_cumul, passages, code_secret, session_token, parrain_*
 // sont INTERDITS — seul le serveur (verify-payment, validate-reward, credit-referral-bonus)
 // peut modifier les soldes et l'identité.
+// dernier_bonus_anniv retiré : seul create-checkout (serveur) peut le modifier
+// date_naissance : vérification anti-farming ci-dessous avant écriture
 const CLIENT_FIELDS = [
   'nom', 'prenom', 'date_naissance', 'push_subscription',
-  'pin_rapide', 'derniere_visite', 'dernier_bonus_anniv',
+  'pin_rapide', 'derniere_visite',
 ];
 
 Deno.serve(async (req) => {
@@ -129,6 +131,25 @@ Deno.serve(async (req) => {
     }
     if (Object.keys(safe).length === 0) {
       return jsonResp({ error: 'Aucun champ valide à mettre à jour' }, 400);
+    }
+
+    // ── Anti-farming : bloquer la modification de date_naissance
+    //    si un cadeau anniversaire a déjà été utilisé cette année ──
+    if ('date_naissance' in safe && allowedFields === CLIENT_FIELDS) {
+      const { data: currentClient } = await supabase
+        .from('clients')
+        .select('dernier_bonus_anniv, date_naissance')
+        .eq('id', String(id))
+        .single();
+      if (currentClient) {
+        const thisYear = new Date().toISOString().slice(0, 4);
+        const lastBonus = String(currentClient.dernier_bonus_anniv ?? '');
+        if (lastBonus.startsWith(thisYear)) {
+          // Cadeau déjà utilisé cette année — interdire la modification
+          console.warn(`update-client: modification date_naissance bloquée — cadeau déjà utilisé en ${thisYear}`);
+          return jsonResp({ error: 'Vous avez déjà reçu votre cadeau d\'anniversaire cette année — la date de naissance ne peut plus être modifiée.' }, 403);
+        }
+      }
     }
 
     // ── Mettre à jour via service_role (bypass RLS) ───────────────

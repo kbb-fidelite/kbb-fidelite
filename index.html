@@ -3349,7 +3349,7 @@ async function dbCreate(client){
 }
 async function dbUpdate(id,u){
   if(supaOk()){
-    const EMP_FIELDS=['passages','cagnotte','points_cumul','telephone','nom','prenom','code_secret','pin_rapide',
+    const UPDATE_FIELDS=['passages','cagnotte','points_cumul','telephone','nom','prenom','code_secret','pin_rapide',
       'parrain_status','parrain_tel','parrain_mois','parrain_mois_count','parrain_de',
       'session_token','derniere_visite','dernier_bonus_anniv','date_naissance','bloque'];
     const safe={};
@@ -7621,13 +7621,13 @@ function renderPortal(c){
   // history
   const hist=document.getElementById('portal-hist');
   const h=c.history||[];
-  if(!h.length){hist.innerHTML='<div class="empty"><p>Aucun historique</p></div>';return;}
-  hist.innerHTML=h.slice().reverse().map(x=>`
+  if(!h.length){hist.innerHTML='<div class="empty"><p>Aucun historique</p></div>';}
+  else{hist.innerHTML=h.slice().reverse().map(x=>`
     <div class="hi">
       <div class="hico ${x.type}">${x.type==='g'?'🔥':x.type==='r'?'🎁':'💚'}</div>
       <div style="flex:1"><div class="hn">${x.label}</div><div class="hd">${x.date}</div></div>
       <div class="ha ${x.type}">${x.amount}</div>
-    </div>`).join('');
+    </div>`).join('');}
 
   // Dernière commande dashboard
   renderDashLastOrder(c);
@@ -7643,18 +7643,33 @@ function renderPortal(c){
 function _renderDdnSection(c){
   const el=document.getElementById('portal-ddn-section');
   if(!el) return;
+  const cumul=Math.floor(parseFloat(c.points_cumul)||0);
+  const statut=cumul>=500?'or':cumul>=200?'argent':'bronze';
+  const cadeau=ANNIV_CADEAUX[statut];
+  const thisYear=new Date().toISOString().slice(0,4);
+  const dejaUtilise=c.dernier_bonus_anniv&&c.dernier_bonus_anniv.startsWith(thisYear);
   if(c.date_naissance){
     const d=new Date(c.date_naissance);
     const fmt=d.getDate()+' '+['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'][d.getMonth()];
-    el.innerHTML=`<div style="background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:.875rem 1.25rem;display:flex;align-items:center;gap:10px;">
-      <span style="font-size:20px;">🎂</span>
-      <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--text);">Date de naissance</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">${fmt}</div></div>
+    const modifiable=!dejaUtilise;
+    el.innerHTML=`<div style="background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:.875rem 1.25rem;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">🎂</span>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--text);">Date de naissance</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">${fmt} — Cadeau : ${cadeau.icon} ${cadeau.label}</div></div>
+        ${modifiable?`<button onclick="_showDdnEdit()" style="background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text3);font-size:11px;cursor:pointer;">Modifier</button>`:''}
+      </div>
+      <div id="portal-ddn-edit" style="display:none;margin-top:.625rem;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="date" id="portal-ddn-input" value="${c.date_naissance}" style="flex:1;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;color:var(--text);font-family:var(--font);font-size:13px;color-scheme:dark;">
+          <button onclick="_saveDdn()" style="background:var(--fire);color:#fff;border:none;border-radius:var(--radius-sm);padding:.5rem 1rem;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;">Valider</button>
+        </div>
+      </div>
     </div>`;
   } else {
     el.innerHTML=`<div style="background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.2);border-radius:var(--radius);padding:.875rem 1.25rem;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:.625rem;">
         <span style="font-size:20px;">🎂</span>
-        <div><div style="font-size:13px;font-weight:600;color:var(--gold);">Recevez un cadeau d'anniversaire !</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Ajoutez votre date de naissance pour recevoir un produit offert chaque année</div></div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--gold);">Recevez ${cadeau.icon} ${cadeau.label} !</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Ajoutez votre date de naissance pour recevoir votre cadeau chaque année</div></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="date" id="portal-ddn-input" style="flex:1;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;color:var(--text);font-family:var(--font);font-size:13px;color-scheme:dark;">
@@ -7664,19 +7679,30 @@ function _renderDdnSection(c){
   }
 }
 
+function _showDdnEdit(){
+  const el=document.getElementById('portal-ddn-edit');
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
 async function _saveDdn(){
   const input=document.getElementById('portal-ddn-input');
   if(!input||!input.value){showToast('Sélectionnez une date');return;}
+  // Validation basique : pas dans le futur, pas avant 1920
+  const d=new Date(input.value);
+  const now=new Date();
+  if(d>now){showToast('Date dans le futur — vérifiez votre saisie');return;}
+  if(d.getFullYear()<1920){showToast('Date invalide');return;}
   const c=currentPortalClient;
   if(!c||!c.id){showToast('Erreur — reconnectez-vous');return;}
   try{
-    await dbUpdate(c.id,{date_naissance:input.value});
+    const result=await dbUpdate(c.id,{date_naissance:input.value});
+    if(result&&result.error){showToast(result.error);return;}
     c.date_naissance=input.value;
     saveSession(c);
     _renderDdnSection(c);
     showToast('Date de naissance enregistrée 🎂');
   }catch(e){
-    showToast('Erreur : '+e.message);
+    showToast(e.message||'Erreur lors de la sauvegarde');
   }
 }
 
