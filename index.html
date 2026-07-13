@@ -3129,6 +3129,11 @@ async function dbAll(){
   }
   return lLoad();
 }
+function _getSessionToken(){
+  let st=currentPortalClient?.session_token||'';
+  if(!st){ const sess=getSession(); st=sess?.clientData?.session_token||''; }
+  return st;
+}
 async function dbByTel(tel){
   try{
     if(supaOk()){
@@ -3138,12 +3143,7 @@ async function dbByTel(tel){
         const j=await callEdge('get-admin-data',{action:'clients_by_tel',tel,emp_token:empToken});
         r=j.client||null;
       } else {
-        // session_token : priorité currentPortalClient, sinon session sauvegardée
-        let st=currentPortalClient?.session_token||'';
-        if(!st){
-          const sess=getSession();
-          st=sess?.clientData?.session_token||'';
-        }
+        const st=_getSessionToken();
         const j=await callEdge('get-client-profile',{client_tel:tel,session_token:st});
         if(j.error&&(j.error.includes('Session invalide')||j.error.includes('reconnectez'))){
           console.warn('[dbByTel] session expirée — client doit se reconnecter');
@@ -10587,9 +10587,9 @@ async function exportMyData(){
   const c=sess.clientData;
   let fresh=c;
   const _tel=c.telephone||c.tel;
-  try{ if(supaOk()&&_tel){ const jr=await callEdge('get-client-profile',{client_tel:_tel}); if(jr.client) fresh=jr.client; } }catch(e){}
+  try{ if(supaOk()&&_tel){ const st=_getSessionToken(); const jr=await callEdge('get-client-profile',{client_tel:_tel,session_token:st}); if(jr.client) fresh=jr.client; } }catch(e){}
   let commandes=[];
-  try{ if(supaOk()&&_tel){ const jr=await callEdge('get-client-profile',{client_tel:_tel,action:'commandes'}); if(jr.commandes) commandes=jr.commandes; } }catch(e){}
+  try{ if(supaOk()&&_tel){ const st=_getSessionToken(); const jr=await callEdge('get-client-profile',{client_tel:_tel,action:'commandes',session_token:st}); if(jr.commandes) commandes=jr.commandes; } }catch(e){}
   const exportData={
     export_date: new Date().toISOString(),
     responsable: 'SAS ST2Z — KBB à la braise',
@@ -11013,7 +11013,7 @@ async function loadCommandesHistory(){
   el.innerHTML='<div class="empty"><div class="big">⏳</div><p>Chargement…</p></div>';
   try{
     // Fetch commandes + factures via Edge Function (sécurisé)
-    const jr=await callEdge('get-client-profile',{client_tel:tel,action:'commandes_avec_factures'});
+    const jr=await callEdge('get-client-profile',{client_tel:tel,action:'commandes_avec_factures',session_token:_getSessionToken()});
     const commandes=jr.commandes||[];
     const factures=jr.factures||[];
     // Check active order
@@ -11060,7 +11060,7 @@ async function loadFacturesHistory(){
   }
   el.innerHTML='<div class="empty"><div class="big">⏳</div><p>Chargement…</p></div>';
   try{
-    const jr=await callEdge('get-client-profile',{client_tel:tel,action:'factures'});
+    const jr=await callEdge('get-client-profile',{client_tel:tel,action:'factures',session_token:_getSessionToken()});
     const factures=jr.factures||[];
     if(!factures.length){
       el.innerHTML='<div class="empty"><p>Aucune facture disponible<br><span style="font-size:12px;color:var(--text3);">Les factures sont générées après confirmation du paiement</span></p></div>';
@@ -11093,7 +11093,7 @@ async function downloadFactureByCommandeId(commandeId){
     let fac=null;
     if(tel){
       // Client portal : vérification ownership via Edge Function
-      const jr=await callEdge('get-client-profile',{client_tel:tel,action:'facture_by_commande',commande_id:String(commandeId)});
+      const jr=await callEdge('get-client-profile',{client_tel:tel,action:'facture_by_commande',commande_id:String(commandeId),session_token:_getSessionToken()});
       fac=jr.facture||null;
     } else {
       // Contexte employé : via create-facture find
@@ -11191,7 +11191,7 @@ function startSuiviPolling(){
     try{
       const _pollTel=currentPortalClient?.telephone||currentPortalClient?.tel;
       if(_pollTel){
-        const jr=await callEdge('get-client-profile',{client_tel:_pollTel,action:'commande_status',commande_id:String(ao.supaId)});
+        const jr=await callEdge('get-client-profile',{client_tel:_pollTel,action:'commande_status',commande_id:String(ao.supaId),session_token:_getSessionToken()});
         if(jr.commande){
           if(jr.commande.statut!==ao.statut) console.log('[Suivi] Poll détecte changement:',ao.statut,'→',jr.commande.statut);
           _handleSuiviStatusChange(jr.commande.statut);
@@ -11329,7 +11329,7 @@ async function recoverOrphanedFacture(){
     // Vérifier le statut de la commande en base (via client_tel pour ownership)
     const _rcTel=currentPortalClient?.telephone||currentPortalClient?.tel||null;
     if(!_rcTel) return;
-    const jr=await callEdge('get-client-profile',{client_tel:_rcTel,action:'commande_status',commande_id:String(supaId)});
+    const jr=await callEdge('get-client-profile',{client_tel:_rcTel,action:'commande_status',commande_id:String(supaId),session_token:_getSessionToken()});
     const order=jr.commande;
     if(!order) return; // commande introuvable — ne rien faire
     if(order.statut==='pending_payment') return; // paiement pas encore confirmé — normal
