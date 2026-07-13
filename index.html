@@ -119,6 +119,37 @@ body{font-family:var(--font);display:flex;justify-content:center;min-height:100v
 .flvl-card.or{background:rgba(255,184,48,.07);border-color:rgba(255,184,48,.15);}
 .flvl-card.or .flvl-range{background:rgba(255,184,48,.15);color:var(--gold);}
 .flvl-card.or.flvl-active{border-color:var(--gold);box-shadow:0 0 12px rgba(255,184,48,.2);}
+/* ══ PAGE MES AVANTAGES ══ */
+.avantages-wrap{flex:1;overflow-y:auto;padding:1.25rem;background:#0d0500;}
+.avt-progress{background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;text-align:center;}
+.avt-progress-bar{height:8px;background:rgba(255,255,255,.08);border-radius:99px;margin-top:.625rem;overflow:hidden;}
+.avt-progress-fill{height:100%;border-radius:99px;transition:width .6s ease;}
+.avt-tier{border:1.5px solid var(--border2);border-radius:16px;padding:0;margin-bottom:1rem;overflow:hidden;transition:all .25s;}
+.avt-tier.avt-current{border-width:2px;}
+.avt-tier.avt-bronze.avt-current{border-color:#CD7F32;box-shadow:0 0 20px rgba(205,127,50,.15);}
+.avt-tier.avt-argent.avt-current{border-color:#C0C0C0;box-shadow:0 0 20px rgba(192,192,192,.15);}
+.avt-tier.avt-or.avt-current{border-color:#FFD700;box-shadow:0 0 20px rgba(255,215,0,.15);}
+.avt-tier-head{padding:1rem 1.25rem;display:flex;align-items:center;gap:12px;}
+.avt-tier.avt-bronze .avt-tier-head{background:linear-gradient(135deg,rgba(205,127,50,.12),rgba(205,127,50,.04));}
+.avt-tier.avt-argent .avt-tier-head{background:linear-gradient(135deg,rgba(192,192,192,.12),rgba(192,192,192,.04));}
+.avt-tier.avt-or .avt-tier-head{background:linear-gradient(135deg,rgba(255,215,0,.12),rgba(255,215,0,.04));}
+.avt-tier-emoji{font-size:32px;}
+.avt-tier-info{flex:1;}
+.avt-tier-name{font-size:16px;font-weight:800;letter-spacing:.5px;}
+.avt-tier.avt-bronze .avt-tier-name{color:#CD7F32;}
+.avt-tier.avt-argent .avt-tier-name{color:#C0C0C0;}
+.avt-tier.avt-or .avt-tier-name{color:#FFD700;}
+.avt-tier-range{font-size:11px;color:var(--text3);margin-top:2px;}
+.avt-tier-current-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;text-transform:uppercase;letter-spacing:.5px;}
+.avt-tier.avt-bronze .avt-tier-current-badge{background:rgba(205,127,50,.2);color:#CD7F32;}
+.avt-tier.avt-argent .avt-tier-current-badge{background:rgba(192,192,192,.2);color:#C0C0C0;}
+.avt-tier.avt-or .avt-tier-current-badge{background:rgba(255,215,0,.2);color:#FFD700;}
+.avt-list{padding:.25rem 1.25rem 1rem;}
+.avt-item{display:flex;align-items:flex-start;gap:10px;padding:.5rem 0;font-size:13px;line-height:1.5;}
+.avt-item-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center;}
+.avt-item-text{flex:1;color:var(--text);}
+.avt-item.avt-locked .avt-item-text{color:var(--text3);opacity:.5;}
+.avt-item.avt-locked .avt-item-icon{opacity:.4;}
 /* ══ PAGE PARRAINAGE ══ */
 .parr-hero{background:linear-gradient(135deg,#1a0a00 0%,#2d1200 40%,rgba(255,107,43,.18) 100%);padding:1.5rem 1.25rem 1.25rem;flex-shrink:0;border-bottom:1px solid var(--border2);}
 .parr-hero-title{font-family:var(--font-d);font-size:32px;letter-spacing:2px;color:var(--text);line-height:1;}
@@ -2016,6 +2047,14 @@ body{
   </div>
 </div>
 
+<!-- PAGE MES AVANTAGES -->
+<div class="page" id="page-avantages">
+  <div class="topbar"><button class="tbback" onclick="go('page-fidelite')">←</button><div class="tbtitle">Mes Avantages</div></div>
+  <div class="avantages-wrap" id="avantages-content">
+    <!-- Rendu dynamique par renderAvantages() -->
+  </div>
+</div>
+
 <!-- PAGE PARRAINAGE -->
 <div class="page" id="page-parrainage">
   <div class="topbar"><button class="tbback" onclick="go('page-dashboard')">←</button><div class="tbtitle">Parrainage</div></div>
@@ -2273,6 +2312,7 @@ body{
     </div>
     <div id="portal-filleul-status"></div>
     <div id="portal-adresses" style="margin-bottom:.875rem;"></div>
+    <div id="portal-ddn-section" style="margin-bottom:.875rem;"></div>
     <div class="stats-row">
       <div class="sbox"><div class="sv" id="portal-passages">0</div><div class="sl">Passages</div></div>
       <div class="sbox"><div class="sv" id="portal-cumul">0</div><div class="sl">Points cumulés</div></div>
@@ -2768,6 +2808,14 @@ body{
           <option value="2">x2 points</option>
           <option value="3">x3 points</option>
           <option value="1.5">x1.5 points</option>
+        </select>
+      </div>
+      <div class="set-row">
+        <label>Visibilité<small>Qui peut voir cette offre</small></label>
+        <select id="flash-visibilite" class="set-inp" style="font-family:var(--font);font-size:13px;">
+          <option value="tous">Tous les clients</option>
+          <option value="argent_or">Argent + Or uniquement</option>
+          <option value="or_avant_premiere">Or en avant-première (24h)</option>
         </select>
       </div>
       <button class="save-set-btn" onclick="lancerOffreFlash()" style="background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;color:#fff;">⚡ Lancer l'offre flash</button>
@@ -3791,6 +3839,7 @@ async function callStripeEdgeFunction(orderId, amountCents, feeCents, levelKey, 
         presence_token:   extraParams?.presence_token  || null,
         deliveryAddress:  extraParams?.deliveryAddress || null,
         deliveryFeeCents: extraParams?.deliveryFeeCents ?? null,
+        anniv_cadeau_tag: currentPortalClient ? getAnnivCadeauTag(currentPortalClient) : null,
       })
     });
   }catch(netErr){
@@ -6681,14 +6730,32 @@ function setupQuickLogin(mode){
 
 /* ══ BONUS ANNIVERSAIRE + INACTIVITÉ ══ */
 const INACTIF_JOURS = 45;
-const BONUS_ANNIV = 50;
 const BONUS_INACTIF = 20;
+
+// Cadeau anniversaire par statut (produit offert, pas de remise %)
+const ANNIV_CADEAUX={
+  bronze: {label:'1 boisson 33cl offerte',icon:'🥤',tag:'anniv_boisson'},
+  argent: {label:'1 dessert offert',icon:'🍰',tag:'anniv_dessert'},
+  or:     {label:'1 accompagnement + 1 boisson offerts',icon:'🍟🥤',tag:'anniv_accomp_boisson'},
+};
 
 function isAnniversaire(ddn){
   if(!ddn) return false;
   const today=new Date();
   const d=new Date(ddn);
   return d.getMonth()===today.getMonth() && d.getDate()===today.getDate();
+}
+
+// Fenêtre anniversaire : jour J + 7 jours
+function isAnniversaireSemaine(ddn){
+  if(!ddn) return false;
+  const today=new Date();
+  const d=new Date(ddn);
+  // Créer la date anniversaire cette année
+  const anniv=new Date(today.getFullYear(), d.getMonth(), d.getDate());
+  // Si l'anniversaire est passé de plus de 7 jours, vérifier l'année suivante
+  const diff=Math.floor((today-anniv)/(1000*60*60*24));
+  return diff>=0 && diff<=7;
 }
 
 function joursDepuisDerniereVisite(c){
@@ -6703,15 +6770,21 @@ function isInactif(c){
 
 function getBadgesBonus(c){
   let html='';
-  const anniv=isAnniversaire(c.date_naissance);
+  const annivSemaine=isAnniversaireSemaine(c.date_naissance);
+  const cumul=Math.floor(parseFloat(c.points_cumul)||0);
+  const statut=cumul>=500?'or':cumul>=200?'argent':'bronze';
+  const today=new Date().toISOString().split('T')[0];
+  const annivYear=today.slice(0,4);
+  const dejaUtilise=c.dernier_bonus_anniv&&c.dernier_bonus_anniv.startsWith(annivYear);
   const inactif=isInactif(c)&&c.passages>0;
-  if(anniv){
+  if(annivSemaine&&!dejaUtilise){
+    const cadeau=ANNIV_CADEAUX[statut];
     html+=`<div style="background:rgba(255,184,48,.15);border:1px solid rgba(255,184,48,.3);border-radius:var(--radius-sm);padding:.75rem 1rem;font-size:13px;color:var(--gold);font-weight:700;margin-bottom:.5rem;display:flex;align-items:center;gap:8px;">
       <span style="font-size:20px;">🎂</span>
-      <div><div>Bon anniversaire ${c.prenom} !</div><div style="font-weight:400;font-size:12px;margin-top:2px;">+${BONUS_ANNIV} pts offerts automatiquement à la validation</div></div>
+      <div><div>Joyeux anniversaire ${c.prenom} !</div><div style="font-weight:400;font-size:12px;margin-top:2px;">${cadeau.icon} ${cadeau.label} — ajouté à votre prochaine commande</div></div>
     </div>`;
   }
-  if(inactif&&!anniv){
+  if(inactif&&!annivSemaine){
     const jours=joursDepuisDerniereVisite(c);
     html+=`<div style="background:rgba(211,90,48,.12);border:1px solid rgba(211,90,48,.25);border-radius:var(--radius-sm);padding:.75rem 1rem;font-size:13px;color:var(--fire3);font-weight:700;margin-bottom:.5rem;display:flex;align-items:center;gap:8px;">
       <span style="font-size:20px;">😊</span>
@@ -6721,18 +6794,23 @@ function getBadgesBonus(c){
   return html;
 }
 
+// Retourne le tag cadeau anniversaire si éligible (fenêtre 7j, 1x/an), sinon null
+function getAnnivCadeauTag(c){
+  if(!isAnniversaireSemaine(c.date_naissance)) return null;
+  const annivYear=new Date().toISOString().slice(0,4);
+  if(c.dernier_bonus_anniv&&c.dernier_bonus_anniv.startsWith(annivYear)) return null;
+  const cumul=Math.floor(parseFloat(c.points_cumul)||0);
+  const statut=cumul>=500?'or':cumul>=200?'argent':'bronze';
+  return ANNIV_CADEAUX[statut].tag;
+}
+
 async function appliquerBonusAuto(c, montant){
-  const anniv=isAnniversaire(c.date_naissance);
   const inactif=isInactif(c)&&c.passages>0;
-  const today=new Date().toISOString().split('T')[0];
+  const annivSemaine=isAnniversaireSemaine(c.date_naissance);
   let bonus=0;
   let labels=[];
-  if(anniv && c.dernier_bonus_anniv!==today){
-    bonus+=BONUS_ANNIV;
-    labels.push('🎂 Bonus anniversaire');
-    c.dernier_bonus_anniv=today;
-  }
-  if(inactif && !anniv){
+  // Bonus retour inactivité (points uniquement — pas lié à l'anniversaire)
+  if(inactif && !annivSemaine){
     bonus+=BONUS_INACTIF;
     labels.push('😊 Bonus retour');
   }
@@ -6743,7 +6821,7 @@ async function appliquerBonusAuto(c, montant){
     c.history=c.history||[];
     labels.forEach(l=>c.history.push({type:'g',label:l,amount:'+'+bonus/labels.length+' pts',date:ds}));
     c.derniere_visite=new Date().toISOString();
-    await dbUpdate(c.id,{cagnotte:c.cagnotte,points_cumul:c.points_cumul,derniere_visite:c.derniere_visite,dernier_bonus_anniv:c.dernier_bonus_anniv||''});
+    await dbUpdate(c.id,{cagnotte:c.cagnotte,points_cumul:c.points_cumul,derniere_visite:c.derniere_visite});
     const ldb=lLoad();
     const li=ldb.findIndex(x=>x.id===c.id);
     if(li>=0){Object.assign(ldb[li],{cagnotte:c.cagnotte,points_cumul:c.points_cumul,history:c.history,derniere_visite:c.derniere_visite});lSave(ldb);}
@@ -7397,13 +7475,13 @@ function renderPortal(c){
   // Level badge — basé sur points_cumul (jamais décrémenté)
   const lvl=getLevel(cumul);
   const lvlEl=document.getElementById('portal-lvl-badge');
-  if(lvlEl) lvlEl.innerHTML=`<div class="lvl-badge ${lvl.cls}">${lvl.emoji} Niveau ${lvl.label}</div>`;
+  if(lvlEl) lvlEl.innerHTML=`<div class="lvl-badge ${lvl.cls}" onclick="go('page-avantages');renderAvantages();" style="cursor:pointer;">${lvl.emoji} Niveau ${lvl.label}</div>`;
 
   // ── Dashboard premium : nouveaux éléments ──────────────────────
   const dashPren=document.getElementById('dash-prenom');
   if(dashPren) dashPren.textContent=c.prenom;
   const dashLvl=document.getElementById('dash-lvl-badge');
-  if(dashLvl) dashLvl.textContent=lvl.emoji+' '+lvl.label;
+  if(dashLvl){ dashLvl.textContent=lvl.emoji+' '+lvl.label; dashLvl.style.cursor='pointer'; dashLvl.onclick=()=>{go('page-avantages');renderAvantages();}; }
 
   // Points animation
   const cagEl=document.getElementById('portal-cag');
@@ -7503,7 +7581,7 @@ function renderPortal(c){
   const fName=document.getElementById('fidel-name');
   if(fName) fName.textContent=c.prenom;
   const fBadge=document.getElementById('fidel-lvl-badge');
-  if(fBadge){fBadge.textContent=lvl.emoji+' '+lvl.label;fBadge.className='fidel-lvl-badge '+lvl.cls;}
+  if(fBadge){fBadge.textContent=lvl.emoji+' '+lvl.label;fBadge.className='fidel-lvl-badge '+lvl.cls;fBadge.style.cursor='pointer';fBadge.onclick=()=>{go('page-avantages');renderAvantages();};}
   const fPts=document.getElementById('fidel-pts');
   if(fPts) fPts.textContent=pts;
   const fProg=document.getElementById('fidel-prog');
@@ -7557,6 +7635,136 @@ function renderPortal(c){
   // Section "Mes adresses de livraison" dans le profil
   const _pTel=c&&(c.telephone||c.tel);
   if(_pTel) _renderMesAdresses(_pTel).catch(()=>{});
+  // Section date de naissance
+  _renderDdnSection(c);
+}
+
+// ── Section date de naissance dans le profil ─────────────────────────────
+function _renderDdnSection(c){
+  const el=document.getElementById('portal-ddn-section');
+  if(!el) return;
+  if(c.date_naissance){
+    const d=new Date(c.date_naissance);
+    const fmt=d.getDate()+' '+['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'][d.getMonth()];
+    el.innerHTML=`<div style="background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:.875rem 1.25rem;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">🎂</span>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--text);">Date de naissance</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">${fmt}</div></div>
+    </div>`;
+  } else {
+    el.innerHTML=`<div style="background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.2);border-radius:var(--radius);padding:.875rem 1.25rem;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.625rem;">
+        <span style="font-size:20px;">🎂</span>
+        <div><div style="font-size:13px;font-weight:600;color:var(--gold);">Recevez un cadeau d'anniversaire !</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Ajoutez votre date de naissance pour recevoir un produit offert chaque année</div></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="date" id="portal-ddn-input" style="flex:1;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;color:var(--text);font-family:var(--font);font-size:13px;color-scheme:dark;">
+        <button onclick="_saveDdn()" style="background:var(--fire);color:#fff;border:none;border-radius:var(--radius-sm);padding:.5rem 1rem;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;">Valider</button>
+      </div>
+    </div>`;
+  }
+}
+
+async function _saveDdn(){
+  const input=document.getElementById('portal-ddn-input');
+  if(!input||!input.value){showToast('Sélectionnez une date');return;}
+  const c=currentPortalClient;
+  if(!c||!c.id){showToast('Erreur — reconnectez-vous');return;}
+  try{
+    await dbUpdate(c.id,{date_naissance:input.value});
+    c.date_naissance=input.value;
+    saveSession(c);
+    _renderDdnSection(c);
+    showToast('Date de naissance enregistrée 🎂');
+  }catch(e){
+    showToast('Erreur : '+e.message);
+  }
+}
+
+// ── Grille officielle des avantages par statut ───────────────────────────
+const AVANTAGES_TIERS=[
+  {key:'bronze',name:'Bronze',emoji:'🥉',color:'#CD7F32',range:'0 – 199 pts',min:0,max:199,
+   avantages:[
+     {icon:'🔥',text:'1 point par euro dépensé'},
+     {icon:'📇',text:'Carte de passages fidélité'},
+     {icon:'🎂',text:'Anniversaire : 1 boisson 33cl offerte'},
+   ]},
+  {key:'argent',name:'Argent',emoji:'⭐',color:'#C0C0C0',range:'200 – 499 pts',min:200,max:499,
+   avantages:[
+     {icon:'🔥',text:'1 point par euro dépensé'},
+     {icon:'📇',text:'Carte de passages fidélité'},
+     {icon:'✨',text:'Frais de service offerts (0,50 € économisés)'},
+     {icon:'🎂',text:'Anniversaire : 1 dessert offert'},
+     {icon:'⚡',text:'Accès aux offres flash'},
+   ]},
+  {key:'or',name:'Or',emoji:'👑',color:'#FFD700',range:'500+ pts',min:500,max:Infinity,
+   avantages:[
+     {icon:'🔥',text:'1 point par euro dépensé'},
+     {icon:'📇',text:'Carte de passages fidélité'},
+     {icon:'✨',text:'Frais de service offerts'},
+     {icon:'🎂',text:'Anniversaire : 1 accompagnement + 1 boisson offerts'},
+     {icon:'⚡',text:'Offres flash en avant-première (24h avant les autres)'},
+     {icon:'🪑',text:'Paiement sur place disponible'},
+   ]},
+];
+
+function renderAvantages(){
+  const el=document.getElementById('avantages-content');
+  if(!el) return;
+  const c=currentPortalClient;
+  if(!c){el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);">Connectez-vous pour voir vos avantages</div>';return;}
+  const cumul=Math.floor(parseFloat(c.points_cumul)||0);
+  const lvl=getLevel(cumul);
+  const currentKey=lvl.label.toLowerCase();
+
+  // Barre de progression globale
+  let progHtml='';
+  if(currentKey==='bronze'){
+    const pct=Math.min(100,Math.round(cumul/200*100));
+    progHtml=`<div class="avt-progress">
+      <div style="font-size:13px;color:var(--text);">Plus que <strong style="color:#C0C0C0">${200-cumul} pts</strong> avant le niveau ⭐ <strong>Argent</strong></div>
+      <div class="avt-progress-bar"><div class="avt-progress-fill" style="width:${pct}%;background:linear-gradient(90deg,#CD7F32,#C0C0C0);"></div></div>
+    </div>`;
+  } else if(currentKey==='argent'){
+    const pct=Math.min(100,Math.round((cumul-200)/300*100));
+    progHtml=`<div class="avt-progress">
+      <div style="font-size:13px;color:var(--text);">Plus que <strong style="color:#FFD700">${500-cumul} pts</strong> avant le niveau 👑 <strong>Or</strong></div>
+      <div class="avt-progress-bar"><div class="avt-progress-fill" style="width:${pct}%;background:linear-gradient(90deg,#C0C0C0,#FFD700);"></div></div>
+    </div>`;
+  } else {
+    progHtml=`<div class="avt-progress">
+      <div style="font-size:13px;color:#FFD700;font-weight:700;">👑 Vous êtes au sommet — tous les avantages débloqués !</div>
+    </div>`;
+  }
+
+  // Cartes des 3 tiers
+  const tierOrder=['bronze','argent','or'];
+  const tiersHtml=AVANTAGES_TIERS.map(tier=>{
+    const isCurrent=tier.key===currentKey;
+    const isUnlocked=tierOrder.indexOf(currentKey)>=tierOrder.indexOf(tier.key);
+    const items=tier.avantages.map(a=>{
+      const locked=!isUnlocked;
+      return `<div class="avt-item${locked?' avt-locked':''}">
+        <div class="avt-item-icon">${locked?'🔒':a.icon}</div>
+        <div class="avt-item-text">${a.text}</div>
+      </div>`;
+    }).join('');
+    return `<div class="avt-tier avt-${tier.key}${isCurrent?' avt-current':''}">
+      <div class="avt-tier-head">
+        <div class="avt-tier-emoji">${tier.emoji}</div>
+        <div class="avt-tier-info">
+          <div class="avt-tier-name">${tier.name}</div>
+          <div class="avt-tier-range">${tier.range}</div>
+        </div>
+        ${isCurrent?`<div class="avt-tier-current-badge">Votre niveau</div>`:''}
+      </div>
+      <div class="avt-list">${items}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=progHtml+tiersHtml+`
+    <div style="text-align:center;font-size:11px;color:var(--text3);padding:1rem 0 .5rem;line-height:1.6;">
+      💡 <strong>1€ dépensé = 1 point</strong><br>Les points cumulés déterminent votre statut à vie.
+    </div>`;
 }
 
 function renderDashLastOrder(c){
@@ -8902,6 +9110,23 @@ let _flashCache=null;
 function getFlashActive(){
   if(!_flashCache) return null;
   if(Date.now()>_flashCache.end){_flashCache=null;return null;}
+  // Filtrage par visibilité selon le statut du client connecté
+  const vis=_flashCache.visibilite||'tous';
+  if(vis!=='tous'){
+    const c=currentPortalClient;
+    const cumul=Math.floor(parseFloat(c?.points_cumul)||0);
+    const statut=cumul>=500?'or':cumul>=200?'argent':'bronze';
+    if(vis==='argent_or' && statut==='bronze') return null;
+    if(vis==='or_avant_premiere'){
+      if(statut==='bronze') return null;
+      // Argent voit 24h après le lancement
+      if(statut==='argent'){
+        const start=_flashCache.start||0;
+        if(Date.now()-start<24*60*60*1000) return null;
+      }
+      // Or voit immédiatement
+    }
+  }
   return _flashCache;
 }
 
@@ -8971,7 +9196,8 @@ async function lancerOffreFlash(){
   const msg=document.getElementById('flash-msg').value.trim()||'Offre spéciale !';
   const duree=parseInt(document.getElementById('flash-duree').value)||2;
   const multi=parseFloat(document.getElementById('flash-multi').value)||2;
-  const flash={msg,multi,start:Date.now(),end:Date.now()+duree*3600000};
+  const visibilite=document.getElementById('flash-visibilite')?.value||'tous';
+  const flash={msg,multi,start:Date.now(),end:Date.now()+duree*3600000,visibilite};
   const statusEl=document.getElementById('flash-status');
 
   if(supaOk()){

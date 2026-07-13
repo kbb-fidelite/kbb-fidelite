@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
     // Charger les cagnottes actuelles
     const { data: allClients, error: acErr } = await supabase
       .from('clients')
-      .select('telephone, cagnotte, points_cumul');
+      .select('telephone, cagnotte, points_cumul, date_naissance, dernier_bonus_anniv');
 
     if (acErr) {
       console.error('[watchdog] C2 lecture clients:', acErr.message);
@@ -255,6 +255,60 @@ Deno.serve(async (req) => {
       if (total > 10) {
         alertes.push(`🔒 Activité suspecte sur les accès : ${total} tentatives en 24h`);
         detail.c5_attempts = total;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // BONUS — Push anniversaire du jour
+    //   Envoie une notification aux clients dont c'est l'anniversaire
+    //   (ceux qui ont date_naissance + push_subscription)
+    // ═══════════════════════════════════════════════════════════════
+    if (allClients) {
+      const ANNIV_CADEAUX: Record<string, string> = {
+        bronze: '🥤 boisson 33cl offerte',
+        argent: '🍰 dessert offert',
+        or:     '🍟🥤 accompagnement + boisson offerts',
+      };
+      const todayMonth = now.getMonth();
+      const todayDate = now.getDate();
+      const thisYear = now.toISOString().slice(0, 4);
+      const supaUrl = Deno.env.get('SUPABASE_URL')!;
+
+      let annivCount = 0;
+      for (const cl of allClients) {
+        if (!cl.telephone) continue;
+        const ddn = String(cl.date_naissance ?? '');
+        if (!ddn) continue;
+        const d = new Date(ddn);
+        if (d.getMonth() !== todayMonth || d.getDate() !== todayDate) continue;
+
+        // Ne pas envoyer si déjà notifié cette année
+        const lastBonus = String((cl as Record<string, unknown>).dernier_bonus_anniv ?? '');
+        if (lastBonus.startsWith(thisYear)) continue;
+
+        const cumul = Math.floor(parseFloat(String(cl.points_cumul ?? 0)));
+        const statut = cumul >= 500 ? 'or' : cumul >= 200 ? 'argent' : 'bronze';
+        const cadeau = ANNIV_CADEAUX[statut];
+
+        // Envoyer la push (fire-and-forget)
+        fetch(`${supaUrl}/functions/v1/send-push-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_tel: cl.telephone,
+            title: `🎂 Joyeux anniversaire !`,
+            body: `Votre ${cadeau} vous attend cette semaine — commandez pour en profiter !`,
+            internal_secret: empSecret,
+          }),
+        }).then(() => {
+          console.log(`[watchdog] push anniv envoyée tel=${mask(cl.telephone)}`);
+        }).catch(() => {});
+
+        annivCount++;
+      }
+      if (annivCount > 0) {
+        detail.anniv_push_sent = annivCount;
+        console.log(`[security-watchdog] ${annivCount} push anniversaire envoyée(s)`);
       }
     }
 

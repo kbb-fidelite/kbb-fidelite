@@ -155,6 +155,7 @@ Deno.serve(async (req) => {
       presence_token,
       deliveryAddress,
       deliveryFeeCents,
+      anniv_cadeau_tag,
     } = await req.json();
 
     // ── Vérification presence_token pour les commandes sur place ─────────────
@@ -187,15 +188,17 @@ Deno.serve(async (req) => {
     const deliveryFee  = isLivraison
       ? Math.round(Math.max(0, Number(deliveryFeeCents))) / 100
       : 0;
-    // ── Statut serveur : lookup points_cumul en base ───────────────────────
+    // ── Statut serveur : lookup points_cumul + anniversaire en base ─────────
     let serverStatut = 'bronze';
+    let clientRow: Record<string, unknown> | null = null;
     if (clientTel) {
       const { data: cRow } = await supabase
         .from('clients')
-        .select('points_cumul')
+        .select('id, points_cumul, date_naissance, dernier_bonus_anniv')
         .eq('telephone', String(clientTel))
         .maybeSingle();
       if (cRow) {
+        clientRow = cRow;
         serverStatut = getStatutFromCumul(Math.floor(parseFloat(String(cRow.points_cumul ?? 0))));
         console.log(`[create-checkout] statut serveur: ${serverStatut} (points_cumul=${cRow.points_cumul})`);
       }
@@ -236,6 +239,55 @@ Deno.serve(async (req) => {
         console.log(`[create-checkout] reward livraison_offerte: discount ${serverRewardDiscount.toFixed(2)}€ (plafond ${plafond}€, livraison ${deliveryFee.toFixed(2)}€)`);
       }
       // Autres types de reward : pas de discount sur le montant (article offert géré autrement)
+    }
+
+    // ── Cadeau anniversaire : validation serveur ─────────────────────────────
+    // Le client envoie anniv_cadeau_tag. Le serveur vérifie :
+    //   1. Le client a une date_naissance
+    //   2. C'est dans la fenêtre J à J+7
+    //   3. dernier_bonus_anniv n'est pas de cette année
+    //   4. Le tag correspond au statut serveur
+    const ANNIV_TAGS: Record<string, { label: string; statut: string }> = {
+      anniv_boisson:        { label: '🥤 Boisson 33cl offerte (anniversaire)', statut: 'bronze' },
+      anniv_dessert:        { label: '🍰 Dessert offert (anniversaire)', statut: 'argent' },
+      anniv_accomp_boisson: { label: '🍟🥤 Accompagnement + Boisson offerts (anniversaire)', statut: 'or' },
+    };
+    let annivValidated = false;
+    if (anniv_cadeau_tag && clientRow) {
+      const tagInfo = ANNIV_TAGS[anniv_cadeau_tag as string];
+      if (tagInfo) {
+        const ddn = String(clientRow.date_naissance ?? '');
+        const dernierBonus = String(clientRow.dernier_bonus_anniv ?? '');
+        const thisYear = new Date().toISOString().slice(0, 4);
+        const alreadyUsed = dernierBonus.startsWith(thisYear);
+
+        if (ddn && !alreadyUsed) {
+          // Vérifier fenêtre J à J+7
+          const today = new Date();
+          const birth = new Date(ddn);
+          const annivDate = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
+          const diffDays = Math.floor((today.getTime() - annivDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays >= 0 && diffDays <= 7) {
+            // Vérifier que le tag correspond au statut (pas d'upgrade frauduleux)
+            const statutOrder = ['bronze', 'argent', 'or'];
+            if (statutOrder.indexOf(serverStatut) >= statutOrder.indexOf(tagInfo.statut)) {
+              annivValidated = true;
+              // Marquer comme utilisé en base
+              await supabase
+                .from('clients')
+                .update({ dernier_bonus_anniv: today.toISOString().slice(0, 10) })
+                .eq('id', clientRow.id);
+              console.log(`[create-checkout] cadeau anniversaire validé: ${tagInfo.label} | statut=${serverStatut}`);
+            } else {
+              console.warn(`[create-checkout] anniv tag ${anniv_cadeau_tag} refusé: statut ${serverStatut} < ${tagInfo.statut}`);
+            }
+          } else {
+            console.warn(`[create-checkout] anniv refusé: hors fenêtre (diff=${diffDays}j)`);
+          }
+        } else {
+          console.warn(`[create-checkout] anniv refusé: ddn=${ddn ? 'ok' : 'absent'} déjà_utilisé=${alreadyUsed}`);
+        }
+      }
     }
 
     // Recalculer le total avec le discount récompense
@@ -318,6 +370,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Cadeau anniversaire : ajouté dans la description de commande + metadata (pas de line item Stripe à 0€)
+    const annivTag = annivValidated ? String(anniv_cadeau_tag) : '';
+    const annivLabel = annivValidated ? ANNIV_TAGS[anniv_cadeau_tag as string]?.label ?? '' : '';
+    if (annivValidated) {
+      // Ajouter dans la description du line item principal
+      const mainItem = lineItems[0];
+      mainItem.description = (mainItem.description ? mainItem.description + ' + ' : '') + annivLabel;
+    }
+
     const session = await stripeCreateCheckoutSession(stripeKey, {
       line_items: lineItems,
       success_url: successUrl,
@@ -328,14 +389,15 @@ Deno.serve(async (req) => {
         server_total:    String(serverGrandTotalFinal),
         reward_discount: serverRewardDiscount > 0 ? String(serverRewardDiscount) : '',
         reward_id:       rewardId ? String(rewardId) : '',
+        anniv_cadeau:    annivTag,
       },
     });
 
-    console.log(`[create-checkout] session Stripe créée: ${session.id} | ${serverGrandTotalFinal.toFixed(2)}€` + (serverRewardDiscount > 0 ? ` (dont −${serverRewardDiscount.toFixed(2)}€ livraison offerte)` : ''));
+    console.log(`[create-checkout] session Stripe créée: ${session.id} | ${serverGrandTotalFinal.toFixed(2)}€` + (serverRewardDiscount > 0 ? ` (dont −${serverRewardDiscount.toFixed(2)}€ livraison offerte)` : '') + (annivValidated ? ` + ${annivLabel}` : ''));
 
     // La commande sera créée dans verify-payment après confirmation Stripe.
     // Aucune pré-création ici — pas de commandes fantômes en cas d'abandon.
-    return jsonResp({ url: session.url, sessionId: session.id, serverTotal: serverGrandTotalFinal, serviceFee, serverStatut, rewardDiscount: serverRewardDiscount });
+    return jsonResp({ url: session.url, sessionId: session.id, serverTotal: serverGrandTotalFinal, serviceFee, serverStatut, rewardDiscount: serverRewardDiscount, annivCadeau: annivTag });
 
   } catch (err) {
     const e = err as { message?: string; type?: string; code?: string; statusCode?: number };
