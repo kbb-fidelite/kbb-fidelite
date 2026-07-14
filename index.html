@@ -7787,6 +7787,25 @@ function renderAvantages(){
     </div>`;
 }
 
+function _parseItemsSummary(raw){
+  try{
+    const arr=typeof raw==='string'?JSON.parse(raw):(Array.isArray(raw)?raw:[]);
+    if(!Array.isArray(arr)||!arr.length) return '';
+    const grouped=[];
+    arr.forEach(it=>{
+      const name=typeof it==='object'?(it.name||'Article'):String(it);
+      const menu=typeof it==='object'&&it.menu?' (Menu)':'';
+      const key=name+menu;
+      const ex=grouped.find(g=>g.key===key);
+      if(ex) ex.qty++;
+      else grouped.push({key,name,menu,qty:1});
+    });
+    return grouped.map(g=>(g.qty>1?g.qty+'× ':'')+g.name+g.menu).join(', ');
+  }catch(_){
+    return typeof raw==='string'?raw:'';
+  }
+}
+
 function renderDashLastOrder(c){
   const el=document.getElementById('dash-last-order');
   if(!el) return;
@@ -7795,7 +7814,7 @@ function renderDashLastOrder(c){
   const myOrders=tel?allOrders.filter(o=>o.client_telephone===tel):allOrders;
   const last=myOrders.filter(o=>o.statut!=='pending_payment').slice(-1)[0];
   if(!last){el.style.display='none';return;}
-  const items=Array.isArray(last.items)?last.items.map(i=>i.name||i).join(', '):String(last.items||'');
+  const items=_parseItemsSummary(last.items);
   const display=items.length>40?items.slice(0,40)+'…':items;
   const date=last.created_at?new Date(last.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):null;
   el.style.display='block';
@@ -8727,7 +8746,7 @@ async function loadEmpCommandes(){
         </div>
         <div style="text-align:right;"><div class="cmd-badge ${sb}">${sl}</div><div class="cmd-time" style="margin-top:4px;">${ts}</div></div>
       </div>
-      <div class="cmd-items" style="margin-top:.5rem;">${o.items||''}</div>
+      <div class="cmd-items" style="margin-top:.5rem;">${parseItemsKDS(o.items)}</div>
       <div class="cmd-footer"><div class="cmd-total">${parseFloat(o.montant||0).toFixed(2).replace('.',',')}€</div></div>
       <div class="cmd-actions">
         ${o.statut==='en_attente'?`<button class="cmd-btn start" onclick="updateOrderStatus('${o.id}','en_cours')">▶ Démarrer</button>`:''}
