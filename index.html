@@ -7651,16 +7651,22 @@ function _renderDdnSection(c){
   const cumul=Math.floor(parseFloat(c.points_cumul)||0);
   const statut=cumul>=500?'or':cumul>=200?'argent':'bronze';
   const cadeau=ANNIV_CADEAUX[statut];
+  const now=new Date();
+  const maxDate=new Date(now.getFullYear()-16,now.getMonth(),now.getDate()).toISOString().slice(0,10);
+  const minDate=new Date(now.getFullYear()-100,now.getMonth(),now.getDate()).toISOString().slice(0,10);
+  const defaultYear='1990-01-01';
   el.innerHTML=`<div id="ddn-banner-inner" style="position:relative;background:linear-gradient(135deg,rgba(255,152,0,.12),rgba(255,215,0,.10));border:1px solid rgba(255,184,48,.25);border-radius:var(--radius);padding:.875rem 1.25rem;margin-bottom:.875rem;">
     <button onclick="_dismissDdnBanner()" aria-label="Fermer" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;line-height:1;">✕</button>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.625rem;padding-right:20px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;padding-right:20px;">
       <span style="font-size:22px;">🎂</span>
       <div><div style="font-size:13px;font-weight:700;color:var(--gold);">Votre cadeau d'anniversaire vous attend</div><div style="font-size:11px;color:var(--text3);margin-top:3px;">Ajoutez votre date pour recevoir ${cadeau.icon} ${cadeau.label} chaque année</div></div>
     </div>
+    <label for="portal-ddn-input" style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">📅 Votre date de naissance</label>
     <div style="display:flex;gap:8px;align-items:center;">
-      <input type="date" id="portal-ddn-input" style="flex:1;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;color:var(--text);font-family:var(--font);font-size:13px;color-scheme:dark;">
-      <button onclick="_saveDdn()" style="background:var(--fire);color:#fff;border:none;border-radius:var(--radius-sm);padding:.5rem 1rem;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;">Ajouter ma date</button>
+      <input type="date" id="portal-ddn-input" min="${minDate}" max="${maxDate}" value="${defaultYear}" style="flex:1;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;color:var(--text);font-family:var(--font);font-size:13px;color-scheme:dark;">
+      <button onclick="_saveDdn()" style="background:var(--fire);color:#fff;border:none;border-radius:var(--radius-sm);padding:.5rem 1rem;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Valider ma date 🎂</button>
     </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:6px;">Jour / Mois / Année — nous ne l'utilisons que pour votre cadeau 🎂 · <span style="color:var(--gold);">Modifiable une seule fois</span></div>
   </div>`;
 }
 
@@ -7672,12 +7678,13 @@ function _dismissDdnBanner(){
 
 async function _saveDdn(){
   const input=document.getElementById('portal-ddn-input');
-  if(!input||!input.value){showToast('Sélectionnez une date');return;}
-  // Validation basique : pas dans le futur, pas avant 1920
+  if(!input||!input.value||input.value==='1990-01-01'){showToast('Merci de sélectionner votre date de naissance');return;}
   const d=new Date(input.value);
+  if(isNaN(d.getTime())){showToast('Merci de sélectionner votre date de naissance');return;}
   const now=new Date();
-  if(d>now){showToast('Date dans le futur — vérifiez votre saisie');return;}
-  if(d.getFullYear()<1920){showToast('Date invalide');return;}
+  const age=now.getFullYear()-d.getFullYear();
+  if(age<16){showToast('Vous devez avoir au moins 16 ans');return;}
+  if(age>100){showToast('Date invalide — vérifiez votre saisie');return;}
   const c=currentPortalClient;
   if(!c||!c.id){showToast('Erreur — reconnectez-vous');return;}
   try{
