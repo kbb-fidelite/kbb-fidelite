@@ -2304,6 +2304,7 @@ body{
       <div class="prog-bar-wrap"><div class="prog-bar-fill" id="portal-prog" style="width:0%"></div></div>
       <div class="cag-sub" id="portal-cag-sub"></div>
     </div>
+    <div id="portal-ddn-banner"></div>
     <div id="portal-rewards"></div>
     <div id="portal-flash"></div>
     <div class="motive">
@@ -2312,7 +2313,6 @@ body{
     </div>
     <div id="portal-filleul-status"></div>
     <div id="portal-adresses" style="margin-bottom:.875rem;"></div>
-    <div id="portal-ddn-section" style="margin-bottom:.875rem;"></div>
     <div class="stats-row">
       <div class="sbox"><div class="sv" id="portal-passages">0</div><div class="sl">Passages</div></div>
       <div class="sbox"><div class="sv" id="portal-cumul">0</div><div class="sl">Points cumulés</div></div>
@@ -7641,47 +7641,33 @@ function renderPortal(c){
 
 // ── Section date de naissance dans le profil ─────────────────────────────
 function _renderDdnSection(c){
-  const el=document.getElementById('portal-ddn-section');
+  const el=document.getElementById('portal-ddn-banner');
   if(!el) return;
+  // Date déjà renseignée → bandeau disparaît définitivement
+  if(c.date_naissance){el.innerHTML='';return;}
+  // Fermé par l'utilisateur (30 jours)
+  const dismissed=localStorage.getItem('kbb_ddn_dismiss');
+  if(dismissed&&Date.now()-parseInt(dismissed)<30*24*60*60*1000){el.innerHTML='';return;}
   const cumul=Math.floor(parseFloat(c.points_cumul)||0);
   const statut=cumul>=500?'or':cumul>=200?'argent':'bronze';
   const cadeau=ANNIV_CADEAUX[statut];
-  const thisYear=new Date().toISOString().slice(0,4);
-  const dejaUtilise=c.dernier_bonus_anniv&&c.dernier_bonus_anniv.startsWith(thisYear);
-  if(c.date_naissance){
-    const d=new Date(c.date_naissance);
-    const fmt=d.getDate()+' '+['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'][d.getMonth()];
-    const modifiable=!dejaUtilise;
-    el.innerHTML=`<div style="background:var(--coal3);border:1px solid var(--border2);border-radius:var(--radius);padding:.875rem 1.25rem;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:20px;">🎂</span>
-        <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--text);">Date de naissance</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">${fmt} — Cadeau : ${cadeau.icon} ${cadeau.label}</div></div>
-        ${modifiable?`<button onclick="_showDdnEdit()" style="background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text3);font-size:11px;cursor:pointer;">Modifier</button>`:''}
-      </div>
-      <div id="portal-ddn-edit" style="display:none;margin-top:.625rem;">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="date" id="portal-ddn-input" value="${c.date_naissance}" style="flex:1;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;color:var(--text);font-family:var(--font);font-size:13px;color-scheme:dark;">
-          <button onclick="_saveDdn()" style="background:var(--fire);color:#fff;border:none;border-radius:var(--radius-sm);padding:.5rem 1rem;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;">Valider</button>
-        </div>
-      </div>
-    </div>`;
-  } else {
-    el.innerHTML=`<div style="background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.2);border-radius:var(--radius);padding:.875rem 1.25rem;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.625rem;">
-        <span style="font-size:20px;">🎂</span>
-        <div><div style="font-size:13px;font-weight:600;color:var(--gold);">Recevez ${cadeau.icon} ${cadeau.label} !</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Ajoutez votre date de naissance pour recevoir votre cadeau chaque année</div></div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input type="date" id="portal-ddn-input" style="flex:1;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;color:var(--text);font-family:var(--font);font-size:13px;color-scheme:dark;">
-        <button onclick="_saveDdn()" style="background:var(--fire);color:#fff;border:none;border-radius:var(--radius-sm);padding:.5rem 1rem;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;">Valider</button>
-      </div>
-    </div>`;
-  }
+  el.innerHTML=`<div id="ddn-banner-inner" style="position:relative;background:linear-gradient(135deg,rgba(255,152,0,.12),rgba(255,215,0,.10));border:1px solid rgba(255,184,48,.25);border-radius:var(--radius);padding:.875rem 1.25rem;margin-bottom:.875rem;">
+    <button onclick="_dismissDdnBanner()" aria-label="Fermer" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;line-height:1;">✕</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.625rem;padding-right:20px;">
+      <span style="font-size:22px;">🎂</span>
+      <div><div style="font-size:13px;font-weight:700;color:var(--gold);">Votre cadeau d'anniversaire vous attend</div><div style="font-size:11px;color:var(--text3);margin-top:3px;">Ajoutez votre date pour recevoir ${cadeau.icon} ${cadeau.label} chaque année</div></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="date" id="portal-ddn-input" style="flex:1;background:var(--coal2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;color:var(--text);font-family:var(--font);font-size:13px;color-scheme:dark;">
+      <button onclick="_saveDdn()" style="background:var(--fire);color:#fff;border:none;border-radius:var(--radius-sm);padding:.5rem 1rem;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;">Ajouter ma date</button>
+    </div>
+  </div>`;
 }
 
-function _showDdnEdit(){
-  const el=document.getElementById('portal-ddn-edit');
-  if(el) el.style.display=el.style.display==='none'?'block':'none';
+function _dismissDdnBanner(){
+  localStorage.setItem('kbb_ddn_dismiss',String(Date.now()));
+  const el=document.getElementById('portal-ddn-banner');
+  if(el) el.innerHTML='';
 }
 
 async function _saveDdn(){
@@ -7699,6 +7685,7 @@ async function _saveDdn(){
     if(result&&result.error){showToast(result.error);return;}
     c.date_naissance=input.value;
     saveSession(c);
+    localStorage.removeItem('kbb_ddn_dismiss');
     _renderDdnSection(c);
     showToast('Date de naissance enregistrée 🎂');
   }catch(e){
